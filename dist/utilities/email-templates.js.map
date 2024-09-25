@@ -1,0 +1,1 @@
+{"version":3,"file":"email-templates.js","sourceRoot":"","sources":["../../src/utilities/email-templates.ts"],"names":[],"mappings":";;;AAAa,QAAA,cAAc,GAAG;IAC5B,YAAY,EAAE,CAAC,SAAiB,EAAE,EAAE,CAAC,QAAQ,SAAS;;;;;;;;;;;;;;;;;;;;;;;;GAwBrD;IACD,wBAAwB,EAAE,CAAC,SAAiB,EAAE,EAAE,CAAC;UACzC,SAAS;GAChB;CAEF,CAAC"}
