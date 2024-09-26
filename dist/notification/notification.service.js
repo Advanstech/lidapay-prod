@@ -41,6 +41,7 @@ let NotificationService = class NotificationService {
         }
         return savedNotification.save();
     }
+<<<<<<< HEAD
     async createNotificationWithEmailAndSms(createNotificationDto) {
         const createdNotification = new this.notificationModel({
             ...createNotificationDto,
@@ -53,6 +54,8 @@ let NotificationService = class NotificationService {
         savedNotification.status = smsStatus ? 'sent' : 'failed';
         return savedNotification.save();
     }
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
     async findAll() {
         return this.notificationModel.find().exec();
     }

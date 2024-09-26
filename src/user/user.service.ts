@@ -17,8 +17,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { INVITATION_LINK_REWARD_POINTS } from 'src/constants';
 import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { TokenUtil } from 'src/utilities/token.util';
+<<<<<<< HEAD
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
 
 @Injectable()
 export class UserService {
@@ -33,7 +36,10 @@ export class UserService {
     private smsService: SmsService,
     private gravatarService: GravatarService,
     private readonly merchantService: MerchantService,
+<<<<<<< HEAD
     private notificationService: NotificationService
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
   ) { }
 
   // Create a new user
@@ -142,6 +148,7 @@ export class UserService {
       if (!updatedUser) {
         throw new Error('User not found');
       }
+<<<<<<< HEAD
 
       // Prepare notification data
       const notificationData: CreateNotificationDto = {
@@ -153,6 +160,8 @@ export class UserService {
       // Notify user about the profile update using the existing notification module
       await this.notificationService.create(notificationData);
 
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
       return updatedUser;
     } catch (error) {
       // Handle update errors

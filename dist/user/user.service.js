@@ -32,16 +32,24 @@ const uuid_1 = require("uuid");
 const constants_2 = require("../constants");
 const common_2 = require("@nestjs/common");
 const token_util_1 = require("../utilities/token.util");
+<<<<<<< HEAD
 const notification_service_1 = require("../notification/notification.service");
 let UserService = UserService_1 = class UserService {
     constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
+=======
+let UserService = UserService_1 = class UserService {
+    constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService) {
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
         this.userModel = userModel;
         this.emailService = emailService;
         this.nodemailService = nodemailService;
         this.smsService = smsService;
         this.gravatarService = gravatarService;
         this.merchantService = merchantService;
+<<<<<<< HEAD
         this.notificationService = notificationService;
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
         this.logger = new common_1.Logger(UserService_1.name);
         this.emailVerifyRewardPoints = process.env.EMAIL_VERIFICATION_REWARD_POINTS || constants_1.EMAIL_VERIFICATION_REWARD_POINTS;
         this.phoneVerifyRewardPoints = process.env.PHONE_VERIFICATION_REWARD_POINTS || constants_1.PHONE_VERIFICATION_REWARD_POINTS;
@@ -126,6 +134,7 @@ let UserService = UserService_1 = class UserService {
             if (!updatedUser) {
                 throw new Error('User not found');
             }
+<<<<<<< HEAD
             const notificationData = {
                 userId: updatedUser.email,
                 type: 'email',
@@ -133,6 +142,8 @@ let UserService = UserService_1 = class UserService {
                 message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}`
             };
             await this.notificationService.create(notificationData);
+=======
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
             return updatedUser;
         }
         catch (error) {
@@ -347,7 +358,11 @@ exports.UserService = UserService = UserService_1 = __decorate([
         nodemail_service_1.NodemailService,
         sms_util_1.SmsService,
         gravatar_util_1.GravatarService,
+<<<<<<< HEAD
         merchant_service_1.MerchantService,
         notification_service_1.NotificationService])
+=======
+        merchant_service_1.MerchantService])
+>>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
 ], UserService);
 //# sourceMappingURL=user.service.js.map
