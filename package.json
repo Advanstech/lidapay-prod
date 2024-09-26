@@ -1,11 +1,7 @@
 {
   "name": "lidapay",
-<<<<<<< HEAD
   "version": "0.0.4",
-=======
-  "version": "0.0.3",
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
-  "description": "",
+  "description": "Lidapay API designed to facilitate airtime and internet data remittance across all application platforms.",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -15,22 +11,13 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-<<<<<<< HEAD
     "start:prod": "node dist/main.js",
-=======
-    "start:prod": "node dist/main",
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-<<<<<<< HEAD
     "test:e2e": "jest --config ./test/jest-e2e.json"
-=======
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "deploy": "yarn install --frozen-lockfile && yarn run build && yarn run start:prod"
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
@@ -71,10 +58,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.0",
-<<<<<<< HEAD
     "@types/uuid": "^10.0.0",
-=======
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^8.42.0",

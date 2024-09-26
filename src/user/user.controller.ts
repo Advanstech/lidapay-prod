@@ -76,16 +76,7 @@ export class UserController {
       'application/json': {
         example: {
           accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-<<<<<<< HEAD
           refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-=======
-          refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          user: {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            email: 'kofi.annan@example.com',
-            roles: ['user']
-          }
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
         }
       }
     }
@@ -233,11 +224,8 @@ export class UserController {
   })
   async updateProfile(@Request() req, @Body() updateData: any) {
     this.logger.debug(`Profile request ===> ${req.user}`);
-<<<<<<< HEAD
     // pass user email to the updateData
     updateData.email = req.user.email;
-=======
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
     return this.userService.updateProfile(req.user.sub, updateData);
   }
   // Get all users
