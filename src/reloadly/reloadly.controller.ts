@@ -5,7 +5,7 @@ import { NetworkOperatorsDto } from "./dto/network.operators.dto";
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
-@ApiTags('Reloadly')
+@ApiTags('Reloadly Services')
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/reloadly')
 export class ReloadlyController {

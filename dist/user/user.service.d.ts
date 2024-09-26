@@ -6,6 +6,7 @@ import { NodemailService } from '../utilities/nodemail.service';
 import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
+import { NotificationService } from 'src/notification/notification.service';
 export declare class UserService {
     private userModel;
     private emailService;
@@ -13,10 +14,11 @@ export declare class UserService {
     private smsService;
     private gravatarService;
     private readonly merchantService;
+    private notificationService;
     private logger;
     private emailVerifyRewardPoints;
     private phoneVerifyRewardPoints;
-    constructor(userModel: Model<UserDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService);
+    constructor(userModel: Model<UserDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;

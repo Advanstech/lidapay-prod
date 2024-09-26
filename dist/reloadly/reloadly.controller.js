@@ -318,7 +318,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ReloadlyController.prototype, "getNetworkOperatorByCode", null);
 exports.ReloadlyController = ReloadlyController = ReloadlyController_1 = __decorate([
-    (0, swagger_1.ApiTags)('Reloadly'),
+    (0, swagger_1.ApiTags)('Reloadly Services'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/v1/reloadly'),
     __metadata("design:paramtypes", [reloadly_service_1.ReloadlyService])

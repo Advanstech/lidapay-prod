@@ -41,6 +41,18 @@ let NotificationService = class NotificationService {
         }
         return savedNotification.save();
     }
+    async createNotificationWithEmailAndSms(createNotificationDto) {
+        const createdNotification = new this.notificationModel({
+            ...createNotificationDto,
+            status: 'pending',
+        });
+        const savedNotification = await createdNotification.save();
+        const emailStatus = await this.emailService.sendMail(createNotificationDto.userId, 'Notification', createNotificationDto.message);
+        savedNotification.status = emailStatus ? 'sent' : 'failed';
+        const smsStatus = await this.smsService.sendSms(createNotificationDto.userId, createNotificationDto.message);
+        savedNotification.status = smsStatus ? 'sent' : 'failed';
+        return savedNotification.save();
+    }
     async findAll() {
         return this.notificationModel.find().exec();
     }

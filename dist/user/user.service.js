@@ -32,14 +32,16 @@ const uuid_1 = require("uuid");
 const constants_2 = require("../constants");
 const common_2 = require("@nestjs/common");
 const token_util_1 = require("../utilities/token.util");
+const notification_service_1 = require("../notification/notification.service");
 let UserService = UserService_1 = class UserService {
-    constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService) {
+    constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
         this.userModel = userModel;
         this.emailService = emailService;
         this.nodemailService = nodemailService;
         this.smsService = smsService;
         this.gravatarService = gravatarService;
         this.merchantService = merchantService;
+        this.notificationService = notificationService;
         this.logger = new common_1.Logger(UserService_1.name);
         this.emailVerifyRewardPoints = process.env.EMAIL_VERIFICATION_REWARD_POINTS || constants_1.EMAIL_VERIFICATION_REWARD_POINTS;
         this.phoneVerifyRewardPoints = process.env.PHONE_VERIFICATION_REWARD_POINTS || constants_1.PHONE_VERIFICATION_REWARD_POINTS;
@@ -124,6 +126,13 @@ let UserService = UserService_1 = class UserService {
             if (!updatedUser) {
                 throw new Error('User not found');
             }
+            const notificationData = {
+                userId: updatedUser.email,
+                type: 'email',
+                subject: 'Profile Updated',
+                message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}`
+            };
+            await this.notificationService.create(notificationData);
             return updatedUser;
         }
         catch (error) {
@@ -338,6 +347,7 @@ exports.UserService = UserService = UserService_1 = __decorate([
         nodemail_service_1.NodemailService,
         sms_util_1.SmsService,
         gravatar_util_1.GravatarService,
-        merchant_service_1.MerchantService])
+        merchant_service_1.MerchantService,
+        notification_service_1.NotificationService])
 ], UserService);
 //# sourceMappingURL=user.service.js.map

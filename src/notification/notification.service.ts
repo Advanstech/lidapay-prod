@@ -13,16 +13,15 @@ export class NotificationService {
     @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
-  ) {}
+  ) { }
 
+  // create notification
   async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {
     const createdNotification = new this.notificationModel({
       ...createNotificationDto,
       status: 'pending',
     });
-
     const savedNotification = await createdNotification.save();
-
     if (createNotificationDto.type === 'email') {
       const emailStatus = await this.emailService.sendMail(
         createNotificationDto.userId,
@@ -37,19 +36,36 @@ export class NotificationService {
 
     return savedNotification.save();
   }
-
+  // Create notification  with email and sms
+  async createNotificationWithEmailAndSms(createNotificationDto: CreateNotificationDto): Promise<Notification> {
+    const createdNotification = new this.notificationModel({
+      ...createNotificationDto,
+      status: 'pending',
+    });
+    const savedNotification = await createdNotification.save();
+    const emailStatus = await this.emailService.sendMail(
+      createNotificationDto.userId,
+      'Notification',
+      createNotificationDto.message
+    );
+    savedNotification.status = emailStatus ? 'sent' : 'failed';
+    const smsStatus = await this.smsService.sendSms(createNotificationDto.userId, createNotificationDto.message);
+    savedNotification.status = smsStatus ? 'sent' : 'failed';
+    return savedNotification.save();
+  }
+  // Get all notifications
   async findAll(): Promise<Notification[]> {
     return this.notificationModel.find().exec();
   }
-
+  // Get notification by id
   async findOne(id: string): Promise<Notification> {
     return this.notificationModel.findById(id).exec();
   }
-
+  // Update notification
   async update(id: string, updateNotificationDto: UpdateNotificationDto): Promise<Notification> {
     return this.notificationModel.findByIdAndUpdate(id, updateNotificationDto, { new: true }).exec();
   }
-
+  // Delete notification
   async delete(id: string): Promise<void> {
     await this.notificationModel.findByIdAndDelete(id).exec();
   }

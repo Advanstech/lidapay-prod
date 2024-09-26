@@ -17,7 +17,6 @@ export class Notification {
   @Prop({ required: true })
   status: string; // 'pending', 'sent', 'failed'
 
-  
   @Prop({ default: Date.now })
   createdAt: Date;
   @Prop({ default: Date.now })

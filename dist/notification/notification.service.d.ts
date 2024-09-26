@@ -10,6 +10,7 @@ export declare class NotificationService {
     private readonly smsService;
     constructor(notificationModel: Model<NotificationDocument>, emailService: EmailService, smsService: SmsService);
     create(createNotificationDto: CreateNotificationDto): Promise<Notification>;
+    createNotificationWithEmailAndSms(createNotificationDto: CreateNotificationDto): Promise<Notification>;
     findAll(): Promise<Notification[]>;
     findOne(id: string): Promise<Notification>;
     update(id: string, updateNotificationDto: UpdateNotificationDto): Promise<Notification>;

@@ -62,6 +62,7 @@ let UserController = UserController_1 = class UserController {
     }
     async updateProfile(req, updateData) {
         this.logger.debug(`Profile request ===> ${req.user}`);
+        updateData.email = req.user.email;
         return this.userService.updateProfile(req.user.sub, updateData);
     }
     async getAllUsers(page = 1) {
@@ -245,12 +246,7 @@ __decorate([
             'application/json': {
                 example: {
                     accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                    user: {
-                        id: '123e4567-e89b-12d3-a456-426614174000',
-                        email: 'kofi.annan@example.com',
-                        roles: ['user']
-                    }
+                    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
                 }
             }
         }
