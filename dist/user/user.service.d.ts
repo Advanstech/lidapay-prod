@@ -6,10 +6,7 @@ import { NodemailService } from '../utilities/nodemail.service';
 import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
-<<<<<<< HEAD
 import { NotificationService } from 'src/notification/notification.service';
-=======
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
 export declare class UserService {
     private userModel;
     private emailService;
@@ -17,18 +14,11 @@ export declare class UserService {
     private smsService;
     private gravatarService;
     private readonly merchantService;
-<<<<<<< HEAD
     private notificationService;
     private logger;
     private emailVerifyRewardPoints;
     private phoneVerifyRewardPoints;
     constructor(userModel: Model<UserDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
-=======
-    private logger;
-    private emailVerifyRewardPoints;
-    private phoneVerifyRewardPoints;
-    constructor(userModel: Model<UserDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService);
->>>>>>> 9a6de866e98eee94bf1b44a3191d0a5a866d12cb
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;
