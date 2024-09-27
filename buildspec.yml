@@ -1,13 +1,32 @@
+# version: 0.2
+
+# phases:
+#   install:
+#     commands:
+#       - npm install
+#   build:
+#     commands:
+#       - npm run build
+# artifacts:
+#   files:
+#     - '**/*'
+#   base-directory: 'dist'
+
 version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      nodejs: 20  # Adjust based on your app's needs
     commands:
       - npm install
   build:
     commands:
       - npm run build
+  post_build:
+    commands:
+      - zip -r lidapay.zip .
+
 artifacts:
   files:
-    - '**/*'
-  base-directory: 'dist'
+    - lidapay.zip
