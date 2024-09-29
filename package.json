@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "preinstall": "npm install --legacy-peer-deps",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npm run start:prod",
@@ -19,7 +20,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "predeploy": "npm run build",
-    "deploy": "npm ci && npm run build && npm start:prod"
+    "deploy": "npm ci && npm run build && npm run start:prod"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
