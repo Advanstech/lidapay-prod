@@ -6,7 +6,6 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "preinstall":"npm install",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -19,6 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "predeploy": "npm run build",
     "deploy": "npm run build && npm run start:prod"
   },
   "dependencies": {
