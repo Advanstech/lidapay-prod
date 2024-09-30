@@ -35,6 +35,10 @@ export declare class Merchant extends Document {
 }
 export declare const MerchantSchema: import("mongoose").Schema<Merchant, import("mongoose").Model<Merchant, any, any, any, Document<unknown, any, Merchant> & Merchant & Required<{
     _id: unknown;
-}>, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Merchant, Document<unknown, {}, import("mongoose").FlatRecord<Merchant>> & import("mongoose").FlatRecord<Merchant> & Required<{
+}> & {
+    __v?: number;
+}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Merchant, Document<unknown, {}, import("mongoose").FlatRecord<Merchant>> & import("mongoose").FlatRecord<Merchant> & Required<{
     _id: unknown;
-}>>;
+}> & {
+    __v?: number;
+}>;

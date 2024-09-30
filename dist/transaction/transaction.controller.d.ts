@@ -15,7 +15,9 @@ export declare class TransactionController {
     update(id: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction>;
     updateByTrxn(trxn: string, updateTransactionDto: UpdateTransactionDto): Promise<import("mongoose").Document<unknown, {}, import("./schemas/transaction.schema").TransactionDocument> & Transaction & import("mongoose").Document<unknown, any, any> & Required<{
         _id: unknown;
-    }>>;
+    }> & {
+        __v?: number;
+    }>;
     remove(id: string): Promise<{
         message: string;
         deletedTransaction: Transaction;
