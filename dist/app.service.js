@@ -10,7 +10,9 @@ exports.AppService = void 0;
 const common_1 = require("@nestjs/common");
 let AppService = class AppService {
     getHello() {
-        return 'Akwaaba Lidapay reload services';
+        return `AKWAABA !!! 
+            World Wide Lidapay Airtime & Data Reload Services.
+            `;
     }
 };
 exports.AppService = AppService;
