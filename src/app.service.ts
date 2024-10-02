@@ -4,6 +4,8 @@ import { Injectable } from '@nestjs/common';
 export class AppService {
   getHello(): string {
     // Welcome to Lidapay services
-    return 'Akwaaba Lidapay reload services';  
+    return `AKWAABA !!! 
+            World Wide Lidapay Airtime & Data Reload Services.
+            `;
   }
 }

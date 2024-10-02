@@ -58,6 +58,18 @@ $ git branch -M main
 $ git push -u origin main
 ```
 
+## AWS Codepipeline
+```bash
+# push an existing repository from the command line
+$ Connect to AWS CodePipeline and create a new pipeline
+#  create a main branch
+$ git branch -M main
+# Ignore build
+$ yarn run build
+# Use Procfile
+$  yarn run start:prod
+```
+
 ## Run tests
 
 ```bash
