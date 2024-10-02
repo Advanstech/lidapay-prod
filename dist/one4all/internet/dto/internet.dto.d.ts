@@ -11,4 +11,6 @@ export declare class InternetDto {
     readonly transId: string;
     readonly currency: string;
     readonly fee?: string;
+    balance_before: string;
+    balance_after: any;
 }

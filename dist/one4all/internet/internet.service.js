@@ -51,6 +51,8 @@ let InternetService = class InternetService {
             serviceMessage: '',
             serviceName: '',
             currency: currency || 'GHS',
+            balance_before: '',
+            balance_after: ''
         };
         const tibUrl = this.DataUrl +
             `/TopUpApi/dataBundle?retailer=${constants_1.ONE4ALL_RETAILER}&recipient=${tibParams.recipient}&data_code=${tibParams.data_code}&network=${tibParams.network}&trxn=${tibParams.trxn}`;
@@ -68,7 +70,7 @@ let InternetService = class InternetService {
             .get(configs.url, { httpsAgent: configs.agent, headers: configs.headers })
             .pipe((0, operators_1.map)((tibRes) => {
             this.logger.verbose(`INTERNET DATA BUNDLE server response => ${tibRes.data}`);
-            if (tibRes.data['status_code'] === '02') {
+            if (tibRes.data['status-code'] === '02') {
                 this.logger.warn(`insufficient balance`);
                 tibParams.serviceCode = tibRes.data['status-code'];
                 tibParams.serviceMessage = tibRes.data.message;
@@ -78,7 +80,7 @@ let InternetService = class InternetService {
                 tibParams.commentary = 'insufficient balance, topup failed';
                 this.transService.updateByTrxn(tibParams.trxn, tibParams);
             }
-            else if (tibRes.data['status_code'] === '09') {
+            else if (tibRes.data['status-code'] === '09') {
                 this.logger.warn(`recharge requested but awaiting status`);
                 tibParams.serviceCode = tibRes.data['status-code'];
                 tibParams.serviceMessage = tibRes.data.message;
@@ -88,7 +90,7 @@ let InternetService = class InternetService {
                 tibParams.commentary = 'recharge requested but awaiting status';
                 this.transService.updateByTrxn(tibParams.trxn, tibParams);
             }
-            else if (tibRes.data['status_code'] === '06') {
+            else if (tibRes.data['status-code'] === '06') {
                 this.logger.log(`other error message`);
                 tibParams.serviceCode = tibRes.data['status-code'];
                 tibParams.serviceMessage = tibRes.data.message;
@@ -98,8 +100,8 @@ let InternetService = class InternetService {
                 tibParams.commentary = 'Other error message';
                 this.transService.updateByTrxn(tibParams.trxn, tibParams);
             }
-            else if (tibRes.data['status_code'] === '00') {
-                this.logger.verbose(`data bundle reload successful`);
+            else if (tibRes.data['status-code'] === '00') {
+                this.logger.verbose(`Data bundle reload successful`);
                 tibParams.serviceCode = tibRes.data['status-code'];
                 tibParams.serviceMessage = tibRes.data.message;
                 tibParams.serviceTransId = tibRes.data.trxn;
