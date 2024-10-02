@@ -87,11 +87,9 @@ export class ReloadlyService {
     );
   }
 
-  countryList(): Observable<AxiosResponse<any>> {
+  async countryList(): Promise<Observable<any>> {
 
-    let accessToken = this.accessToken();
-    // let accessToken = 'eyJraWQiOiI1N2JjZjNhNy01YmYwLTQ1M2QtODQ0Mi03ODhlMTA4OWI3MDIiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMzAyOSIsImlzcyI6Imh0dHBzOi8vcmVsb2FkbHktc2FuZGJveC5hdXRoMC5jb20vIiwiaHR0cHM6Ly9yZWxvYWRseS5jb20vc2FuZGJveCI6dHJ1ZSwiaHR0cHM6Ly9yZWxvYWRseS5jb20vcHJlcGFpZFVzZXJJZCI6IjIzMDI5IiwiZ3R5IjoiY2xpZW50LWNyZWRlbnRpYWxzIiwiYXVkIjoiaHR0cHM6Ly90b3B1cHMtaHMyNTYtc2FuZGJveC5yZWxvYWRseS5jb20iLCJuYmYiOjE3MTY1NDI1MTUsImF6cCI6IjIzMDI5Iiwic2NvcGUiOiJzZW5kLXRvcHVwcyByZWFkLW9wZXJhdG9ycyByZWFkLXByb21vdGlvbnMgcmVhZC10b3B1cHMtaGlzdG9yeSByZWFkLXByZXBhaWQtYmFsYW5jZSByZWFkLXByZXBhaWQtY29tbWlzc2lvbnMiLCJleHAiOjE3MTY2Mjg5MTUsImh0dHBzOi8vcmVsb2FkbHkuY29tL2p0aSI6ImRkZjExNzAyLTQ1MTktNDlhYy1iOTc5LWU4YzhkYTRmZWUxZCIsImlhdCI6MTcxNjU0MjUxNSwianRpIjoiMjQ1MTVhNDEtMmZkYi00MTRkLTliZDQtODc2ZTEyNTQyNTIzIn0._Pc0SuRPuXETMowD8k_mcNdc-KhPRWpbD113VrvgEZg';
-
+    let accessToken = await this.reloadlyAccessToken();
     this.logger.debug(`country access token ${JSON.stringify(accessToken)}`);
 
     const clURL = `https://topups-sandbox.reloadly.com/countries`;

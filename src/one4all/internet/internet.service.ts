@@ -85,7 +85,7 @@ export class InternetService {
           this.logger.verbose(
             `INTERNET DATA BUNDLE server response => ${tibRes.data}`,
           );
-          if (tibRes.data.status_code === '02') {
+          if (tibRes.data['status_code'] === '02') {
             this.logger.warn(`insufficient balance`);
             tibParams.serviceCode = tibRes.data['status-code'];
             tibParams.serviceMessage = tibRes.data.message;
@@ -94,7 +94,7 @@ export class InternetService {
             tibParams.serviceStatus = tibRes.data.status;
             tibParams.commentary = 'insufficient balance, topup failed';
             this.transService.updateByTrxn(tibParams.trxn, tibParams as UpdateTransactionDto);
-          } else if (tibRes.data.status_code === '09') {
+          } else if (tibRes.data['status_code'] === '09') {
             this.logger.warn(`recharge requested but awaiting status`);
             tibParams.serviceCode = tibRes.data['status-code'];
             tibParams.serviceMessage = tibRes.data.message;
@@ -103,7 +103,7 @@ export class InternetService {
             tibParams.serviceStatus = tibRes.data.status;
             tibParams.commentary = 'recharge requested but awaiting status';
             this.transService.updateByTrxn(tibParams.trxn, tibParams as UpdateTransactionDto);
-          } else if (tibRes.data.status_code === '06') {
+          } else if (tibRes.data['status_code'] === '06') {
             this.logger.log(`other error message`);
             tibParams.serviceCode = tibRes.data['status-code'];
             tibParams.serviceMessage = tibRes.data.message;
@@ -112,7 +112,7 @@ export class InternetService {
             tibParams.serviceStatus = tibRes.data.status;
             tibParams.commentary = 'Other error message';
             this.transService.updateByTrxn(tibParams.trxn, tibParams as UpdateTransactionDto);
-          } else if (tibRes.data.status_code === '00') {
+          } else if (tibRes.data['status_code'] === '00') {
             this.logger.verbose(`data bundle reload successful`);
             tibParams.serviceCode = tibRes.data['status-code'];
             tibParams.serviceMessage = tibRes.data.message;

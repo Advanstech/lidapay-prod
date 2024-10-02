@@ -15,6 +15,7 @@ export class ReloadlyController {
     private readonly reloadlyService: ReloadlyService
   ) { }
 
+  // Check account balance
   @Get('/account-balance')
   @ApiOperation({ summary: 'Get account balance' })
   @ApiResponse({ status: 200, description: 'Returns the account balance' })
@@ -29,6 +30,7 @@ export class ReloadlyController {
     }
   }
 
+  // Get access token
   @Get('/auth/access-token')
   @ApiOperation({ summary: 'Get access token' })
   @ApiResponse({ status: 200, description: 'Returns the access token' })
@@ -44,6 +46,7 @@ export class ReloadlyController {
     }
   }
 
+  // List available countries
   @Get('/countries')
   @ApiOperation({ summary: 'List all countries' })
   @ApiResponse({ status: 200, description: 'Returns the list of countries' })
@@ -59,6 +62,7 @@ export class ReloadlyController {
     }
   }
 
+  // Get country by countryCode
   @Post('country/code')
   @ApiOperation({ summary: 'Find country by code' })
   @ApiBody({
@@ -101,6 +105,7 @@ export class ReloadlyController {
     }
   }
 
+  // Get network operators
   @Post('operators')
   @ApiOperation({ summary: 'Get network operators' })
   @ApiBody({
@@ -143,6 +148,7 @@ export class ReloadlyController {
     }
   }
 
+  //  Get network operators by id
   @Post('/operator/id')
   @ApiOperation({ summary: 'Find operator by ID' })
   @ApiBody({
@@ -185,6 +191,7 @@ export class ReloadlyController {
     }
   }
 
+  // Autodetect  network operator
   @Post('/operator/autodetect')
   @ApiOperation({ summary: 'Auto-detect operator' })
   @ApiBody({
@@ -236,6 +243,7 @@ export class ReloadlyController {
     }
   }
 
+  // Get network operator by country-code
   @Post('/operator/country-code')
   @ApiOperation({ summary: 'Get network operator by country code' })
   @ApiBody({

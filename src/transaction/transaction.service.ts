@@ -11,7 +11,7 @@ export class TransactionService {
   constructor(
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
-  ) {}
+  ) { }
 
   /**
    * Creates a new transaction in the database.
@@ -50,6 +50,7 @@ export class TransactionService {
     // Implement your logic to generate a unique transaction ID
     return `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`; // Example implementation
   }
+
   //find all transactions with pagination
   async findAll(
     page: number,

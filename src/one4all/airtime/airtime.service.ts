@@ -145,7 +145,7 @@ export class AirtimeService {
           this.logger.verbose(
             `AIRTIME TOPUP response ++++ ${JSON.stringify(taRes.data)}`,
           );
-          if (taRes.data.status_code === '02') {
+          if (taRes.data['status-code'] === '02') {
             this.logger.warn(`insufficient balance`);
             taParams.serviceCode = taRes.data['status-code'];
             taParams.serviceMessage = taRes.data.message;
@@ -154,7 +154,7 @@ export class AirtimeService {
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'Insufficient balance, topup failed';
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
-          } else if (taRes.data.status_code === '09') {
+          } else if (taRes.data['status-code']=== '09') {
             this.logger.warn(`recharge requested but awaiting status`);
             taParams.serviceCode = taRes.data['status-code'];
             taParams.serviceMessage = taRes.data.message;
@@ -163,7 +163,7 @@ export class AirtimeService {
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'recharge requested but awaiting status';
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
-          } else if (taRes.data.status_code === '06') {
+          } else if (taRes.data['status-code'] === '06') {
             this.logger.log(`other error message`);
             taParams.serviceCode = taRes.data['status-code'];
             taParams.serviceMessage = taRes.data.message;
@@ -172,7 +172,7 @@ export class AirtimeService {
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'Other error message';
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
-          } else if (taRes.data.status_code === '00') {
+          } else if (taRes.data['status-code'] == '00') {
             this.logger.verbose(`airtime topup successful`);
             taParams.serviceCode = taRes.data['status-code'];
             taParams.serviceMessage = taRes.data.message;
@@ -181,6 +181,7 @@ export class AirtimeService {
             taParams.serviceStatus = taRes.data.status;
             taParams.balance_before = taRes.data.balance_before;
             taParams.balance_after = taRes.data.balance_after;
+            taParams.operator =  taRes.data.network;
             taParams.commentary = `Airtime topup successful delivered to ${taParams.recipientNumber}`
             // Update transaction
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);

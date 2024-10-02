@@ -22,6 +22,7 @@ export class AirtimeController {
 
   constructor(private airtimeService: AirtimeService) {}
 
+  // Find transaction  status
   @UseGuards(JwtAuthGuard)
   @Post('/transtatus')
   @ApiOperation({ summary: 'Query transaction status' })
@@ -65,6 +66,7 @@ export class AirtimeController {
     return ts;
   }
 
+  // Make airtime topup
   @UseGuards(UserOrMerchantGuard)
   @Post('/topup')
   @ApiBearerAuth()

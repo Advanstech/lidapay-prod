@@ -59,8 +59,8 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(errorMessage);
         }));
     }
-    countryList() {
-        let accessToken = this.accessToken();
+    async countryList() {
+        let accessToken = await this.reloadlyAccessToken();
         this.logger.debug(`country access token ${JSON.stringify(accessToken)}`);
         const clURL = `https://topups-sandbox.reloadly.com/countries`;
         const config = {

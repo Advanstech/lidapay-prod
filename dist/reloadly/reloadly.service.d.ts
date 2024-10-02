@@ -11,7 +11,7 @@ export declare class ReloadlyService {
     constructor(httpService: HttpService);
     accessToken(): Promise<Observable<any>>;
     getAccountBalance(): Promise<Observable<any>>;
-    countryList(): Observable<AxiosResponse<any>>;
+    countryList(): Promise<Observable<any>>;
     findCountryByCode(reloadDto: ReloadlyDto): Observable<AxiosResponse<ReloadlyDto>>;
     networkOperators(netDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;
     findOperatorById(fobDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;

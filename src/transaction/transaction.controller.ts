@@ -15,6 +15,7 @@ import { UserOrMerchantGuard } from '../auth/user-or-merchant.guard';
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) { }
 
+  // Create  a new transaction
   @Post()
   @ApiOperation({ summary: 'Create a new transaction' })
   @ApiResponse({ status: 201, description: 'The transaction has been successfully created.', type: Transaction })
@@ -108,8 +109,6 @@ export class TransactionController {
       throw new NotFoundException(`Transaction #${id} not found`);
     }
   }
-
-
 
   // Update  a transaction
   @Put('update/:id')
