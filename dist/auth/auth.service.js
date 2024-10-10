@@ -58,6 +58,7 @@ let AuthService = AuthService_1 = class AuthService {
             return {
                 access_token: accessToken,
                 refresh_token: refreshToken,
+                user: user._doc
             };
         }
         catch (error) {

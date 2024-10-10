@@ -58,7 +58,7 @@ export class AuthService {
       return {
         access_token: accessToken,
         refresh_token: refreshToken,
-        // user: user._doc
+        user: user._doc
       };
     } catch (error) {
       console.error('Error during login:', error);

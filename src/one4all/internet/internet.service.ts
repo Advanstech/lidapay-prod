@@ -21,7 +21,6 @@ import { ValidationUtil } from 'src/utilities/validation.util';
 export class InternetService {
   private logger = new Logger('InternetService');
   private DataUrl = ONE4ALL_BASEURL;
-  
 
   constructor(
     private httpService: HttpService,
