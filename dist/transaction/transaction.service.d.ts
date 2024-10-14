@@ -4,6 +4,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 export declare class TransactionService {
     private transactionModel;
+    private logger;
     constructor(transactionModel: Model<TransactionDocument>);
     create(createTransactionDto: CreateTransactionDto): Promise<Transaction>;
     private generateUniqueTransactionId;

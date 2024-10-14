@@ -16,10 +16,7 @@ export declare class UserController {
     }>;
     getProfile(req: any): Promise<import("./schemas/user.schema").User>;
     updateProfile(req: any, updateData: any): Promise<import("./schemas/user.schema").User>;
-    getAllUsers(page?: number): Promise<{
-        users: import("./schemas/user.schema").User[];
-        totalCount: number;
-    }>;
+    getAllUsers(page?: number, limit?: number): Promise<any>;
     getUserByPhoneNumber(phoneNumber: string): Promise<import("./schemas/user.schema").User>;
     getUserByEmail(email: string): Promise<import("./schemas/user.schema").User>;
     deleteUserById(userId: string): Promise<{

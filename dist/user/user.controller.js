@@ -65,8 +65,8 @@ let UserController = UserController_1 = class UserController {
         updateData.email = req.user.email;
         return this.userService.updateProfile(req.user.sub, updateData);
     }
-    async getAllUsers(page = 1) {
-        return this.userService.findAll(page);
+    async getAllUsers(page = 1, limit = 10) {
+        return this.userService.findAll(page, limit);
     }
     async getUserByPhoneNumber(phoneNumber) {
         return this.userService.findOneByPhoneNumber(phoneNumber);
@@ -468,9 +468,11 @@ __decorate([
         }
     }),
     (0, swagger_1.ApiParam)({ name: 'page', description: 'Page number', required: false, schema: { type: 'number', default: 1 } }),
+    (0, swagger_1.ApiParam)({ name: 'limit', description: 'Number of users per page', required: false, schema: { type: 'number', default: 10 } }),
     __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "getAllUsers", null);
 __decorate([

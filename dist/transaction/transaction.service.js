@@ -11,15 +11,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var TransactionService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionService = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const transaction_schema_1 = require("./schemas/transaction.schema");
-let TransactionService = class TransactionService {
+let TransactionService = TransactionService_1 = class TransactionService {
     constructor(transactionModel) {
         this.transactionModel = transactionModel;
+        this.logger = new common_1.Logger(TransactionService_1.name);
     }
     async create(createTransactionDto) {
         if (!createTransactionDto.transactionId) {
@@ -42,14 +44,20 @@ let TransactionService = class TransactionService {
     }
     async findAll(page, limit) {
         const skip = (page - 1) * limit;
-        const transactions = await this.transactionModel
-            .find()
-            .skip(skip)
-            .limit(limit)
-            .exec();
-        const total = await this.transactionModel.countDocuments();
-        const totalPages = Math.ceil(total / limit);
-        return { transactions, total, totalPages };
+        try {
+            const transactions = await this.transactionModel
+                .find()
+                .skip(skip)
+                .limit(limit)
+                .exec();
+            const total = await this.transactionModel.countDocuments();
+            const totalPages = Math.ceil(total / limit);
+            return { transactions, total, totalPages };
+        }
+        catch (error) {
+            this.logger.error(`Failed to fetch transactions: ${error.message}`);
+            throw new Error(`Failed to fetch transactions: ${error.message}`);
+        }
     }
     async findOne(id) {
         const transaction = await this.transactionModel.findById(id).exec();
@@ -138,7 +146,7 @@ let TransactionService = class TransactionService {
     }
 };
 exports.TransactionService = TransactionService;
-exports.TransactionService = TransactionService = __decorate([
+exports.TransactionService = TransactionService = TransactionService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(transaction_schema_1.Transaction.name)),
     __metadata("design:paramtypes", [mongoose_2.Model])

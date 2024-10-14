@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Transaction, TransactionDocument } from './schemas/transaction.schema';
@@ -8,6 +8,8 @@ import { GeneratorUtil } from 'src/utilities/generator.util';
 
 @Injectable()
 export class TransactionService {
+  private logger = new Logger(TransactionService.name);
+
   constructor(
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
@@ -61,7 +63,8 @@ export class TransactionService {
     totalPages: number;
   }> {
     const skip = (page - 1) * limit;
-    const transactions = await this.transactionModel
+    try {
+      const transactions = await this.transactionModel
       .find()
       .skip(skip)
       .limit(limit)
@@ -69,6 +72,11 @@ export class TransactionService {
     const total = await this.transactionModel.countDocuments();
     const totalPages = Math.ceil(total / limit);
     return { transactions, total, totalPages };
+    } catch( error) {
+      this.logger.error(`Failed to fetch transactions: ${error.message}`);
+      throw new Error(`Failed to fetch transactions: ${error.message}`);
+    } 
+   
   }
 
   //find one transaction

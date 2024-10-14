@@ -29,6 +29,7 @@ export declare class UserService {
     findAll(page?: number, limit?: number): Promise<{
         users: User[];
         totalCount: number;
+        totalPages: number;
     }>;
     deleteUserById(userId: string): Promise<{
         message: string;

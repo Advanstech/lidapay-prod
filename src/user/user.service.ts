@@ -145,10 +145,10 @@ export class UserService {
 
       // Prepare notification data
       const notificationData: CreateNotificationDto = {
-          userId: updatedUser.email, // Assuming _id is the user ID
-          type: 'email',    // Set appropriate type
-          subject: 'Profile Updated', // Set appropriate subject
-          message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}` // Include updated details
+        userId: updatedUser.email, // Assuming _id is the user ID
+        type: 'email',    // Set appropriate type
+        subject: 'Profile Updated', // Set appropriate subject
+        message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}` // Include updated details
       };
       // Notify user about the profile update using the existing notification module
       await this.notificationService.create(notificationData);
@@ -184,12 +184,20 @@ export class UserService {
   }
 
   // Find all users
-  async findAll(page: number = 1, limit: number = 20): Promise<{ users: User[], totalCount: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    users: User[],
+    totalCount: number,
+    totalPages: number
+  }> {
     const skip = (page - 1) * limit;
     try {
       const users = await this.userModel.find().skip(skip).limit(limit).exec();
       const totalCount = await this.userModel.countDocuments().exec();
-      return { users, totalCount };
+      const totalPages = Math.ceil(totalCount / limit);
+      return { users, totalCount, totalPages };
     } catch (error) {
       // Handle errors
       this.logger.error(`Failed to get all users: ${error.message}`);
@@ -386,7 +394,7 @@ export class UserService {
     user.verificationToken = verificationToken;
     user.emailVerificationToken = verificationToken; // 
     user.points += Number(this.emailVerifyRewardPoints); // Convert to number to avoid type error
-     // Ensure User interface has verificationToken
+    // Ensure User interface has verificationToken
     await user.save();
 
     await this.sendVerificationEmail(user, verificationToken);

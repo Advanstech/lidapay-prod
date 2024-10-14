@@ -307,8 +307,11 @@ export class UserController {
     }
   })
   @ApiParam({ name: 'page', description: 'Page number', required: false, schema: { type: 'number', default: 1 } })
-  async getAllUsers(@Query('page') page = 1) {
-    return this.userService.findAll(page);
+  @ApiParam({ name: 'limit', description: 'Number of users per page', required: false, schema: { type: 'number', default: 10 } })
+  async getAllUsers(
+    @Query('page') page: number = 1, 
+    @Query('limit') limit: number = 10): Promise<any> {
+    return this.userService.findAll(page, limit);
   }
   // Get user by phoneNumber
   @UseGuards(JwtAuthGuard)

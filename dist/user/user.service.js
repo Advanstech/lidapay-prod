@@ -160,7 +160,8 @@ let UserService = UserService_1 = class UserService {
         try {
             const users = await this.userModel.find().skip(skip).limit(limit).exec();
             const totalCount = await this.userModel.countDocuments().exec();
-            return { users, totalCount };
+            const totalPages = Math.ceil(totalCount / limit);
+            return { users, totalCount, totalPages };
         }
         catch (error) {
             this.logger.error(`Failed to get all users: ${error.message}`);
