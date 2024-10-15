@@ -42,7 +42,6 @@ export class UserService {
       if (!ValidationUtil.isValidEmail(userDto.email)) {
         throw new Error('Invalid email address');
       }
-
       // Check for existing user
       const existingUser = await this.userModel.findOne({
         $or: [
@@ -68,7 +67,6 @@ export class UserService {
       createdUser.points = 0; // Initialize points
       createdUser.gravatar = gravatarUrl;
       await createdUser.save();
-
       // Send welcome email
       try {
         await this.nodemailService.sendMail(
@@ -95,7 +93,6 @@ export class UserService {
     }
 
   }
-
   // Find a user by username
   async findOneByUsername(username: string): Promise<User | undefined> {
     if (!username) {
@@ -103,7 +100,6 @@ export class UserService {
     }
     return this.userModel.findOne({ username }).exec();
   }
-
   // Find a user by email
   async findOneByEmail(email: string): Promise<User | undefined> {
     if (!email) {
@@ -111,7 +107,13 @@ export class UserService {
     }
     return this.userModel.findOne({ email }).exec();
   }
-
+  // Find one by either email or phoneNumber
+  async findOneByEmailOrPhoneNumber(email: string, phoneNumber?: string): Promise<User | undefined> {
+    if (!email && !phoneNumber) {
+      throw new Error('Email or phone number is required');
+    }
+    return this.userModel.findOne({ $or: [{ email }, { phoneNumber }] }).exec();
+  }
   // Find a user by phone number  
   async findOneByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
     if (!phoneNumber) {
@@ -119,7 +121,6 @@ export class UserService {
     }
     return this.userModel.findOne({ phoneNumber }).exec();
   }
-
   // Find a user by ID
   async findOneById(userId: string): Promise<User | undefined> {
     if (!userId) {
@@ -127,7 +128,6 @@ export class UserService {
     }
     return this.userModel.findById(userId).exec();
   }
-
   // Update user profile
   async updateProfile(userId: string, updateData: any): Promise<User> {
     if (!userId) {
@@ -166,7 +166,7 @@ export class UserService {
       }
     }
   }
-
+  // Add reward points
   async addPoints(userId: string, points: number): Promise<User> {
     const updatedUser = await this.userModel.findByIdAndUpdate(
       userId,
@@ -182,7 +182,6 @@ export class UserService {
 
     return updatedUser;
   }
-
   // Find all users
   async findAll(
     page: number = 1,
@@ -204,7 +203,7 @@ export class UserService {
       throw new InternalServerErrorException('Failed to get all users');
     }
   }
-
+  // Delete user by id
   async deleteUserById(userId: string): Promise<{ message: string }> {
     if (!userId) {
       throw new Error('User ID is required');
@@ -221,7 +220,7 @@ export class UserService {
       throw new InternalServerErrorException('Failed to delete user');
     }
   }
-
+  // Delete all users
   async deleteAllUsers(): Promise<{ message: string }> {
     try {
       await this.userModel.deleteMany({}).exec();
@@ -232,7 +231,7 @@ export class UserService {
       throw new InternalServerErrorException('Failed to delete all users');
     }
   }
-
+  // Update password
   async updatePassword(userId: string, newHashedPassword: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, { password: newHashedPassword });
   }

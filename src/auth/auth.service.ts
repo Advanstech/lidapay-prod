@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { PasswordUtil } from '../utilities/password.util';
 import { TokenUtil } from '../utilities/token.util';
@@ -6,23 +6,26 @@ import { JwtService } from '@nestjs/jwt'; // Import JwtService
 import { JWT_EXPIRE, JWT_SECRET } from 'src/constants';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import e from 'express';
+import { NodemailService } from 'src/utilities/nodemail.service';
+import { SmsService } from 'src/utilities/sms.util';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private secretKey = process.env.JWT_SECRET ||  JWT_SECRET;
+  private secretKey = process.env.JWT_SECRET || JWT_SECRET;
 
 
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly merchantService: MerchantService
+    private readonly merchantService: MerchantService,
+    private nodemailService: NodemailService,
+    private smsService: SmsService,
   ) { }
 
   async validateUser(identifier: string, password: string, email?: string): Promise<any> {
     this.logger.log(`validateUser: ${identifier}, ${password}`);
-    
+
     let user = await this.userService.findOneByUsername(identifier);
     if (!user) {
       user = await this.userService.findOneByEmail(identifier);
@@ -30,7 +33,7 @@ export class AuthService {
     if (!user) {
       user = await this.userService.findOneByPhoneNumber(identifier);
     }
-    
+
     this.logger.log('ValidateUser findOneByIdentifier ==>', user);
 
     if (user && PasswordUtil.comparePassword(password, user.password)) {
@@ -95,7 +98,7 @@ export class AuthService {
       throw new UnauthorizedException(`Failed to refresh token: ${error.message}`);
     }
   }
-
+  // Merchant account validation
   async validateMerchant(clientId: string, clientKey: string): Promise<any> {
     const merchant = await this.merchantService.findOneByClientId(clientId);
     if (merchant && merchant.clientKey === clientKey) {
@@ -104,7 +107,7 @@ export class AuthService {
     }
     return null;
   }
-
+  // Change password
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
     this.logger.log(`Changing password for user: ${userId}`);
 
@@ -128,12 +131,46 @@ export class AuthService {
     this.logger.log(`Password changed successfully for user: ${userId}`);
     return true;
   }
+  // Reset password
+  async resetPassword(identifier: string): Promise<{ message: string }> {
+    this.logger.log(`Resetting password for identifier: ${identifier}`);
+    const user = await this.userService.findOneByEmailOrPhoneNumber(identifier);
+    this.logger.log(`User found: ${user}`);
+    
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    const resetToken = this.jwtService.sign(
+      { userId: user.id },
+      { expiresIn: '1h' }
+    );
 
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour from now
+    await this.userService.updateProfile(user.id, user);
+
+    const resetLink = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
+
+    if (identifier.includes('@')) {
+      // Send reset link via email
+      await this.nodemailService.sendMail(
+        user.email,
+        `Reset Password 👋`,
+        resetLink
+      );
+      return { message: 'Password reset link sent to your email' };
+    } else {
+      // Send reset link via SMS
+      await this.smsService.sendSms(user.phoneNumber, resetLink);
+      return { message: 'Password reset link sent to your phone' };
+    }
+  }
+  // Merchant login
   async merchantLogin(merchant: any) {
     try {
-      const payload = { 
-        name: merchant._doc.name || merchant._doc.clientId, 
-        sub: merchant._doc._id, 
+      const payload = {
+        name: merchant._doc.name || merchant._doc.clientId,
+        sub: merchant._doc._id,
         roles: ['merchant'],
         // name: merchant.name,
         // email: merchant.email

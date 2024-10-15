@@ -6,6 +6,7 @@ export declare const MOMO_CHARGES = 0.002;
 export declare const FEE_CHARGES = 0;
 export declare const DISCOUNT = 0;
 export declare const DOMAIN_URL = "https://advansistechnologies.com";
+export declare const APP_URL = "https://advansistechnologies.com";
 export declare const TWILIO_ACCOUNT_SID = "AC";
 export declare const TWILIO_TOKEN = "";
 export declare const GMAIL_MAIL_SERVICE = "smtp.gmail.com";

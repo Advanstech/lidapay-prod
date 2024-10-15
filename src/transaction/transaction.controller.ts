@@ -92,7 +92,6 @@ export class TransactionController {
   async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<{ transactions: Transaction[], total: number, totalPages: number }> {
     return this.transactionService.findAll(page, limit);
   }
-
   // Get a transaction by id
   @Get(':id')
   @ApiOperation({ summary: 'Get a transaction by id' })
@@ -109,7 +108,6 @@ export class TransactionController {
       throw new NotFoundException(`Transaction #${id} not found`);
     }
   }
-
   // Update  a transaction
   @Put('update/:id')
   @ApiOperation({ summary: 'Update a transaction' })
@@ -140,7 +138,6 @@ export class TransactionController {
   update(@Param('id') id: string, @Body() updateTransactionDto: UpdateTransactionDto) {
     return this.transactionService.update(id, updateTransactionDto);
   }
-
   // Update a transaction by trxn
   @Put('update-by-trxn/:trxn')
   @ApiOperation({ summary: 'Update a transaction by trxn' })
@@ -164,7 +161,6 @@ export class TransactionController {
   updateByTrxn(@Param('trxn') trxn: string, @Body() updateTransactionDto: UpdateTransactionDto) {
     return this.transactionService.updateByTrxn(trxn, updateTransactionDto);
   }
-
   // Delete a transaction by id
   @Delete('remove/:id')
   @ApiOperation({ summary: 'Delete a transaction' })
@@ -175,7 +171,6 @@ export class TransactionController {
   remove(@Param('id') id: string) {
     return this.transactionService.remove(id);
   }
-
   // Get transaction by transaction id
   @UseGuards(JwtAuthGuard)
   @Get(':transId')
@@ -186,7 +181,6 @@ export class TransactionController {
   async getTransactionsByTransactionId(@Param('transactionId') transactionId: string) {
     return this.transactionService.findByTransId(transactionId);
   }
-
   // Get transactions by user id
   @UseGuards(JwtAuthGuard)
   @Get('user/:userId')
@@ -197,7 +191,6 @@ export class TransactionController {
   async findByUserId(@Param('userId') userId: string): Promise<Transaction[]> {
     return this.transactionService.findByUserId(userId);
   }
-
   // Get transactions by type
   @Get('type/:type')
   @ApiOperation({ summary: 'Get transactions by type' })

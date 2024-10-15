@@ -6,6 +6,7 @@ export const MOMO_CHARGES = 0.002;
 export const FEE_CHARGES = 0.00;
 export const DISCOUNT = 0.00;
 export const DOMAIN_URL = 'https://advansistechnologies.com';
+export const APP_URL = 'https://advansistechnologies.com'
 // Twilio SMS services
 export const TWILIO_ACCOUNT_SID = 'AC';
 export const TWILIO_TOKEN = '';

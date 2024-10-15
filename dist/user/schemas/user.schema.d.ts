@@ -26,6 +26,8 @@ export declare class User extends Document {
     invitationLink: string;
     invitationLinkUsageCount: number;
     lastInvitationLinkUsage: Date;
+    resetPasswordToken?: string;
+    resetPasswordExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

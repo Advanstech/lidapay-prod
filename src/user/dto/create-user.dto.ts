@@ -9,4 +9,6 @@ export class CreateUserDto {
   phoneNumber: string;
   mobile?: string;
   readonly referrerClientId?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: any;
 }

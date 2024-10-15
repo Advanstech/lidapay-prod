@@ -56,7 +56,7 @@ export class SmsController {
     public async sendBulkSms(
         @Body() transDto: SmsDto
     ): Promise<any> {
-        const sbs = await this.smsService.postBulkSMS(transDto);
+        const sbs = this.smsService.postBulkSMS(transDto);
         return sbs;
     }
 

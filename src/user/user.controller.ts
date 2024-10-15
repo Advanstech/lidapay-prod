@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtRefreshGuard } from '../auth/jwt-refresh.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RewardService } from 'src/reward/reward.service';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Users')
 @Controller('api/v1/users')
@@ -418,7 +419,6 @@ export class UserController {
     }
     return this.authService.merchantLogin(merchant);
   }
-
   // Change user password 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -452,7 +452,6 @@ export class UserController {
   ) {
     return this.authService.changePassword(req.user.sub, changePasswordDto.currentPassword, changePasswordDto.newPassword);
   }
-
   // Track QR code usage
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -470,7 +469,7 @@ export class UserController {
   async trackQRCodeUsage(@Request() req) {
     return this.userService.trackQRCodeUsage(req.user.sub);
   }
-  
+
   // Get QR code usage stats
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -494,7 +493,6 @@ export class UserController {
   async getQRCodeUsageStats(@Request() req) {
     return this.userService.getQRCodeUsageStats(req.user.sub);
   }
-
   // Scan QR code
   @Post(':userId/scan-qr')
   @ApiOperation({ summary: 'Scan a user\'s QR code' })
@@ -514,7 +512,6 @@ export class UserController {
     await this.rewardsService.awardQRCodeScanPoints(userId, 'user');
     return { message: 'QR code scanned and points awarded' };
   }
-
   // Generate invitation link
   @UseGuards(JwtAuthGuard)
   @Post('invitation-link/generate')
@@ -535,7 +532,6 @@ export class UserController {
     const invitationLink = await this.userService.generateInvitationLink(req.user.username);
     return { invitationLink };
   }
-
   // Track invitation link usage
   @Post('invitation-link/track')
   @ApiOperation({ summary: 'Track the usage of an invitation link' })
@@ -562,7 +558,6 @@ export class UserController {
     await this.userService.trackInvitationLinkUsage(invitationLink);
     return { message: 'Invitation link usage tracked and points awarded' };
   }
-
   // Get invitation link stats
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -582,7 +577,6 @@ export class UserController {
   async getInvitationLinkStats(@Request() req) {
     return this.userService.getInvitationLinkStats(req.user.sub);
   }
-
   // Email Verification
   @UseGuards(JwtAuthGuard)
   @Get('verify-email/:token')
@@ -634,7 +628,6 @@ export class UserController {
       }
     }
   }
-
   // Resend Verification Email
   @Post('resend-verification-email')
   @ApiOperation({ summary: 'Resend email verification link' })
@@ -730,7 +723,6 @@ export class UserController {
       }
     }
   }
-
   // Resend Phone Verification Code
   @Post('resend-phone-verification-code')
   @ApiOperation({ summary: 'Resend phone verification code' })
@@ -778,6 +770,31 @@ export class UserController {
       }
     }
   }
+ 
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Initiate password reset' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset initiated successfully',
+    schema: {
+      example: {
+        message: 'Password reset link sent to your email',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    try {
+      this.logger.debug(`Reset password =>> ${resetPasswordDto}`);
+      const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber;
+      return await this.authService.resetPassword(identifier);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to initiate password reset');
+    }
+  }
   // Other endpoints...
-
 }

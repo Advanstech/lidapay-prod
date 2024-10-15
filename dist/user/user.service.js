@@ -102,6 +102,12 @@ let UserService = UserService_1 = class UserService {
         }
         return this.userModel.findOne({ email }).exec();
     }
+    async findOneByEmailOrPhoneNumber(email, phoneNumber) {
+        if (!email && !phoneNumber) {
+            throw new Error('Email or phone number is required');
+        }
+        return this.userModel.findOne({ $or: [{ email }, { phoneNumber }] }).exec();
+    }
     async findOneByPhoneNumber(phoneNumber) {
         if (!phoneNumber) {
             throw new Error('Phone number is required');

@@ -29,7 +29,7 @@ let SmsController = SmsController_1 = class SmsController {
         return s2;
     }
     async sendBulkSms(transDto) {
-        const sbs = await this.smsService.postBulkSMS(transDto);
+        const sbs = this.smsService.postBulkSMS(transDto);
         return sbs;
     }
 };

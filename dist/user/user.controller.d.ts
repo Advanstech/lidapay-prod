@@ -2,6 +2,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AuthService } from '../auth/auth.service';
 import { RewardService } from 'src/reward/reward.service';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 export declare class UserController {
     private readonly userService;
     private readonly authService;
@@ -68,6 +69,9 @@ export declare class UserController {
         message: string;
     }>;
     resendPhoneVerificationCode(phoneNumber: string): Promise<{
+        message: string;
+    }>;
+    resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{
         message: string;
     }>;
 }

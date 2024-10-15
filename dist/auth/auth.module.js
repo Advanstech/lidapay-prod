@@ -21,6 +21,7 @@ const merchant_auth_guard_1 = require("./merchant-auth.guard");
 const constants_1 = require("../constants");
 const transaction_module_1 = require("../transaction/transaction.module");
 const nodemail_service_1 = require("../utilities/nodemail.service");
+const sms_util_1 = require("../utilities/sms.util");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -46,7 +47,8 @@ exports.AuthModule = AuthModule = __decorate([
             jwt_strategy_1.JwtStrategy,
             roles_guard_1.RolesGuard,
             local_strategy_1.LocalStrategy,
-            nodemail_service_1.NodemailService
+            nodemail_service_1.NodemailService,
+            sms_util_1.SmsService
         ],
         exports: [
             auth_service_1.AuthService,

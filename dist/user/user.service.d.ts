@@ -22,6 +22,7 @@ export declare class UserService {
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;
+    findOneByEmailOrPhoneNumber(email: string, phoneNumber?: string): Promise<User | undefined>;
     findOneByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
     findOneById(userId: string): Promise<User | undefined>;
     updateProfile(userId: string, updateData: any): Promise<User>;

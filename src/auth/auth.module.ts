@@ -12,6 +12,7 @@ import { MerchantAuthGuard } from './merchant-auth.guard';
 import { JWT_SECRET } from 'src/constants';
 import { TransactionModule } from 'src/transaction/transaction.module';
 import { NodemailService } from 'src/utilities/nodemail.service';
+import { SmsService } from 'src/utilities/sms.util';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { NodemailService } from 'src/utilities/nodemail.service';
     JwtStrategy, 
     RolesGuard, 
     LocalStrategy,
-    NodemailService
+    NodemailService,
+    SmsService
   ],
   exports: [
     AuthService, 

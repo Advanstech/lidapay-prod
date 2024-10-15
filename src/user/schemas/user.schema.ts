@@ -56,6 +56,10 @@ export class User extends Document {
   invitationLinkUsageCount: number;
   @Prop()
   lastInvitationLinkUsage: Date;
+  @Prop()
+  resetPasswordToken?: string;
+  @Prop()
+  resetPasswordExpires?: Date;
 
   @Prop({ default: Date.now() })
   createdAt: Date;

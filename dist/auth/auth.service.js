@@ -19,11 +19,15 @@ const jwt_1 = require("@nestjs/jwt");
 const constants_1 = require("../constants");
 const merchant_service_1 = require("../merchant/merchant.service");
 const common_2 = require("@nestjs/common");
+const nodemail_service_1 = require("../utilities/nodemail.service");
+const sms_util_1 = require("../utilities/sms.util");
 let AuthService = AuthService_1 = class AuthService {
-    constructor(userService, jwtService, merchantService) {
+    constructor(userService, jwtService, merchantService, nodemailService, smsService) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.merchantService = merchantService;
+        this.nodemailService = nodemailService;
+        this.smsService = smsService;
         this.logger = new common_1.Logger(AuthService_1.name);
         this.secretKey = process.env.JWT_SECRET || constants_1.JWT_SECRET;
     }
@@ -116,6 +120,27 @@ let AuthService = AuthService_1 = class AuthService {
         this.logger.log(`Password changed successfully for user: ${userId}`);
         return true;
     }
+    async resetPassword(identifier) {
+        this.logger.log(`Resetting password for identifier: ${identifier}`);
+        const user = await this.userService.findOneByEmailOrPhoneNumber(identifier);
+        this.logger.log(`User found: ${user}`);
+        if (!user) {
+            throw new common_1.BadRequestException('User not found');
+        }
+        const resetToken = this.jwtService.sign({ userId: user.id }, { expiresIn: '1h' });
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = new Date(Date.now() + 3600000);
+        await this.userService.updateProfile(user.id, user);
+        const resetLink = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
+        if (identifier.includes('@')) {
+            await this.nodemailService.sendMail(user.email, `Reset Password 👋`, resetLink);
+            return { message: 'Password reset link sent to your email' };
+        }
+        else {
+            await this.smsService.sendSms(user.phoneNumber, resetLink);
+            return { message: 'Password reset link sent to your phone' };
+        }
+    }
     async merchantLogin(merchant) {
         try {
             const payload = {
@@ -146,6 +171,8 @@ exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [user_service_1.UserService,
         jwt_1.JwtService,
-        merchant_service_1.MerchantService])
+        merchant_service_1.MerchantService,
+        nodemail_service_1.NodemailService,
+        sms_util_1.SmsService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map
