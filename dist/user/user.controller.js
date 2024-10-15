@@ -188,7 +188,7 @@ let UserController = UserController_1 = class UserController {
     }
     async resetPassword(resetPasswordDto) {
         try {
-            this.logger.debug(`Reset password =>> ${resetPasswordDto}`);
+            this.logger.debug(`Reset password =>> ${JSON.stringify(resetPasswordDto)}`);
             const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber;
             return await this.authService.resetPassword(identifier);
         }

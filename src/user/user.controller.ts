@@ -786,8 +786,8 @@ export class UserController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     try {
-      this.logger.debug(`Reset password =>> ${resetPasswordDto}`);
-      const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber;
+      this.logger.debug(`Reset password =>> ${JSON.stringify(resetPasswordDto)}`);
+      const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber; 
       return await this.authService.resetPassword(identifier);
     } catch (error) {
       if (error instanceof BadRequestException) {
