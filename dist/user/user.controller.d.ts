@@ -71,7 +71,5 @@ export declare class UserController {
     resendPhoneVerificationCode(phoneNumber: string): Promise<{
         message: string;
     }>;
-    resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{
-        message: string;
-    }>;
+    resetPassword(resetPasswordDto: ResetPasswordDto): Promise<any>;
 }

@@ -141,7 +141,7 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
     const resetToken = this.jwtService.sign(
-      { userId: user.id },
+      { userId: user._id },
       { expiresIn: '1h' }
     );
 
@@ -155,7 +155,7 @@ export class AuthService {
       // Send reset link via email
       await this.nodemailService.sendMail(
         user.email,
-        `Reset Password 👋`,
+        'Reset Password 👋',
         resetLink
       );
       return { message: 'Password reset link sent to your email' };

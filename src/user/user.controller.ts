@@ -770,7 +770,7 @@ export class UserController {
       }
     }
   }
- 
+  // Rese password
   @Post('reset-password')
   @ApiOperation({ summary: 'Initiate password reset' })
   @ApiBody({ type: ResetPasswordDto })
@@ -784,7 +784,9 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto
+  ): Promise<any> {
     try {
       this.logger.debug(`Reset password =>> ${JSON.stringify(resetPasswordDto)}`);
       const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber; 

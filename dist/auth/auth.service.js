@@ -127,13 +127,13 @@ let AuthService = AuthService_1 = class AuthService {
         if (!user) {
             throw new common_1.BadRequestException('User not found');
         }
-        const resetToken = this.jwtService.sign({ userId: user.id }, { expiresIn: '1h' });
+        const resetToken = this.jwtService.sign({ userId: user._id }, { expiresIn: '1h' });
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = new Date(Date.now() + 3600000);
         await this.userService.updateProfile(user.id, user);
         const resetLink = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
         if (identifier.includes('@')) {
-            await this.nodemailService.sendMail(user.email, `Reset Password 👋`, resetLink);
+            await this.nodemailService.sendMail(user.email, 'Reset Password 👋', resetLink);
             return { message: 'Password reset link sent to your email' };
         }
         else {
