@@ -7,7 +7,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtRefreshGuard } from '../auth/jwt-refresh.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RewardService } from 'src/reward/reward.service';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+
 
 @ApiTags('Users')
 @Controller('api/v1/users')
@@ -770,10 +770,18 @@ export class UserController {
       }
     }
   }
-  // Rese password
+  // Reset password
   @Post('reset-password')
   @ApiOperation({ summary: 'Initiate password reset' })
-  @ApiBody({ type: ResetPasswordDto })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'user@example.com' },
+        phoneNumber: { type: 'string', example: '+1234567890' }
+      }
+    }
+  })
   @ApiResponse({
     status: 200,
     description: 'Password reset initiated successfully',
@@ -785,11 +793,11 @@ export class UserController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   async resetPassword(
-    @Body() resetPasswordDto: ResetPasswordDto
+    @Body('email') email: string, @Body('phoneNumber') phoneNumber?: string
   ): Promise<any> {
     try {
-      this.logger.debug(`Reset password =>> ${JSON.stringify(resetPasswordDto)}`);
-      const identifier = resetPasswordDto.email || resetPasswordDto.phoneNumber; 
+     
+      const identifier = email || phoneNumber; 
       return await this.authService.resetPassword(identifier);
     } catch (error) {
       if (error instanceof BadRequestException) {
