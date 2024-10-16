@@ -52,9 +52,6 @@ let TransactionController = class TransactionController {
     async getTransactionsByTransactionId(transactionId) {
         return this.transactionService.findByTransId(transactionId);
     }
-    async findByUserId(userId) {
-        return this.transactionService.findByUserId(userId);
-    }
     async findByType(type) {
         return this.transactionService.findByType(type);
     }
@@ -66,6 +63,9 @@ let TransactionController = class TransactionController {
     }
     async getTransactionStats(userId) {
         return this.transactionService.getTransactionStats(userId);
+    }
+    async findByUserId(userId, page = 1, limit = 10) {
+        return this.transactionService.findByUserId(userId, page, limit);
     }
 };
 exports.TransactionController = TransactionController;
@@ -247,18 +247,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TransactionController.prototype, "getTransactionsByTransactionId", null);
 __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('user/:userId'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get transactions by user id' }),
-    (0, swagger_1.ApiParam)({ name: 'userId', type: 'string', description: 'User ID' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Return transactions for the user.', type: [transaction_schema_1.Transaction] }),
-    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
-    __param(0, (0, common_1.Param)('userId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], TransactionController.prototype, "findByUserId", null);
-__decorate([
     (0, common_1.Get)('type/:type'),
     (0, swagger_1.ApiOperation)({ summary: 'Get transactions by type' }),
     (0, swagger_1.ApiParam)({ name: 'type', type: 'string', description: 'Transaction type (e.g., airtime, momo)' }),
@@ -321,6 +309,36 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], TransactionController.prototype, "getTransactionStats", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('user/:userId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get transactions by user id with pagination' }),
+    (0, swagger_1.ApiParam)({ name: 'userId', type: 'string', description: 'User ID' }),
+    (0, swagger_1.ApiQuery)({ name: 'page', type: 'number', required: false, description: 'Page number' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', type: 'number', required: false, description: 'Number of transactions per page' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Return transactions for the user with pagination.',
+        schema: {
+            type: 'object',
+            properties: {
+                transactions: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Transaction' }
+                },
+                total: { type: 'number' },
+                totalPages: { type: 'number' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number, Number]),
+    __metadata("design:returntype", Promise)
+], TransactionController.prototype, "findByUserId", null);
 exports.TransactionController = TransactionController = __decorate([
     (0, swagger_1.ApiTags)('Transactions'),
     (0, common_1.Controller)('api/v1/transactions'),

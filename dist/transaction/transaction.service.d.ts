@@ -7,7 +7,6 @@ export declare class TransactionService {
     private logger;
     constructor(transactionModel: Model<TransactionDocument>);
     create(createTransactionDto: CreateTransactionDto): Promise<Transaction>;
-    private generateUniqueTransactionId;
     findAll(page: number, limit: number): Promise<{
         transactions: Transaction[];
         total: number;
@@ -25,11 +24,16 @@ export declare class TransactionService {
         message: string;
         deletedTransaction: Transaction;
     }>;
-    findByUserId(userId: string): Promise<Transaction[]>;
+    findByUserId(userId: string, page: number, limit: number): Promise<{
+        transactions: Transaction[];
+        total: number;
+        totalPages: number;
+    }>;
     findByType(type: string): Promise<Transaction[]>;
     findByStatus(status: string): Promise<Transaction[]>;
     getTransactionStats(userId: string): Promise<any>;
     findByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]>;
     updateById(id: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction | null>;
     deleteAll(): Promise<void>;
+    private generateUniqueTransactionId;
 }

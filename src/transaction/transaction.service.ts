@@ -46,13 +46,6 @@ export class TransactionService {
     // Proceed with the insert operation
     await this.transactionModel.create(createTransactionDto);
   }
-
-  // Helper method to generate a unique transaction ID
-  private generateUniqueTransactionId(): string {
-    // Implement your logic to generate a unique transaction ID
-    return `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`; // Example implementation
-  }
-
   //find all transactions with pagination
   async findAll(
     page: number,
@@ -65,20 +58,19 @@ export class TransactionService {
     const skip = (page - 1) * limit;
     try {
       const transactions = await this.transactionModel
-      .find()
-      .skip(skip)
-      .limit(limit)
-      .exec();
-    const total = await this.transactionModel.countDocuments();
-    const totalPages = Math.ceil(total / limit);
-    return { transactions, total, totalPages };
-    } catch( error) {
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .exec();
+      const total = await this.transactionModel.countDocuments();
+      const totalPages = Math.ceil(total / limit);
+      return { transactions, total, totalPages };
+    } catch (error) {
       this.logger.error(`Failed to fetch transactions: ${error.message}`);
       throw new Error(`Failed to fetch transactions: ${error.message}`);
-    } 
-   
-  }
+    }
 
+  }
   //find one transaction
   async findOne(id: string): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(id).exec();
@@ -87,7 +79,6 @@ export class TransactionService {
     }
     return transaction;
   }
-
   // Find by Transaction Id
   async findByTransId(transId: string): Promise<Transaction> {
     const transaction = await this.transactionModel.findOne({ transId }).exec();
@@ -96,7 +87,6 @@ export class TransactionService {
     }
     return transaction;
   }
-
   //update transaction
   async update(
     id: string,
@@ -110,7 +100,6 @@ export class TransactionService {
     }
     return updatedTransaction;
   }
-
   //update transaction by trxn
   async updateByTrxn(trxn: string, updateTransactionDto: UpdateTransactionDto) {
     const updatedTransaction = await this.transactionModel.findOneAndUpdate(
@@ -125,7 +114,6 @@ export class TransactionService {
 
     return updatedTransaction;
   }
-
   //delete transaction
   async remove(
     id: string,
@@ -138,22 +126,34 @@ export class TransactionService {
     }
     return { message: 'Transaction deleted successfully', deletedTransaction };
   }
-
   //find transactions by user id
-  async findByUserId(userId: string): Promise<Transaction[]> {
-    return this.transactionModel.find({ userId }).exec();
+  async findByUserId(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    transactions: Transaction[];
+    total: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+    const transactions = await this.transactionModel
+      .find({ userId })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+    const total = await this.transactionModel.countDocuments({ userId });
+    const totalPages = Math.ceil(total / limit);
+    return { transactions, total, totalPages };
   }
-
   //find transactions by type
   async findByType(type: string): Promise<Transaction[]> {
     return this.transactionModel.find({ transactionType: type }).exec();
   }
-
   //find transactions by status
   async findByStatus(status: string): Promise<Transaction[]> {
     return this.transactionModel.find({ status }).exec();
   }
-
   //get transaction stats
   async getTransactionStats(userId: string): Promise<any> {
     const stats = await this.transactionModel
@@ -177,7 +177,6 @@ export class TransactionService {
       .exec();
     return stats;
   }
-
   // Add a new method to find transactions by date range
   async findByDateRange(
     startDate: Date,
@@ -189,7 +188,6 @@ export class TransactionService {
       })
       .exec();
   }
-
   // Add a new method to update transaction by id
   async updateById(
     id: string,
@@ -203,5 +201,10 @@ export class TransactionService {
   // Add a new method to delete all transaction
   async deleteAll(): Promise<void> {
     await this.transactionModel.deleteMany({});
+  }
+  // Helper method to generate a unique transaction ID
+  private generateUniqueTransactionId(): string {
+    // Implement your logic to generate a unique transaction ID
+    return `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`; // Example implementation
   }
 }

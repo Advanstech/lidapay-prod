@@ -39,9 +39,6 @@ let TransactionService = TransactionService_1 = class TransactionService {
         }
         await this.transactionModel.create(createTransactionDto);
     }
-    generateUniqueTransactionId() {
-        return `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    }
     async findAll(page, limit) {
         const skip = (page - 1) * limit;
         try {
@@ -98,8 +95,16 @@ let TransactionService = TransactionService_1 = class TransactionService {
         }
         return { message: 'Transaction deleted successfully', deletedTransaction };
     }
-    async findByUserId(userId) {
-        return this.transactionModel.find({ userId }).exec();
+    async findByUserId(userId, page, limit) {
+        const skip = (page - 1) * limit;
+        const transactions = await this.transactionModel
+            .find({ userId })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+        const total = await this.transactionModel.countDocuments({ userId });
+        const totalPages = Math.ceil(total / limit);
+        return { transactions, total, totalPages };
     }
     async findByType(type) {
         return this.transactionModel.find({ transactionType: type }).exec();
@@ -143,6 +148,9 @@ let TransactionService = TransactionService_1 = class TransactionService {
     }
     async deleteAll() {
         await this.transactionModel.deleteMany({});
+    }
+    generateUniqueTransactionId() {
+        return `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     }
 };
 exports.TransactionService = TransactionService;

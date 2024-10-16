@@ -23,9 +23,9 @@ export declare class TransactionController {
         deletedTransaction: Transaction;
     }>;
     getTransactionsByTransactionId(transactionId: string): Promise<Transaction>;
-    findByUserId(userId: string): Promise<Transaction[]>;
     findByType(type: string): Promise<Transaction[]>;
     findByStatus(status: string): Promise<Transaction[]>;
     findByDateRange(startDate: string, endDate: string): Promise<Transaction[]>;
     getTransactionStats(userId: string): Promise<any>;
+    findByUserId(userId: string, page?: number, limit?: number): Promise<any>;
 }

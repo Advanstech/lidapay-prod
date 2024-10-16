@@ -57,7 +57,6 @@ export class TransactionController {
   create(@Body() createTransactionDto: CreateTransactionDto) {
     return this.transactionService.create(createTransactionDto);
   }
-
   // Get all transactions
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -181,16 +180,6 @@ export class TransactionController {
   async getTransactionsByTransactionId(@Param('transactionId') transactionId: string) {
     return this.transactionService.findByTransId(transactionId);
   }
-  // Get transactions by user id
-  @UseGuards(JwtAuthGuard)
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get transactions by user id' })
-  @ApiParam({ name: 'userId', type: 'string', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'Return transactions for the user.', type: [Transaction] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findByUserId(@Param('userId') userId: string): Promise<Transaction[]> {
-    return this.transactionService.findByUserId(userId);
-  }
   // Get transactions by type
   @Get('type/:type')
   @ApiOperation({ summary: 'Get transactions by type' })
@@ -225,7 +214,6 @@ export class TransactionController {
   ): Promise<Transaction[]> {
     return this.transactionService.findByDateRange(new Date(startDate), new Date(endDate));
   }
-
   // Get transaction statistics for a user
   @Get('stats/:userId')
   @ApiOperation({ summary: 'Get transaction statistics for a user' })
@@ -251,5 +239,36 @@ export class TransactionController {
   async getTransactionStats(@Param('userId') userId: string): Promise<any> {
     return this.transactionService.getTransactionStats(userId);
   }
+  // Get transactions by user id with pagination
+  @UseGuards(JwtAuthGuard)
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get transactions by user id with pagination' })
+  @ApiParam({ name: 'userId', type: 'string', description: 'User ID' })
+  @ApiQuery({ name: 'page', type: 'number', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', type: 'number', required: false, description: 'Number of transactions per page' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return transactions for the user with pagination.',
+    schema: {
+      type: 'object',
+      properties: {
+        transactions: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Transaction' }
+        },
+        total: { type: 'number' },
+        totalPages: { type: 'number' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async findByUserId(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<any> {
+    return this.transactionService.findByUserId(userId, page, limit);
+  }
+
 
 }
