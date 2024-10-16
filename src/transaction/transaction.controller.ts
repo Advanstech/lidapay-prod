@@ -13,7 +13,9 @@ import { UserOrMerchantGuard } from '../auth/user-or-merchant.guard';
 @ApiBearerAuth()
 @UseGuards(UserOrMerchantGuard)
 export class TransactionController {
-  constructor(private readonly transactionService: TransactionService) { }
+  constructor(
+    private readonly transactionService: TransactionService
+  ) { }
 
   // Create  a new transaction
   @Post()
@@ -189,7 +191,6 @@ export class TransactionController {
   async findByType(@Param('type') type: string): Promise<Transaction[]> {
     return this.transactionService.findByType(type);
   }
-
   // Get transactions by status
   @Get('status/:status')
   @ApiOperation({ summary: 'Get transactions by status' })
@@ -199,7 +200,6 @@ export class TransactionController {
   async findByStatus(@Param('status') status: string): Promise<Transaction[]> {
     return this.transactionService.findByStatus(status);
   }
-
   // Get transactions by date range
   @Get('date-range')
   @ApiOperation({ summary: 'Get transactions by date range' })
@@ -269,6 +269,5 @@ export class TransactionController {
   ): Promise<any> {
     return this.transactionService.findByUserId(userId, page, limit);
   }
-
 
 }
