@@ -29,7 +29,6 @@ const merchant_service_1 = require("../merchant/merchant.service");
 const email_templates_1 = require("../utilities/email-templates");
 const constants_1 = require("../constants");
 const uuid_1 = require("uuid");
-const constants_2 = require("../constants");
 const common_2 = require("@nestjs/common");
 const token_util_1 = require("../utilities/token.util");
 const notification_service_1 = require("../notification/notification.service");
@@ -231,32 +230,45 @@ let UserService = UserService_1 = class UserService {
         }
         return updatedUser;
     }
-    async generateInvitationLink(phoneNumber) {
-        const user = await this.userModel.findOne({ phoneNumber });
+    async generateInvitationLink(username) {
+        const user = await this.userModel.findOne({ username });
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
         const currentDate = new Date().toISOString().replace(/-/g, '').slice(0, 8);
         const invitationLink = `${process.env.DOMAIN_URL}/invite/${currentDate}/${user.firstName}/${(0, uuid_1.v4)()}`;
-        user.invitationLink = invitationLink;
+        const newInvitationLink = {
+            link: invitationLink,
+            createdAt: new Date(),
+            lastUsed: null,
+            usageCount: 0,
+            pointsEarned: 0
+        };
+        user.invitationLinks.push(newInvitationLink);
         await user.save();
+        this.logger.log(`User generated link => ${invitationLink}`);
         return invitationLink;
     }
     async trackInvitationLinkUsage(invitationLink) {
         try {
-            const user = await this.userModel.findOne({ invitationLink });
-            this.logger.debug(`User: ${user._id}`);
+            const user = await this.userModel.findOne({ 'invitationLinks.link': invitationLink });
             if (!user) {
                 throw new common_1.NotFoundException('Invalid invitation link');
             }
-            const updatedUser = await this.userModel.findByIdAndUpdate(user._id, {
-                $inc: { invitationLinkUsageCount: 1 },
-                $set: { lastInvitationLinkUsage: new Date() }
-            }, { new: true, runValidators: true });
+            const linkIndex = user.invitationLinks.findIndex(link => link.link === invitationLink);
+            if (linkIndex === -1) {
+                throw new common_1.NotFoundException('Invitation link not found for this user');
+            }
+            const INVITATION_LINK_REWARD_POINTS = 10;
+            user.invitationLinks[linkIndex].lastUsed = new Date();
+            user.invitationLinks[linkIndex].usageCount += 1;
+            user.invitationLinks[linkIndex].pointsEarned += INVITATION_LINK_REWARD_POINTS;
+            user.totalPointsEarned = (user.totalPointsEarned || 0) + INVITATION_LINK_REWARD_POINTS;
+            user.points = (user.points || 0) + INVITATION_LINK_REWARD_POINTS;
+            const updatedUser = await user.save();
             if (!updatedUser) {
                 throw new common_1.NotFoundException('User not found after update');
             }
-            await this.addPoints(user._id.toString(), constants_2.INVITATION_LINK_REWARD_POINTS);
             return updatedUser;
         }
         catch (error) {
@@ -268,13 +280,17 @@ let UserService = UserService_1 = class UserService {
         }
     }
     async getInvitationLinkStats(userId) {
-        const user = await this.userModel.findById(userId, 'invitationLinkUsageCount lastInvitationLinkUsage');
+        const user = await this.userModel.findById(userId);
         if (!user) {
             throw new common_1.NotFoundException(`User with ID ${userId} not found`);
         }
+        const totalUsageCount = user.invitationLinks.reduce((sum, link) => sum + link.usageCount, 0);
+        const totalPointsEarned = user.totalPointsEarned || 0;
         return {
-            usageCount: user.invitationLinkUsageCount || 0,
-            lastUsed: user.lastInvitationLinkUsage || null,
+            totalUsageCount,
+            totalPointsEarned,
+            userTotalPoints: user.points || 0,
+            invitationLinks: user.invitationLinks
         };
     }
     async verifyEmail(email, token) {

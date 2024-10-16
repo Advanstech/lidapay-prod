@@ -53,10 +53,17 @@ export declare class UserController {
     }>;
     trackInvitationLinkUsage(invitationLink: string): Promise<{
         message: string;
+        updatedUser: {
+            totalPointsEarned: number;
+            points: number;
+            invitationLinks: import("./schemas/user.schema").InvitationLink[];
+        };
     }>;
     getInvitationLinkStats(req: any): Promise<{
-        usageCount: number;
-        lastUsed: Date | null;
+        totalUsageCount: number;
+        totalPointsEarned: number;
+        userTotalPoints: number;
+        invitationLinks: import("./schemas/user.schema").InvitationLink[];
     }>;
     verifyEmail(token: string, req: any): Promise<{
         message: string;
@@ -70,5 +77,7 @@ export declare class UserController {
     resendPhoneVerificationCode(phoneNumber: string): Promise<{
         message: string;
     }>;
-    resetPassword(email: string, phoneNumber?: string): Promise<any>;
+    resetPassword(email: string, phoneNumber?: string): Promise<{
+        message: string;
+    }>;
 }

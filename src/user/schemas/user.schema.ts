@@ -6,6 +6,13 @@ export interface User {
   verificationToken?: string; // Add this line
   phoneNumberVerificationCode?: string; // Add this line
 }
+export interface InvitationLink {
+  link: string;
+  createdAt: Date;
+  lastUsed: Date | null;
+  usageCount: number;
+  pointsEarned: number;
+}
 
 export type UserDocument = User & Document; // Ensure this line exists
 
@@ -56,6 +63,13 @@ export class User extends Document {
   invitationLinkUsageCount: number;
   @Prop()
   lastInvitationLinkUsage: Date;
+  @Prop({ default: [] })
+  invitationLinks: InvitationLink[];
+
+  @Prop({ default: 0 })
+  totalPointsEarned: number;
+
+
   @Prop()
   resetPasswordToken?: string;
   @Prop()

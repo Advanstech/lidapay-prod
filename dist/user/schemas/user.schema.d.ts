@@ -3,6 +3,13 @@ export interface User {
     verificationToken?: string;
     phoneNumberVerificationCode?: string;
 }
+export interface InvitationLink {
+    link: string;
+    createdAt: Date;
+    lastUsed: Date | null;
+    usageCount: number;
+    pointsEarned: number;
+}
 export type UserDocument = User & Document;
 export declare class User extends Document {
     email: string;
@@ -26,6 +33,8 @@ export declare class User extends Document {
     invitationLink: string;
     invitationLinkUsageCount: number;
     lastInvitationLinkUsage: Date;
+    invitationLinks: InvitationLink[];
+    totalPointsEarned: number;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
     createdAt: Date;

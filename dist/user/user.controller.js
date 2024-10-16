@@ -110,11 +110,19 @@ let UserController = UserController_1 = class UserController {
     }
     async trackInvitationLinkUsage(invitationLink) {
         this.logger.debug(`Tracking invitation link usage: ${invitationLink}`);
-        await this.userService.trackInvitationLinkUsage(invitationLink);
-        return { message: 'Invitation link usage tracked and points awarded' };
+        const updatedUser = await this.userService.trackInvitationLinkUsage(invitationLink);
+        return {
+            message: 'Invitation link usage tracked and points awarded',
+            updatedUser: {
+                totalPointsEarned: updatedUser.totalPointsEarned,
+                points: updatedUser.points,
+                invitationLinks: updatedUser.invitationLinks
+            }
+        };
     }
     async getInvitationLinkStats(req) {
-        return this.userService.getInvitationLinkStats(req.user.sub);
+        const userId = req.user.sub;
+        return this.userService.getInvitationLinkStats(userId);
     }
     async verifyEmail(token, req) {
         try {
@@ -692,7 +700,7 @@ __decorate([
 ], UserController.prototype, "scanQRCode", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('invitation-link/generate'),
+    (0, common_1.Get)('invitation-link/generate'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Generate an invitation link for the user' }),
     (0, swagger_1.ApiResponse)({
@@ -717,7 +725,7 @@ __decorate([
         schema: {
             type: 'object',
             properties: {
-                invitationLink: { type: 'string', example: 'https://example.com/invite/yyyymmdd/abc123' }
+                invitationLink: { type: 'string', example: 'http://advansistechnologies.com/invite/20241016/Peprah/a17fe6dd-cdf6-4aca-b91d-522420026dc4' }
             }
         }
     }),
@@ -727,7 +735,26 @@ __decorate([
         schema: {
             type: 'object',
             properties: {
-                message: { type: 'string', example: 'Invitation link usage tracked and points awarded' }
+                message: { type: 'string', example: 'Invitation link usage tracked and points awarded' },
+                updatedUser: {
+                    type: 'object',
+                    properties: {
+                        totalPointsEarned: { type: 'number', example: 110 },
+                        points: { type: 'number', example: 160 },
+                        invitationLinks: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    link: { type: 'string', example: 'http://advansistechnologies.com/invite/20241016/Peprah/a17fe6dd-cdf6-4aca-b91d-522420026dc4' },
+                                    lastUsed: { type: 'string', format: 'date-time', example: '2024-10-17T10:30:00.000Z' },
+                                    usageCount: { type: 'number', example: 4 },
+                                    pointsEarned: { type: 'number', example: 40 }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }),
@@ -740,15 +767,28 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Get)('invitation-link/stats'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get statistics for the user\'s invitation link' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get statistics for the user\'s invitation links' }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Invitation link statistics retrieved successfully',
         schema: {
             type: 'object',
             properties: {
-                usageCount: { type: 'number', example: 5 },
-                lastUsed: { type: 'string', format: 'date-time', example: '2023-04-01T12:00:00Z' }
+                totalUsageCount: { type: 'number', example: 10 },
+                totalPointsEarned: { type: 'number', example: 100 },
+                invitationLinks: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            link: { type: 'string', example: 'https://example.com/invite/yyyymmdd/abc123' },
+                            createdAt: { type: 'string', format: 'date-time', example: '2023-04-01T12:00:00Z' },
+                            lastUsed: { type: 'string', format: 'date-time', example: '2023-04-05T15:30:00Z', nullable: true },
+                            usageCount: { type: 'number', example: 3 },
+                            pointsEarned: { type: 'number', example: 30 }
+                        }
+                    }
+                }
             }
         }
     }),
@@ -921,8 +961,7 @@ __decorate([
         schema: {
             type: 'object',
             properties: {
-                email: { type: 'string', example: 'user@example.com' },
-                phoneNumber: { type: 'string', example: '+1234567890' }
+                email: { type: 'string', example: 'test@example.com' }
             }
         }
     }),

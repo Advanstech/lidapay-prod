@@ -100,6 +100,14 @@ __decorate([
     __metadata("design:type", Date)
 ], User.prototype, "lastInvitationLinkUsage", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ default: [] }),
+    __metadata("design:type", Array)
+], User.prototype, "invitationLinks", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "totalPointsEarned", void 0);
+__decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], User.prototype, "resetPasswordToken", void 0);

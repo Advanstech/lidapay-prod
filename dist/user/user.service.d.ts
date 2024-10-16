@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { InvitationLink, User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from '../utilities/email.service';
 import { NodemailService } from '../utilities/nodemail.service';
@@ -45,11 +45,13 @@ export declare class UserService {
         lastUsed: Date | null;
     }>;
     awardPoints(userId: string, points: number): Promise<User>;
-    generateInvitationLink(phoneNumber: string): Promise<string>;
+    generateInvitationLink(username: string): Promise<string>;
     trackInvitationLinkUsage(invitationLink: string): Promise<User>;
     getInvitationLinkStats(userId: string): Promise<{
-        usageCount: number;
-        lastUsed: Date | null;
+        totalUsageCount: number;
+        totalPointsEarned: number;
+        userTotalPoints: number;
+        invitationLinks: InvitationLink[];
     }>;
     verifyEmail(email: string, token: string): Promise<User>;
     resendVerificationEmail(email: string): Promise<void>;

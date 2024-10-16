@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { InvitationLink, User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PasswordUtil } from '../utilities/password.util';
 import { ValidationUtil } from '../utilities/validation.util';
@@ -268,7 +268,7 @@ export class UserService {
       lastUsed: user.lastQRCodeUsage || null,
     };
   }
-
+  // Get add reward points
   async awardPoints(userId: string, points: number): Promise<User> {
     const updatedUser = await this.userModel.findByIdAndUpdate(
       userId,
@@ -282,43 +282,59 @@ export class UserService {
 
     return updatedUser;
   }
-
-  async generateInvitationLink(phoneNumber: string): Promise<string> {
-    const user = await this.userModel.findOne({ phoneNumber }); // Find user by phoneNumber
+  // Generate Invitation Link
+  async generateInvitationLink(username: string): Promise<string> {
+    const user = await this.userModel.findOne({ username });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const currentDate = new Date().toISOString().replace(/-/g, '').slice(0, 8); // Format: YYYYMMDD
+    const currentDate = new Date().toISOString().replace(/-/g, '').slice(0, 8);
     const invitationLink = `${process.env.DOMAIN_URL}/invite/${currentDate}/${user.firstName}/${uuidv4()}`;
-    user.invitationLink = invitationLink;
+
+    const newInvitationLink = {
+      link: invitationLink,
+      createdAt: new Date(),
+      lastUsed: null,
+      usageCount: 0,
+      pointsEarned: 0
+    };
+
+    user.invitationLinks.push(newInvitationLink);
     await user.save();
 
+    this.logger.log(`User generated link => ${invitationLink}`);
     return invitationLink;
   }
-
+  // Track Invitation Link Usage
   async trackInvitationLinkUsage(invitationLink: string): Promise<User> {
     try {
-      const user = await this.userModel.findOne({ invitationLink });
-      this.logger.debug(`User: ${user._id}`);
+      const user = await this.userModel.findOne({ 'invitationLinks.link': invitationLink });
       if (!user) {
         throw new NotFoundException('Invalid invitation link');
       }
 
-      const updatedUser = await this.userModel.findByIdAndUpdate(
-        user._id,
-        {
-          $inc: { invitationLinkUsageCount: 1 },
-          $set: { lastInvitationLinkUsage: new Date() }
-        },
-        { new: true, runValidators: true }
-      );
+      const linkIndex = user.invitationLinks.findIndex(link => link.link === invitationLink);
+      if (linkIndex === -1) {
+        throw new NotFoundException('Invitation link not found for this user');
+      }
+
+      const INVITATION_LINK_REWARD_POINTS = 10; // You might want to make this configurable
+
+      // Update the specific invitation link
+      user.invitationLinks[linkIndex].lastUsed = new Date();
+      user.invitationLinks[linkIndex].usageCount += 1;
+      user.invitationLinks[linkIndex].pointsEarned += INVITATION_LINK_REWARD_POINTS;
+
+      // Update total points earned and user's points
+      user.totalPointsEarned = (user.totalPointsEarned || 0) + INVITATION_LINK_REWARD_POINTS;
+      user.points = (user.points || 0) + INVITATION_LINK_REWARD_POINTS;
+
+      const updatedUser = await user.save();
 
       if (!updatedUser) {
         throw new NotFoundException('User not found after update');
       }
-      // Award points using the existing addPoints method
-      await this.addPoints(user._id.toString(), INVITATION_LINK_REWARD_POINTS);
 
       return updatedUser;
     } catch (error) {
@@ -328,22 +344,30 @@ export class UserService {
       }
       throw new InternalServerErrorException('Failed to track invitation link usage');
     }
-
   }
-
-  async getInvitationLinkStats(userId: string): Promise<{ usageCount: number; lastUsed: Date | null }> {
-    const user = await this.userModel.findById(userId, 'invitationLinkUsageCount lastInvitationLinkUsage');
-
+  // Get Invitation Link Stats
+  async getInvitationLinkStats(userId: string): Promise<{
+    totalUsageCount: number;
+    totalPointsEarned: number;
+    userTotalPoints: number;
+    invitationLinks: InvitationLink[];
+  }> {
+    const user = await this.userModel.findById(userId);
+  
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-
+  
+    const totalUsageCount = user.invitationLinks.reduce((sum, link) => sum + link.usageCount, 0);
+    const totalPointsEarned = user.totalPointsEarned || 0;
+  
     return {
-      usageCount: user.invitationLinkUsageCount || 0,
-      lastUsed: user.lastInvitationLinkUsage || null,
+      totalUsageCount,
+      totalPointsEarned,
+      userTotalPoints: user.points || 0,
+      invitationLinks: user.invitationLinks
     };
-  }
-
+  }  
   // user account verification by email
   async verifyEmail(email: string, token: string): Promise<User> {
     const user = await this.userModel.findOne({ email });
@@ -376,7 +400,7 @@ export class UserService {
       // Consider adding the email to a queue for retry
     }
   }
-
+  // resend verification email
   async resendVerificationEmail(email: string): Promise<void> {
     const user = await this.userModel.findOne({ email });
 
@@ -398,7 +422,7 @@ export class UserService {
 
     await this.sendVerificationEmail(user, verificationToken);
   }
-
+  // send verifiation email
   async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
     const url = `${process.env.DOMAIN_URL}/auth/verify-email/${verificationToken}`;
     const message = `Click the link below to verify your email address: ${url}`;

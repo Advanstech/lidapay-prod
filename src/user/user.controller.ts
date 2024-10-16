@@ -8,7 +8,6 @@ import { JwtRefreshGuard } from '../auth/jwt-refresh.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RewardService } from 'src/reward/reward.service';
 
-
 @ApiTags('Users')
 @Controller('api/v1/users')
 export class UserController {
@@ -310,7 +309,7 @@ export class UserController {
   @ApiParam({ name: 'page', description: 'Page number', required: false, schema: { type: 'number', default: 1 } })
   @ApiParam({ name: 'limit', description: 'Number of users per page', required: false, schema: { type: 'number', default: 10 } })
   async getAllUsers(
-    @Query('page') page: number = 1, 
+    @Query('page') page: number = 1,
     @Query('limit') limit: number = 10): Promise<any> {
     return this.userService.findAll(page, limit);
   }
@@ -514,7 +513,7 @@ export class UserController {
   }
   // Generate invitation link
   @UseGuards(JwtAuthGuard)
-  @Post('invitation-link/generate')
+  @Get('invitation-link/generate')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate an invitation link for the user' })
   @ApiResponse({
@@ -539,7 +538,7 @@ export class UserController {
     schema: {
       type: 'object',
       properties: {
-        invitationLink: { type: 'string', example: 'https://example.com/invite/yyyymmdd/abc123' }
+        invitationLink: { type: 'string', example: 'http://advansistechnologies.com/invite/20241016/Peprah/a17fe6dd-cdf6-4aca-b91d-522420026dc4' }
       }
     }
   })
@@ -549,33 +548,73 @@ export class UserController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Invitation link usage tracked and points awarded' }
+        message: { type: 'string', example: 'Invitation link usage tracked and points awarded' },
+        updatedUser: {
+          type: 'object',
+          properties: {
+            totalPointsEarned: { type: 'number', example: 110 },
+            points: { type: 'number', example: 160 },
+            invitationLinks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  link: { type: 'string', example: 'http://advansistechnologies.com/invite/20241016/Peprah/a17fe6dd-cdf6-4aca-b91d-522420026dc4' },
+                  lastUsed: { type: 'string', format: 'date-time', example: '2024-10-17T10:30:00.000Z' },
+                  usageCount: { type: 'number', example: 4 },
+                  pointsEarned: { type: 'number', example: 40 }
+                }
+              }
+            }
+          }
+        }
       }
     }
   })
   async trackInvitationLinkUsage(@Body('invitationLink') invitationLink: string) {
     this.logger.debug(`Tracking invitation link usage: ${invitationLink}`);
-    await this.userService.trackInvitationLinkUsage(invitationLink);
-    return { message: 'Invitation link usage tracked and points awarded' };
+    const updatedUser = await this.userService.trackInvitationLinkUsage(invitationLink);
+    return {
+      message: 'Invitation link usage tracked and points awarded',
+      updatedUser: {
+        totalPointsEarned: updatedUser.totalPointsEarned,
+        points: updatedUser.points,
+        invitationLinks: updatedUser.invitationLinks
+      }
+    };
   }
   // Get invitation link stats
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Get('invitation-link/stats')
-  @ApiOperation({ summary: 'Get statistics for the user\'s invitation link' })
+  @ApiOperation({ summary: 'Get statistics for the user\'s invitation links' })
   @ApiResponse({
     status: 200,
     description: 'Invitation link statistics retrieved successfully',
     schema: {
       type: 'object',
       properties: {
-        usageCount: { type: 'number', example: 5 },
-        lastUsed: { type: 'string', format: 'date-time', example: '2023-04-01T12:00:00Z' }
+        totalUsageCount: { type: 'number', example: 10 },
+        totalPointsEarned: { type: 'number', example: 100 },
+        invitationLinks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              link: { type: 'string', example: 'https://example.com/invite/yyyymmdd/abc123' },
+              createdAt: { type: 'string', format: 'date-time', example: '2023-04-01T12:00:00Z' },
+              lastUsed: { type: 'string', format: 'date-time', example: '2023-04-05T15:30:00Z', nullable: true },
+              usageCount: { type: 'number', example: 3 },
+              pointsEarned: { type: 'number', example: 30 }
+            }
+          }
+        }
       }
     }
   })
   async getInvitationLinkStats(@Request() req) {
-    return this.userService.getInvitationLinkStats(req.user.sub);
+    const userId = req.user.sub;
+    return this.userService.getInvitationLinkStats(userId);
   }
   // Email Verification
   @UseGuards(JwtAuthGuard)
@@ -611,8 +650,8 @@ export class UserController {
       }
     }
   })
-  @ApiParam({  name: 'token', description: 'Email verification token', example: 'abc123' })
-  @ApiParam({  name: 'email', description: 'User email', example: 'user@example.com' })
+  @ApiParam({ name: 'token', description: 'Email verification token', example: 'abc123' })
+  @ApiParam({ name: 'email', description: 'User email', example: 'user@example.com' })
   async verifyEmail(@Param('token') token: string, @Request() req) {
     try {
       this.logger.debug(`User request for email ==> ${req.user}`);
@@ -675,7 +714,6 @@ export class UserController {
       }
     }
   }
-
   // Phone Number Verification
   @Post('verify-phone')
   @ApiOperation({ summary: 'Verify user phone number' })
@@ -770,15 +808,14 @@ export class UserController {
       }
     }
   }
-  // Reset password
+
   @Post('reset-password')
   @ApiOperation({ summary: 'Initiate password reset' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        email: { type: 'string', example: 'user@example.com' },
-        phoneNumber: { type: 'string', example: '+1234567890' }
+        email: { type: 'string', example: 'test@example.com' }
       }
     }
   })
@@ -792,12 +829,9 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  async resetPassword(
-    @Body('email') email: string, @Body('phoneNumber') phoneNumber?: string
-  ): Promise<any> {
+  async resetPassword(@Body('email') email: string, @Body('phoneNumber') phoneNumber?: string) {
     try {
-     
-      const identifier = email || phoneNumber; 
+      const identifier = email || phoneNumber;
       return await this.authService.resetPassword(identifier);
     } catch (error) {
       if (error instanceof BadRequestException) {
