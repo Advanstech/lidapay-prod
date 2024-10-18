@@ -31,7 +31,7 @@ export class PsmobilemoneyController {
     public async creditWallet(
         @Body() transDto: TransferMobileMoneyDto,
     ) {
-        const cw = await this.psMobilemoneyService.transferMobilemoney(transDto);
+        const cw = this.psMobilemoneyService.transferMobilemoney(transDto);
         return cw;
     }
 
@@ -55,8 +55,8 @@ export class PsmobilemoneyController {
     public async debitWallet(
         @Body() transDto: PayMobileMoneyDto,
     ) {
-        this.logger.debug(`Debit wallet request: ${JSON.stringify(transDto)}`);
-        const dw = await this.psMobilemoneyService.mobileMoneyPayment(transDto);
+        this.logger.log(`Debit wallet request: ${JSON.stringify(transDto)}`);
+        const dw = this.psMobilemoneyService.mobileMoneyPayment(transDto);
         this.logger.debug(`Debit wallet response: ${JSON.stringify(dw)}`);
         return dw;
     }

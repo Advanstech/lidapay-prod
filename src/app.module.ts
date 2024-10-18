@@ -22,6 +22,7 @@ import { SmsModule } from './one4all/sms/sms.module';
 import { ReloadlyModule } from './reloadly/reloadly.module';
 import { AuthenticationModule } from './reloadly/authentication/authentication.module';
 import { ReloadAirtimeModule } from './reloadly/reload-airtime/reload-airtime.module';
+import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ReloadAirtimeModule } from './reloadly/reload-airtime/reload-airtime.mo
     NotificationModule,
     AirtimeModule,
     InternetModule,
+    MobilemoneyModule,
     PsmobilemoneyModule,
     PscardpaymentModule,
     SmsModule,

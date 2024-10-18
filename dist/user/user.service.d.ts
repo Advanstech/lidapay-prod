@@ -58,4 +58,7 @@ export declare class UserService {
     sendVerificationEmail(user: User, verificationToken: string): Promise<void>;
     verifyPhoneNumber(phoneNumber: string, verificationCode: string): Promise<void>;
     sendPhoneNumberVerificationCode(phoneNumber: string): Promise<void>;
+    validateWallet(userId: string): Promise<void>;
+    purchaseAirtime(userId: string, amount: number): Promise<void>;
+    validateUserAccounts(userId: string): Promise<void>;
 }

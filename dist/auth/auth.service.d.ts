@@ -21,6 +21,7 @@ export declare class AuthService {
     resetPassword(identifier: string): Promise<{
         message: string;
     }>;
+    confirmResetPassword(token: string, newPassword: string): Promise<boolean>;
     merchantLogin(merchant: any): Promise<{
         access_token: string;
         refresh_token: string;

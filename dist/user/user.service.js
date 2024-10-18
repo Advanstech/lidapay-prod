@@ -32,6 +32,8 @@ const uuid_1 = require("uuid");
 const common_2 = require("@nestjs/common");
 const token_util_1 = require("../utilities/token.util");
 const notification_service_1 = require("../notification/notification.service");
+const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
+const wallet_schema_1 = require("./schemas/wallet.schema");
 let UserService = UserService_1 = class UserService {
     constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
         this.userModel = userModel;
@@ -61,7 +63,14 @@ let UserService = UserService_1 = class UserService {
             }
             const hashedPassword = await password_util_1.PasswordUtil.hashPassword(userDto.password);
             const gravatarUrl = await this.gravatarService.fetchAvatar(userDto.email);
-            const createdUser = new this.userModel({ ...userDto, password: hashedPassword });
+            const wallet = new wallet_schema_1.Wallet();
+            const lidapayAccount = new lidapay_account_schema_1.LidapayAccount();
+            const createdUser = new this.userModel({
+                ...userDto,
+                password: hashedPassword,
+                wallet,
+                lidapayAccount
+            });
             if (createdUser.roles && createdUser.roles.some(role => role.toLowerCase() === 'agent')) {
                 this.logger.debug(`User QrCode Generating ==>`);
                 createdUser.qrCode = await (0, qr_code_util_1.generateQrCode)(createdUser._id.toString());
@@ -359,6 +368,43 @@ let UserService = UserService_1 = class UserService {
         user.phoneNumberVerificationCode = verificationCode;
         await user.save();
         await this.smsService.sendSms(phoneNumber, `Your verification code is: ${verificationCode}`);
+    }
+    async validateWallet(userId) {
+        const user = await this.userModel
+            .findById(userId)
+            .populate('wallet')
+            .exec();
+        if (!user || !user.wallet) {
+            throw new common_1.NotFoundException('User or wallet not found');
+        }
+        const wallet = user.wallet;
+        const hasMobileMoney = wallet.mobileMoneyAccounts && wallet.mobileMoneyAccounts.length > 0;
+        const hasCard = wallet.cardDetails && wallet.cardDetails.length > 0;
+        if (!hasMobileMoney && !hasCard) {
+            throw new common_2.BadRequestException('User must have at least one payment method in their wallet');
+        }
+    }
+    async purchaseAirtime(userId, amount) {
+        await this.validateWallet(userId);
+    }
+    async validateUserAccounts(userId) {
+        const user = await this.userModel
+            .findById(userId)
+            .populate('wallet lidapayAccount')
+            .exec();
+        if (!user || !user.wallet || !user.lidapayAccount) {
+            throw new common_1.NotFoundException('User, wallet, or Lidapay account not found');
+        }
+        const wallet = user.wallet;
+        const lidapayAccount = user.lidapayAccount;
+        const hasMobileMoney = wallet.mobileMoneyAccounts && wallet.mobileMoneyAccounts.length > 0;
+        const hasCard = wallet.cardDetails && wallet.cardDetails.length > 0;
+        if (!hasMobileMoney && !hasCard) {
+            throw new common_2.BadRequestException('User must have at least one payment method in their wallet');
+        }
+        if (lidapayAccount.balance <= 0) {
+            throw new common_2.BadRequestException('Insufficient funds in Lidapay account');
+        }
     }
 };
 exports.UserService = UserService;

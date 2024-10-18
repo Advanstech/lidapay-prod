@@ -125,8 +125,9 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
+    // Hash the new password before saving
     const hashedNewPassword = await PasswordUtil.hashPassword(newPassword);
-    await this.userService.updatePassword(userId, hashedNewPassword);
+    await this.userService.updatePassword(user._id as string, hashedNewPassword); // Type assertion added
 
     this.logger.log(`Password changed successfully for user: ${userId}`);
     return true;
@@ -136,7 +137,7 @@ export class AuthService {
     this.logger.log(`Resetting password for identifier: ${identifier}`);
     const user = await this.userService.findOneByEmailOrPhoneNumber(identifier);
     this.logger.log(`User found: ${user}`);
-    
+
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -164,6 +165,22 @@ export class AuthService {
       await this.smsService.sendSms(user.phoneNumber, resetLink);
       return { message: 'Password reset link sent to your phone' };
     }
+  }
+  // New method to handle password reset
+  async confirmResetPassword(token: string, newPassword: string): Promise<boolean> {
+    const payload = this.jwtService.verify(token);
+    const user = await this.userService.findOneById(payload.userId);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Hash the new password before saving
+    const hashedNewPassword = await PasswordUtil.hashPassword(newPassword);
+    await this.userService.updatePassword(user._id as string, hashedNewPassword);
+
+    this.logger.log(`Password reset successfully for user: ${user._id as string}`); // Type assertion added
+    return true;
   }
   // Merchant login
   async merchantLogin(merchant: any) {
@@ -200,4 +217,6 @@ export class AuthService {
 
 
 }
+
+
 

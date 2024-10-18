@@ -1,4 +1,4 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 export interface User {
     verificationToken?: string;
     phoneNumberVerificationCode?: string;
@@ -39,6 +39,8 @@ export declare class User extends Document {
     resetPasswordExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
+    lidapayAccount: Types.ObjectId;
+    wallet: Types.ObjectId;
 }
 export declare const UserSchema: import("mongoose").Schema<User, import("mongoose").Model<User, any, any, any, Document<unknown, any, User> & User & Required<{
     _id: unknown;

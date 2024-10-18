@@ -116,7 +116,7 @@ let AuthService = AuthService_1 = class AuthService {
             throw new common_2.UnauthorizedException('Current password is incorrect');
         }
         const hashedNewPassword = await password_util_1.PasswordUtil.hashPassword(newPassword);
-        await this.userService.updatePassword(userId, hashedNewPassword);
+        await this.userService.updatePassword(user._id, hashedNewPassword);
         this.logger.log(`Password changed successfully for user: ${userId}`);
         return true;
     }
@@ -140,6 +140,17 @@ let AuthService = AuthService_1 = class AuthService {
             await this.smsService.sendSms(user.phoneNumber, resetLink);
             return { message: 'Password reset link sent to your phone' };
         }
+    }
+    async confirmResetPassword(token, newPassword) {
+        const payload = this.jwtService.verify(token);
+        const user = await this.userService.findOneById(payload.userId);
+        if (!user) {
+            throw new common_1.BadRequestException('User not found');
+        }
+        const hashedNewPassword = await password_util_1.PasswordUtil.hashPassword(newPassword);
+        await this.userService.updatePassword(user._id, hashedNewPassword);
+        this.logger.log(`Password reset successfully for user: ${user._id}`);
+        return true;
     }
     async merchantLogin(merchant) {
         try {

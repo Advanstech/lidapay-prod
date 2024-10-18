@@ -19,6 +19,8 @@ import { BadRequestException, InternalServerErrorException } from '@nestjs/commo
 import { TokenUtil } from 'src/utilities/token.util';
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
+import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema'; // Import Lidapay account schema
+import { Wallet, WalletDocument } from './schemas/wallet.schema';
 
 @Injectable()
 export class UserService {
@@ -56,7 +58,15 @@ export class UserService {
 
       const hashedPassword = await PasswordUtil.hashPassword(userDto.password);
       const gravatarUrl = await this.gravatarService.fetchAvatar(userDto.email);
-      const createdUser = new this.userModel({ ...userDto, password: hashedPassword });
+      // Initialize wallet and Lidapay account for the user
+      const wallet = new Wallet(); // Create a new wallet instance
+      const lidapayAccount = new LidapayAccount(); // Create a new Lidapay account instance
+      const createdUser = new this.userModel({
+        ...userDto,
+        password: hashedPassword,
+        wallet,
+        lidapayAccount // Add Lidapay account to user
+      });
 
       if (createdUser.roles && createdUser.roles.some(role => role.toLowerCase() === 'agent')) {
         this.logger.debug(`User QrCode Generating ==>`);
@@ -353,21 +363,21 @@ export class UserService {
     invitationLinks: InvitationLink[];
   }> {
     const user = await this.userModel.findById(userId);
-  
+
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-  
+
     const totalUsageCount = user.invitationLinks.reduce((sum, link) => sum + link.usageCount, 0);
     const totalPointsEarned = user.totalPointsEarned || 0;
-  
+
     return {
       totalUsageCount,
       totalPointsEarned,
       userTotalPoints: user.points || 0,
       invitationLinks: user.invitationLinks
     };
-  }  
+  }
   // user account verification by email
   async verifyEmail(email: string, token: string): Promise<User> {
     const user = await this.userModel.findOne({ email });
@@ -387,7 +397,6 @@ export class UserService {
     user.emailVerified = true;
     user.verificationToken = null;
     await user.save();
-
     // Send a confirmation email after successful verification
     try {
       await this.nodemailService.sendMail(
@@ -463,5 +472,65 @@ export class UserService {
     // Send the verification code via SMS (assuming you have an SMS service)
     await this.smsService.sendSms(phoneNumber, `Your verification code is: ${verificationCode}`);
   }
+
+  // New method to validate wallet before transactions
+  async validateWallet(userId: string): Promise<void> {
+    const user = await this.userModel
+      .findById(userId)
+      .populate('wallet') // Populate wallet details
+      .exec(); // Ensure that the query is executed
+
+    if (!user || !user.wallet) {
+      throw new NotFoundException('User or wallet not found');
+    }
+
+    // Type assertion: tell TypeScript that `user.wallet` is a populated WalletDocument
+    const wallet = user.wallet as any;
+
+    // Check if the user has at least one mobile money account or card (credit/debit)
+    const hasMobileMoney = wallet.mobileMoneyAccounts && wallet.mobileMoneyAccounts.length > 0;
+    const hasCard = wallet.cardDetails && wallet.cardDetails.length > 0;
+
+    if (!hasMobileMoney && !hasCard) {
+      throw new BadRequestException('User must have at least one payment method in their wallet');
+    }
+  }
+
+  // Example of using validateWallet in a transaction method
+  async purchaseAirtime(userId: string, amount: number): Promise<void> {
+    await this.validateWallet(userId); // Ensure wallet is valid before proceeding
+    // Logic for purchasing airtime...
+  }
+  // New method to validate wallet and Lidapay account before transactions
+  async validateUserAccounts(userId: string): Promise<void> {
+    const user = await this.userModel
+      .findById(userId)
+      .populate('wallet lidapayAccount') // Populate wallet and Lidapay account details
+      .exec(); // Ensure the query is executed
+
+    if (!user || !user.wallet || !user.lidapayAccount) {
+      throw new NotFoundException('User, wallet, or Lidapay account not found');
+    }
+
+    // Type assertion: cast wallet and Lidapay account safely using 'unknown'
+    const wallet = user.wallet as unknown as WalletDocument;
+    const lidapayAccount = user.lidapayAccount as unknown as LidapayAccountDocument;
+
+    // Check if the user has at least one mobile money account or card (credit/debit) in the wallet
+    const hasMobileMoney = wallet.mobileMoneyAccounts && wallet.mobileMoneyAccounts.length > 0;
+    const hasCard = wallet.cardDetails && wallet.cardDetails.length > 0;
+
+    if (!hasMobileMoney && !hasCard) {
+      throw new BadRequestException('User must have at least one payment method in their wallet');
+    }
+
+    // Additional checks for Lidapay account (e.g., checking balance) can be added here if needed
+    if (lidapayAccount.balance <= 0) {
+      throw new BadRequestException('Insufficient funds in Lidapay account');
+    }
+  }
+
+
+
   // Other user management methods...
 }

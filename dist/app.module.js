@@ -31,6 +31,7 @@ const sms_module_1 = require("./one4all/sms/sms.module");
 const reloadly_module_1 = require("./reloadly/reloadly.module");
 const authentication_module_1 = require("./reloadly/authentication/authentication.module");
 const reload_airtime_module_1 = require("./reloadly/reload-airtime/reload-airtime.module");
+const mobilemoney_module_1 = require("./one4all/mobilemoney/mobilemoney.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -51,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
             notification_module_1.NotificationModule,
             airtime_module_1.AirtimeModule,
             internet_module_1.InternetModule,
+            mobilemoney_module_1.MobilemoneyModule,
             psmobilemoney_module_1.PsmobilemoneyModule,
             pscardpayment_module_1.PscardpaymentModule,
             sms_module_1.SmsModule,

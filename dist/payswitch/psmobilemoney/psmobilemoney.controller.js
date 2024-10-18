@@ -25,12 +25,12 @@ let PsmobilemoneyController = PsmobilemoneyController_1 = class PsmobilemoneyCon
         this.logger = new common_1.Logger(PsmobilemoneyController_1.name);
     }
     async creditWallet(transDto) {
-        const cw = await this.psMobilemoneyService.transferMobilemoney(transDto);
+        const cw = this.psMobilemoneyService.transferMobilemoney(transDto);
         return cw;
     }
     async debitWallet(transDto) {
-        this.logger.debug(`Debit wallet request: ${JSON.stringify(transDto)}`);
-        const dw = await this.psMobilemoneyService.mobileMoneyPayment(transDto);
+        this.logger.log(`Debit wallet request: ${JSON.stringify(transDto)}`);
+        const dw = this.psMobilemoneyService.mobileMoneyPayment(transDto);
         this.logger.debug(`Debit wallet response: ${JSON.stringify(dw)}`);
         return dw;
     }

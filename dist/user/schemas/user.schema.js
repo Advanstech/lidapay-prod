@@ -123,6 +123,14 @@ __decorate([
     (0, mongoose_1.Prop)({ default: Date.now() }),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'LidapayAccount', required: false }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], User.prototype, "lidapayAccount", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Wallet', required: false }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], User.prototype, "wallet", void 0);
 exports.User = User = __decorate([
     (0, mongoose_1.Schema)()
 ], User);
