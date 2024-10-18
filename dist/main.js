@@ -37,7 +37,6 @@ async function bootstrap() {
         swaggerOptions: {
             persistAuthorization: true,
         },
-        customfavIcon: 'https://advansistechnologies.com/favicon.ico',
         customSiteTitle: 'Lidapay API Documentation',
     });
     const port = parseInt(process.env.PORT, 10) || constants_1.SERVER_PORT;

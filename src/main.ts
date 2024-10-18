@@ -40,7 +40,6 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
     },
-    customfavIcon: 'https://advansistechnologies.com/favicon.ico',
     customSiteTitle: 'Lidapay API Documentation',
   });
 
