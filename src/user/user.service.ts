@@ -32,11 +32,11 @@ import {
 import { TokenUtil } from 'src/utilities/token.util';
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
-import { Wallet, WalletDocument } from './schemas/wallet.schema';
 import { generateAccountNumber } from '../utilities/account.util'; // Import the utility function
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
 import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema'; // Add this import
+import { Wallet, WalletDocument } from './schemas/wallet.schema';
 
 @Injectable()
 export class UserService {
@@ -51,8 +51,7 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<Wallet>,
-    @InjectModel(LidapayAccount.name)
-    private lidapayAccountModel: Model<LidapayAccount>,
+    @InjectModel(LidapayAccount.name) private lidapayAccountModel: Model<LidapayAccount>,
     private emailService: EmailService,
     private nodemailService: NodemailService,
     private smsService: SmsService,

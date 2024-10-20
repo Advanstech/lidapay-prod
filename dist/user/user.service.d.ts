@@ -7,8 +7,8 @@ import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { NotificationService } from 'src/notification/notification.service';
-import { Wallet } from './schemas/wallet.schema';
 import { LidapayAccount } from './schemas/lidapay-account.schema';
+import { Wallet } from './schemas/wallet.schema';
 export declare class UserService {
     private userModel;
     private walletModel;
