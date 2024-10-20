@@ -21,7 +21,7 @@ import { LidapayAccount, LidapayAccountSchema } from './schemas/lidapay-account.
     ConfigModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Wallet.name, schema: WalletSchema }]),
-    MongooseModule.forFeature([{ name: LidapayAccount.name, schema: LidapayAccountSchema }]),
+    MongooseModule.forFeature([{ name: LidapayAccount.name, schema: LidapayAccountSchema}]),
     forwardRef(() => AuthModule),
     forwardRef(() => MerchantModule),
     RewardModule,

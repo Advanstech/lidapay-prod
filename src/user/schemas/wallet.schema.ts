@@ -21,7 +21,7 @@ export interface CardDetails {
 export type WalletDocument = Wallet & Document;
 
 @Schema()
-export class Wallet extends Document {
+export class  Wallet extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: Types.ObjectId; // Link to the User schema
   @Prop({ default: [] })
