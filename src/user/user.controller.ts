@@ -7,6 +7,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtRefreshGuard } from '../auth/jwt-refresh.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RewardService } from 'src/reward/reward.service';
+import { Wallet } from './schemas/wallet.schema'; // Assuming you have a Wallet schema
+import { LidapayAccount } from './schemas/lidapay-account.schema'; // Assuming you have a LidapayAccount schema
 
 @ApiTags('Users')
 @Controller('api/v1/users')
@@ -808,7 +810,7 @@ export class UserController {
       }
     }
   }
-
+  // Reset Password
   @Post('reset-password')
   @ApiOperation({ summary: 'Initiate password reset' })
   @ApiBody({
@@ -840,5 +842,155 @@ export class UserController {
       throw new BadRequestException('Failed to initiate password reset');
     }
   }
+  // Create or update wallet
+  @UseGuards(JwtAuthGuard)
+  @Post('wallet')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create or update user wallet' })
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet created or updated successfully',
+    type: Wallet,
+  })
+  @ApiBody({
+    description: 'Wallet data',
+    type: Wallet,
+  })
+  async createOrUpdateWallet(@Request() req, @Body() walletData: Wallet) {
+    return this.userService.createOrUpdateWallet(req.user.sub, walletData);
+  }
+   // Get wallet by ID
+   @UseGuards(JwtAuthGuard)
+   @Get('wallet/:id')
+   @ApiBearerAuth()
+   @ApiOperation({ summary: 'Get wallet by ID' })
+   @ApiResponse({
+     status: 200,
+     description: 'Wallet retrieved successfully',
+     type: Wallet,
+   })
+   @ApiResponse({
+     status: 404,
+     description: 'Wallet not found',
+   })
+   @ApiParam({ name: 'id', description: 'Wallet ID', required: true })
+   async getWalletById(@Param('id') walletId: string) {
+     const wallet = await this.userService.getWalletById(walletId);
+     if (!wallet) {
+       throw new NotFoundException('Wallet not found');
+     }
+     return wallet;
+   }
+  // Get wallet by user Id
+  @UseGuards(JwtAuthGuard)
+  @Get('wallet')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user wallet' })
+  @ApiResponse({
+    status: 200,
+    description: 'User wallet retrieved successfully',
+    type: Wallet,
+  })
+  async getWallet(@Request() req) {
+    const userId = req.user.sub; // Ensure this is the correct user ID
+    this.logger.debug(`User request for wallet ==> ${userId}`);
+    const wallet = await this.userService.getWalletByUserId(userId);
+    this.logger.debug(`Retrieved wallet for user ${userId}: ${JSON.stringify(wallet)}`);
+    if (!wallet) {
+        throw new NotFoundException(`Wallet not found for user ID: ${userId}`);
+    }
+    return wallet;
+  }
+  // Delete wallet by user ID
+  @UseGuards(JwtAuthGuard)
+  @Delete('wallet')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete user wallet' })
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Wallet successfully deleted' },
+      },
+    },
+  })
+  async deleteWallet(@Request() req) {
+    return this.userService.deleteWalletByUserId(req.user.sub);
+  }
+  // Create or update Lidapay account
+  @UseGuards(JwtAuthGuard)
+  @Post('lidapay-account')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create or update user Lidapay account' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lidapay account created or updated successfully',
+    type: LidapayAccount,
+  })
+  @ApiBody({
+    description: 'Lidapay account data',
+    type: LidapayAccount,
+  })
+  async createOrUpdateLidapayAccount(@Request() req, @Body() lidapayData: LidapayAccount) {
+    return this.userService.createOrUpdateLidapayAccount(req.user.sub, lidapayData);
+  }
+  // Get Lidapay account by ID
+  @UseGuards(JwtAuthGuard)
+  @Get('lidapay-account/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Lidapay account by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lidapay account retrieved successfully',
+    type: LidapayAccount,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Lidapay account not found',
+  })
+  @ApiParam({ name: 'id', description: 'Lidapay account ID', required: true })
+  async getLidapayAccountById(@Param('id') lidapayAccountId: string) {
+    const lidapayAccount = await this.userService.getLidapayAccountById(lidapayAccountId);
+    if (!lidapayAccount) {
+      throw new NotFoundException('Lidapay account not found');
+    }
+    return lidapayAccount;
+  }
+  // Get Lidapay account by user ID
+  @UseGuards(JwtAuthGuard)
+  @Get('lidapay-account')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user Lidapay account' })
+  @ApiResponse({
+    status: 200,
+    description: 'User Lidapay account retrieved successfully',
+    type: LidapayAccount,
+  })
+  async getLidapayAccount(@Request() req) {
+    return this.userService.getLidapayAccountByUserId(req.user.sub);
+  }
+
+  // Delete Lidapay account by user ID
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('lidapay-account')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete user Lidapay account' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lidapay account successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Lidapay account successfully deleted' },
+      },
+    },
+  })
+  async deleteLidapayAccount(@Request() req) {
+    return this.userService.deleteLidapayAccountByUserId(req.user.sub);
+  }
+ 
+  //
   // Other endpoints...
 }

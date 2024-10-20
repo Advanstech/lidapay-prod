@@ -22,6 +22,8 @@ const auth_service_1 = require("../auth/auth.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const swagger_1 = require("@nestjs/swagger");
 const reward_service_1 = require("../reward/reward.service");
+const wallet_schema_1 = require("./schemas/wallet.schema");
+const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 let UserController = UserController_1 = class UserController {
     constructor(userService, authService, rewardsService) {
         this.userService = userService;
@@ -204,6 +206,45 @@ let UserController = UserController_1 = class UserController {
             }
             throw new common_1.BadRequestException('Failed to initiate password reset');
         }
+    }
+    async createOrUpdateWallet(req, walletData) {
+        return this.userService.createOrUpdateWallet(req.user.sub, walletData);
+    }
+    async getWalletById(walletId) {
+        const wallet = await this.userService.getWalletById(walletId);
+        if (!wallet) {
+            throw new common_1.NotFoundException('Wallet not found');
+        }
+        return wallet;
+    }
+    async getWallet(req) {
+        const userId = req.user.sub;
+        this.logger.debug(`User request for wallet ==> ${userId}`);
+        const wallet = await this.userService.getWalletByUserId(userId);
+        this.logger.debug(`Retrieved wallet for user ${userId}: ${JSON.stringify(wallet)}`);
+        if (!wallet) {
+            throw new common_1.NotFoundException(`Wallet not found for user ID: ${userId}`);
+        }
+        return wallet;
+    }
+    async deleteWallet(req) {
+        return this.userService.deleteWalletByUserId(req.user.sub);
+    }
+    async createOrUpdateLidapayAccount(req, lidapayData) {
+        return this.userService.createOrUpdateLidapayAccount(req.user.sub, lidapayData);
+    }
+    async getLidapayAccountById(lidapayAccountId) {
+        const lidapayAccount = await this.userService.getLidapayAccountById(lidapayAccountId);
+        if (!lidapayAccount) {
+            throw new common_1.NotFoundException('Lidapay account not found');
+        }
+        return lidapayAccount;
+    }
+    async getLidapayAccount(req) {
+        return this.userService.getLidapayAccountByUserId(req.user.sub);
+    }
+    async deleteLidapayAccount(req) {
+        return this.userService.deleteLidapayAccountByUserId(req.user.sub);
     }
 };
 exports.UserController = UserController;
@@ -981,6 +1022,156 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "resetPassword", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('wallet'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Create or update user wallet' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Wallet created or updated successfully',
+        type: wallet_schema_1.Wallet,
+    }),
+    (0, swagger_1.ApiBody)({
+        description: 'Wallet data',
+        type: wallet_schema_1.Wallet,
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, wallet_schema_1.Wallet]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "createOrUpdateWallet", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('wallet/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get wallet by ID' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Wallet retrieved successfully',
+        type: wallet_schema_1.Wallet,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Wallet not found',
+    }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Wallet ID', required: true }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getWalletById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('wallet'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user wallet' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User wallet retrieved successfully',
+        type: wallet_schema_1.Wallet,
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getWallet", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Delete)('wallet'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete user wallet' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Wallet successfully deleted',
+        schema: {
+            type: 'object',
+            properties: {
+                message: { type: 'string', example: 'Wallet successfully deleted' },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "deleteWallet", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('lidapay-account'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Create or update user Lidapay account' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Lidapay account created or updated successfully',
+        type: lidapay_account_schema_1.LidapayAccount,
+    }),
+    (0, swagger_1.ApiBody)({
+        description: 'Lidapay account data',
+        type: lidapay_account_schema_1.LidapayAccount,
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, lidapay_account_schema_1.LidapayAccount]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "createOrUpdateLidapayAccount", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('lidapay-account/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get Lidapay account by ID' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Lidapay account retrieved successfully',
+        type: lidapay_account_schema_1.LidapayAccount,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Lidapay account not found',
+    }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Lidapay account ID', required: true }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getLidapayAccountById", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('lidapay-account'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user Lidapay account' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User Lidapay account retrieved successfully',
+        type: lidapay_account_schema_1.LidapayAccount,
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getLidapayAccount", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Delete)('lidapay-account'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete user Lidapay account' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Lidapay account successfully deleted',
+        schema: {
+            type: 'object',
+            properties: {
+                message: { type: 'string', example: 'Lidapay account successfully deleted' },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "deleteLidapayAccount", null);
 exports.UserController = UserController = UserController_1 = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('api/v1/users'),

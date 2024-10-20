@@ -22,7 +22,6 @@ const password_util_1 = require("../utilities/password.util");
 const validation_util_1 = require("../utilities/validation.util");
 const email_service_1 = require("../utilities/email.service");
 const nodemail_service_1 = require("../utilities/nodemail.service");
-const qr_code_util_1 = require("../utilities/qr-code.util");
 const sms_util_1 = require("../utilities/sms.util");
 const gravatar_util_1 = require("../utilities/gravatar.util");
 const merchant_service_1 = require("../merchant/merchant.service");
@@ -34,9 +33,13 @@ const token_util_1 = require("../utilities/token.util");
 const notification_service_1 = require("../notification/notification.service");
 const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 const wallet_schema_1 = require("./schemas/wallet.schema");
+const account_util_1 = require("../utilities/account.util");
+const mongoose_3 = require("mongoose");
 let UserService = UserService_1 = class UserService {
-    constructor(userModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
+    constructor(userModel, walletModel, lidapayAccountModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
         this.userModel = userModel;
+        this.walletModel = walletModel;
+        this.lidapayAccountModel = lidapayAccountModel;
         this.emailService = emailService;
         this.nodemailService = nodemailService;
         this.smsService = smsService;
@@ -44,40 +47,51 @@ let UserService = UserService_1 = class UserService {
         this.merchantService = merchantService;
         this.notificationService = notificationService;
         this.logger = new common_1.Logger(UserService_1.name);
-        this.emailVerifyRewardPoints = process.env.EMAIL_VERIFICATION_REWARD_POINTS || constants_1.EMAIL_VERIFICATION_REWARD_POINTS;
-        this.phoneVerifyRewardPoints = process.env.PHONE_VERIFICATION_REWARD_POINTS || constants_1.PHONE_VERIFICATION_REWARD_POINTS;
+        this.emailVerifyRewardPoints = process.env.EMAIL_VERIFICATION_REWARD_POINTS ||
+            constants_1.EMAIL_VERIFICATION_REWARD_POINTS;
+        this.phoneVerifyRewardPoints = process.env.PHONE_VERIFICATION_REWARD_POINTS ||
+            constants_1.PHONE_VERIFICATION_REWARD_POINTS;
     }
     async create(userDto) {
         try {
+            this.logger.debug('Creating user with DTO:', userDto);
             if (!validation_util_1.ValidationUtil.isValidEmail(userDto.email)) {
                 throw new Error('Invalid email address');
             }
             const existingUser = await this.userModel.findOne({
                 $or: [
                     { email: userDto.email },
-                    { username: userDto.phoneNumber || userDto.mobile }
-                ]
+                    { username: userDto.phoneNumber || userDto.mobile },
+                ],
             });
             if (existingUser) {
                 throw new common_1.ConflictException('User with this email or phone number already exists');
             }
             const hashedPassword = await password_util_1.PasswordUtil.hashPassword(userDto.password);
             const gravatarUrl = await this.gravatarService.fetchAvatar(userDto.email);
-            const wallet = new wallet_schema_1.Wallet();
-            const lidapayAccount = new lidapay_account_schema_1.LidapayAccount();
             const createdUser = new this.userModel({
                 ...userDto,
                 password: hashedPassword,
-                wallet,
-                lidapayAccount
+                points: 0,
+                gravatar: gravatarUrl,
             });
-            if (createdUser.roles && createdUser.roles.some(role => role.toLowerCase() === 'agent')) {
-                this.logger.debug(`User QrCode Generating ==>`);
-                createdUser.qrCode = await (0, qr_code_util_1.generateQrCode)(createdUser._id.toString());
-            }
-            createdUser.username = userDto.phoneNumber || userDto.mobile;
-            createdUser.points = 0;
-            createdUser.gravatar = gravatarUrl;
+            this.logger.debug('Creating wallet for user');
+            const wallet = new this.walletModel({
+                user: createdUser._id,
+                mobileMoneyAccounts: [
+                    { number: userDto.phoneNumber || userDto.mobile, provider: 'MTN' },
+                ],
+            });
+            await wallet.save();
+            this.logger.debug(`Wallet created for user ${createdUser._id}: ${JSON.stringify(wallet)}`);
+            createdUser.wallet = wallet._id;
+            const accountNumber = (0, account_util_1.generateAccountNumber)();
+            const lidapayAccount = new this.lidapayAccountModel({
+                user: createdUser._id,
+                accountNumber: accountNumber,
+            });
+            await lidapayAccount.save();
+            createdUser.lidapayAccount = lidapayAccount._id;
             await createdUser.save();
             try {
                 await this.nodemailService.sendMail(userDto.email, 'Welcome to Lidapay App 👋', email_templates_1.EmailTemplates.welcomeEmail(userDto.firstName));
@@ -136,7 +150,9 @@ let UserService = UserService_1 = class UserService {
             throw new Error('Invalid update data');
         }
         try {
-            const updatedUser = await this.userModel.findByIdAndUpdate(userId, updateData, { new: true }).exec();
+            const updatedUser = await this.userModel
+                .findByIdAndUpdate(userId, updateData, { new: true })
+                .exec();
             if (!updatedUser) {
                 throw new Error('User not found');
             }
@@ -144,7 +160,7 @@ let UserService = UserService_1 = class UserService {
                 userId: updatedUser.email,
                 type: 'email',
                 subject: 'Profile Updated',
-                message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}`
+                message: `Your profile has been updated successfully. Details: ${JSON.stringify(updatedUser)}`,
             };
             await this.notificationService.create(notificationData);
             return updatedUser;
@@ -187,6 +203,8 @@ let UserService = UserService_1 = class UserService {
             throw new Error('User ID is required');
         }
         try {
+            await this.walletModel.findOneAndDelete({ user: userId }).exec();
+            await this.lidapayAccountModel.findOneAndDelete({ user: userId }).exec();
             const result = await this.userModel.findByIdAndDelete(userId).exec();
             if (!result) {
                 throw new common_1.NotFoundException('User not found');
@@ -197,6 +215,13 @@ let UserService = UserService_1 = class UserService {
             this.logger.error(`Failed to delete user: ${error.message}`);
             throw new common_2.InternalServerErrorException('Failed to delete user');
         }
+    }
+    async suspendAccount(userId) {
+        const updatedUser = await this.userModel.findByIdAndUpdate(userId, { suspended: true }, { new: true, runValidators: true });
+        if (!updatedUser) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return updatedUser;
     }
     async deleteAllUsers() {
         try {
@@ -209,12 +234,14 @@ let UserService = UserService_1 = class UserService {
         }
     }
     async updatePassword(userId, newHashedPassword) {
-        await this.userModel.findByIdAndUpdate(userId, { password: newHashedPassword });
+        await this.userModel.findByIdAndUpdate(userId, {
+            password: newHashedPassword,
+        });
     }
     async trackQRCodeUsage(userId) {
         const updatedUser = await this.userModel.findByIdAndUpdate(userId, {
             $inc: { qrCodeUsageCount: 1 },
-            $set: { lastQRCodeUsage: new Date() }
+            $set: { lastQRCodeUsage: new Date() },
         }, { new: true, runValidators: true });
         if (!updatedUser) {
             throw new common_1.NotFoundException('User not found');
@@ -251,7 +278,7 @@ let UserService = UserService_1 = class UserService {
             createdAt: new Date(),
             lastUsed: null,
             usageCount: 0,
-            pointsEarned: 0
+            pointsEarned: 0,
         };
         user.invitationLinks.push(newInvitationLink);
         await user.save();
@@ -260,19 +287,23 @@ let UserService = UserService_1 = class UserService {
     }
     async trackInvitationLinkUsage(invitationLink) {
         try {
-            const user = await this.userModel.findOne({ 'invitationLinks.link': invitationLink });
+            const user = await this.userModel.findOne({
+                'invitationLinks.link': invitationLink,
+            });
             if (!user) {
                 throw new common_1.NotFoundException('Invalid invitation link');
             }
-            const linkIndex = user.invitationLinks.findIndex(link => link.link === invitationLink);
+            const linkIndex = user.invitationLinks.findIndex((link) => link.link === invitationLink);
             if (linkIndex === -1) {
                 throw new common_1.NotFoundException('Invitation link not found for this user');
             }
             const INVITATION_LINK_REWARD_POINTS = 10;
             user.invitationLinks[linkIndex].lastUsed = new Date();
             user.invitationLinks[linkIndex].usageCount += 1;
-            user.invitationLinks[linkIndex].pointsEarned += INVITATION_LINK_REWARD_POINTS;
-            user.totalPointsEarned = (user.totalPointsEarned || 0) + INVITATION_LINK_REWARD_POINTS;
+            user.invitationLinks[linkIndex].pointsEarned +=
+                INVITATION_LINK_REWARD_POINTS;
+            user.totalPointsEarned =
+                (user.totalPointsEarned || 0) + INVITATION_LINK_REWARD_POINTS;
             user.points = (user.points || 0) + INVITATION_LINK_REWARD_POINTS;
             const updatedUser = await user.save();
             if (!updatedUser) {
@@ -299,7 +330,7 @@ let UserService = UserService_1 = class UserService {
             totalUsageCount,
             totalPointsEarned,
             userTotalPoints: user.points || 0,
-            invitationLinks: user.invitationLinks
+            invitationLinks: user.invitationLinks,
         };
     }
     async verifyEmail(email, token) {
@@ -406,12 +437,104 @@ let UserService = UserService_1 = class UserService {
             throw new common_2.BadRequestException('Insufficient funds in Lidapay account');
         }
     }
+    async createOrUpdateWallet(userId, walletData) {
+        const wallet = await this.walletModel
+            .findOneAndUpdate({ user: userId }, walletData, { new: true, upsert: true })
+            .exec();
+        if (!wallet) {
+            throw new common_1.NotFoundException('Wallet not found');
+        }
+        return wallet;
+    }
+    async getWalletById(walletId) {
+        return this.walletModel.findById(walletId).exec();
+    }
+    async getWalletByUserId(userId) {
+        this.logger.debug(`Querying wallet for user ID: ${userId}`);
+        if (!mongoose_3.Types.ObjectId.isValid(userId)) {
+            this.logger.error(`Invalid user ID: ${userId}`);
+            throw new common_1.NotFoundException(`Invalid user ID: ${userId}`);
+        }
+        try {
+            const wallet = await this.walletModel.findOne({ user: new mongoose_3.Types.ObjectId(userId) }).exec();
+            if (!wallet) {
+                this.logger.warn(`Wallet not found for user ID: ${userId}`);
+                throw new common_1.NotFoundException(`Wallet not found for user ID: ${userId}`);
+            }
+            this.logger.debug(`Retrieved wallet for user ${userId}: ${JSON.stringify(wallet)}`);
+            return wallet;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            this.logger.error(`Error retrieving wallet for user ${userId}: ${error.message}`);
+            throw new common_1.NotFoundException(`Error retrieving wallet for user ID: ${userId}`);
+        }
+    }
+    async deleteWalletByUserId(userId) {
+        const result = await this.walletModel
+            .findOneAndDelete({ user: userId })
+            .exec();
+        if (!result) {
+            throw new common_1.NotFoundException('Wallet not found');
+        }
+        return { message: 'Wallet successfully deleted' };
+    }
+    async createOrUpdateLidapayAccount(userId, lidapayData) {
+        const lidapayAccount = await this.lidapayAccountModel
+            .findOneAndUpdate({ user: userId }, lidapayData, { new: true, upsert: true })
+            .exec();
+        if (!lidapayAccount) {
+            throw new common_1.NotFoundException('Lidapay account not found');
+        }
+        return lidapayAccount;
+    }
+    async getLidapayAccountById(lidapayAccountId) {
+        return this.lidapayAccountModel.findById(lidapayAccountId).exec();
+    }
+    async getLidapayAccountByUserId(userId) {
+        this.logger.debug(`Querying Lidapay account for user ID: ${userId}`);
+        if (!mongoose_3.Types.ObjectId.isValid(userId)) {
+            this.logger.error(`Invalid user ID: ${userId}`);
+            throw new common_1.NotFoundException(`Invalid user ID: ${userId}`);
+        }
+        try {
+            const lidapayAccount = await this.lidapayAccountModel.findOne({ user: new mongoose_3.Types.ObjectId(userId) }).exec();
+            if (!lidapayAccount) {
+                this.logger.warn(`Lidapay account not found for user ID: ${userId}`);
+                throw new common_1.NotFoundException(`Lidapay account not found for user ID: ${userId}`);
+            }
+            this.logger.debug(`Retrieved Lidapay account for user ${userId}: ${JSON.stringify(lidapayAccount)}`);
+            return lidapayAccount;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            this.logger.error(`Error retrieving Lidapay account for user ${userId}: ${error.message}`);
+            throw new common_1.NotFoundException(`Error retrieving Lidapay account for user ID: ${userId}`);
+        }
+    }
+    async deleteLidapayAccountByUserId(userId) {
+        const result = await this.lidapayAccountModel
+            .findOneAndDelete({ user: userId })
+            .exec();
+        if (!result) {
+            throw new common_1.NotFoundException('Lidapay account not found');
+        }
+        return { message: 'Lidapay account successfully deleted' };
+    }
 };
 exports.UserService = UserService;
 exports.UserService = UserService = UserService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
+    __param(1, (0, mongoose_1.InjectModel)(wallet_schema_1.Wallet.name)),
+    __param(2, (0, mongoose_1.InjectModel)(lidapay_account_schema_1.LidapayAccount.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
         email_service_1.EmailService,
         nodemail_service_1.NodemailService,
         sms_util_1.SmsService,

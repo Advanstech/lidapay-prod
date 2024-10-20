@@ -1,6 +1,20 @@
 import { Document, Types } from 'mongoose';
-export interface User {
+export interface User extends Document {
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobile: string;
+    password: string;
+    roles: string[];
+    emailVerified?: boolean;
+    phoneVerified?: boolean;
     verificationToken?: string;
+    invitationLinks: InvitationLink[];
+    totalPointsEarned: number;
+    points: number;
+    qrCode: string;
+    gravatar: string;
     phoneNumberVerificationCode?: string;
 }
 export interface InvitationLink {
@@ -12,19 +26,19 @@ export interface InvitationLink {
 }
 export type UserDocument = User & Document;
 export declare class User extends Document {
-    email: string;
     username: string;
     firstName: string;
     lastName: string;
-    password: string;
+    email: string;
     phoneNumber: string;
+    password: string;
     gravatar: string;
     roles: string[];
     qrCode: string;
     points: number;
     status: string;
-    emailVerified: boolean;
-    phoneVerified: boolean;
+    emailVerified?: boolean;
+    phoneVerified?: boolean;
     verificationToken?: string;
     emailVerificationToken?: string;
     phoneNumberVerificationCode?: string;

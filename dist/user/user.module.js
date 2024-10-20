@@ -22,6 +22,8 @@ const nodemail_service_1 = require("../utilities/nodemail.service");
 const config_1 = require("@nestjs/config");
 const reward_module_1 = require("../reward/reward.module");
 const notification_module_1 = require("../notification/notification.module");
+const wallet_schema_1 = require("./schemas/wallet.schema");
+const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -30,6 +32,8 @@ exports.UserModule = UserModule = __decorate([
         imports: [
             config_1.ConfigModule,
             mongoose_1.MongooseModule.forFeature([{ name: user_schema_1.User.name, schema: user_schema_1.UserSchema }]),
+            mongoose_1.MongooseModule.forFeature([{ name: wallet_schema_1.Wallet.name, schema: wallet_schema_1.WalletSchema }]),
+            mongoose_1.MongooseModule.forFeature([{ name: lidapay_account_schema_1.LidapayAccount.name, schema: lidapay_account_schema_1.LidapayAccountSchema }]),
             (0, common_1.forwardRef)(() => auth_module_1.AuthModule),
             (0, common_1.forwardRef)(() => merchant_module_1.MerchantModule),
             reward_module_1.RewardModule,

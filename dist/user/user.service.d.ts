@@ -7,8 +7,12 @@ import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { NotificationService } from 'src/notification/notification.service';
+import { LidapayAccount } from './schemas/lidapay-account.schema';
+import { Wallet } from './schemas/wallet.schema';
 export declare class UserService {
     private userModel;
+    private walletModel;
+    private lidapayAccountModel;
     private emailService;
     private nodemailService;
     private smsService;
@@ -18,7 +22,7 @@ export declare class UserService {
     private logger;
     private emailVerifyRewardPoints;
     private phoneVerifyRewardPoints;
-    constructor(userModel: Model<UserDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
+    constructor(userModel: Model<UserDocument>, walletModel: Model<Wallet>, lidapayAccountModel: Model<LidapayAccount>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;
@@ -35,6 +39,7 @@ export declare class UserService {
     deleteUserById(userId: string): Promise<{
         message: string;
     }>;
+    suspendAccount(userId: string): Promise<User>;
     deleteAllUsers(): Promise<{
         message: string;
     }>;
@@ -61,4 +66,16 @@ export declare class UserService {
     validateWallet(userId: string): Promise<void>;
     purchaseAirtime(userId: string, amount: number): Promise<void>;
     validateUserAccounts(userId: string): Promise<void>;
+    createOrUpdateWallet(userId: string, walletData: any): Promise<Wallet>;
+    getWalletById(walletId: string): Promise<Wallet | null>;
+    getWalletByUserId(userId: string): Promise<Wallet>;
+    deleteWalletByUserId(userId: string): Promise<{
+        message: string;
+    }>;
+    createOrUpdateLidapayAccount(userId: string, lidapayData: any): Promise<LidapayAccount>;
+    getLidapayAccountById(lidapayAccountId: string): Promise<LidapayAccount | null>;
+    getLidapayAccountByUserId(userId: string): Promise<LidapayAccount>;
+    deleteLidapayAccountByUserId(userId: string): Promise<{
+        message: string;
+    }>;
 }
