@@ -32,14 +32,11 @@ import {
 import { TokenUtil } from 'src/utilities/token.util';
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
-import {
-  LidapayAccount,
-  LidapayAccountDocument,
-} from './schemas/lidapay-account.schema'; // Import Lidapay account schema
 import { Wallet, WalletDocument } from './schemas/wallet.schema';
 import { generateAccountNumber } from '../utilities/account.util'; // Import the utility function
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
+import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema'; // Add this import
 
 @Injectable()
 export class UserService {

@@ -31,10 +31,10 @@ const uuid_1 = require("uuid");
 const common_2 = require("@nestjs/common");
 const token_util_1 = require("../utilities/token.util");
 const notification_service_1 = require("../notification/notification.service");
-const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 const wallet_schema_1 = require("./schemas/wallet.schema");
 const account_util_1 = require("../utilities/account.util");
 const mongoose_3 = require("mongoose");
+const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 let UserService = UserService_1 = class UserService {
     constructor(userModel, walletModel, lidapayAccountModel, emailService, nodemailService, smsService, gravatarService, merchantService, notificationService) {
         this.userModel = userModel;
