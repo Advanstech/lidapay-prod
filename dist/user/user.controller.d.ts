@@ -3,7 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AuthService } from '../auth/auth.service';
 import { RewardService } from 'src/reward/reward.service';
 import { Wallet } from './schemas/wallet.schema';
-import { LidapayAccount } from './schemas/lidapay-account.schema';
+import { AccountDocument } from './schemas/account.schema';
 export declare class UserController {
     private readonly userService;
     private readonly authService;
@@ -88,10 +88,5 @@ export declare class UserController {
     deleteWallet(req: any): Promise<{
         message: string;
     }>;
-    createOrUpdateLidapayAccount(req: any, lidapayData: LidapayAccount): Promise<LidapayAccount>;
-    getLidapayAccountById(lidapayAccountId: string): Promise<LidapayAccount>;
-    getLidapayAccount(req: any): Promise<LidapayAccount>;
-    deleteLidapayAccount(req: any): Promise<{
-        message: string;
-    }>;
+    getUserAccount(req: any): Promise<AccountDocument>;
 }

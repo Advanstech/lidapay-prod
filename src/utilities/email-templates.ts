@@ -1,10 +1,14 @@
 export const EmailTemplates = {
-  welcomeEmail: (firstName: string) => `Dear ${firstName},
+  welcomeEmail: (firstName: string, mobileMoneyWalletNumber: string, accountNumber: string) => `Dear ${firstName},
   
   Welcome to Lidapay! We're thrilled to have you join our community.
   
   Your account has been successfully created, and you're now ready to explore all the features and benefits our platform has to offer. 
   Whether you're looking to buy airtime or internet data, send money, pay bills, or manage your finances, Lidapay is here to make your financial transactions smooth and secure.
+  
+  Below are the details of your newly created accounts:
+  1. Mobile Money Wallet Number: ${mobileMoneyWalletNumber}
+  2. User Account Number: ${accountNumber}
   
   Here are a few things you can do to get started:
   1. Complete your profile

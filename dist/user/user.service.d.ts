@@ -7,12 +7,12 @@ import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { NotificationService } from 'src/notification/notification.service';
-import { LidapayAccount, LidapayAccountDocument } from 'src/user/schemas/lidapay-account.schema';
 import { Wallet, WalletDocument } from './schemas/wallet.schema';
+import { AccountDocument } from './schemas/account.schema';
 export declare class UserService {
     private userModel;
     private walletModel;
-    private lidapayAccountModel;
+    private accountModel;
     private emailService;
     private nodemailService;
     private smsService;
@@ -22,7 +22,7 @@ export declare class UserService {
     private logger;
     private emailVerifyRewardPoints;
     private phoneVerifyRewardPoints;
-    constructor(userModel: Model<UserDocument>, walletModel: Model<WalletDocument>, lidapayAccountModel: Model<LidapayAccountDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
+    constructor(userModel: Model<UserDocument>, walletModel: Model<WalletDocument>, accountModel: Model<AccountDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;
@@ -72,10 +72,10 @@ export declare class UserService {
     deleteWalletByUserId(userId: string): Promise<{
         message: string;
     }>;
-    createOrUpdateLidapayAccount(userId: string, lidapayData: any): Promise<LidapayAccount>;
-    getLidapayAccountById(lidapayAccountId: string): Promise<LidapayAccount | null>;
-    getLidapayAccountByUserId(userId: string): Promise<LidapayAccount>;
-    deleteLidapayAccountByUserId(userId: string): Promise<{
+    getAccountById(accountId: string): Promise<AccountDocument | null>;
+    getUserAccount(userId: string): Promise<AccountDocument | null>;
+    createOrUpdateUserBankAccount(userId: string, accountData: any): Promise<AccountDocument>;
+    deleteUserBankAccount(userId: string): Promise<{
         message: string;
     }>;
 }

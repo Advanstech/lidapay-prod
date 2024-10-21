@@ -16,6 +16,7 @@ export interface User extends Document {
     qrCode: string;
     gravatar: string;
     phoneNumberVerificationCode?: string;
+    account: Types.ObjectId;
 }
 export interface InvitationLink {
     link: string;
@@ -53,8 +54,8 @@ export declare class User extends Document {
     resetPasswordExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
-    lidapayAccount: Types.ObjectId;
     wallet: Types.ObjectId;
+    account: Types.ObjectId;
 }
 export declare const UserSchema: import("mongoose").Schema<User, import("mongoose").Model<User, any, any, any, Document<unknown, any, User> & User & Required<{
     _id: unknown;

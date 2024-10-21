@@ -13,15 +13,15 @@ import { NodemailService } from 'src/utilities/nodemail.service';
 import { ConfigModule } from '@nestjs/config';
 import { RewardModule } from 'src/reward/reward.module';
 import { NotificationModule } from 'src/notification/notification.module';
-import { LidapayAccount, LidapayAccountSchema } from 'src/user/schemas/lidapay-account.schema';
 import { Wallet, WalletSchema } from './schemas/wallet.schema';
+import AccountSchema from './schemas/account.schema';
 
 @Module({
   imports: [
     ConfigModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    MongooseModule.forFeature([{ name: LidapayAccount.name, schema: LidapayAccountSchema}]),
     MongooseModule.forFeature([{ name: Wallet.name, schema: WalletSchema}]),
+    MongooseModule.forFeature([{ name: 'Account', schema: AccountSchema }]),
     forwardRef(() => AuthModule),
     forwardRef(() => MerchantModule),
     RewardModule,

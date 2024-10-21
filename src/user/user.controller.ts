@@ -8,7 +8,7 @@ import { JwtRefreshGuard } from '../auth/jwt-refresh.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { RewardService } from 'src/reward/reward.service';
 import { Wallet } from './schemas/wallet.schema'; // Assuming you have a Wallet schema
-import { LidapayAccount } from './schemas/lidapay-account.schema'; // Assuming you have a LidapayAccount schema
+import { AccountDocument } from './schemas/account.schema'; // Ensure correct import
 
 @ApiTags('Users')
 @Controller('api/v1/users')
@@ -919,78 +919,42 @@ export class UserController {
   async deleteWallet(@Request() req) {
     return this.userService.deleteWalletByUserId(req.user.sub);
   }
-  // Create or update Lidapay account
-  @UseGuards(JwtAuthGuard)
-  @Post('lidapay-account')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create or update user Lidapay account' })
+  // Other endpoints...
+  @Get('account')
+  @UseGuards(JwtAuthGuard) // Protect the route with authentication
+  @ApiOperation({ summary: 'Get user account' })
   @ApiResponse({
     status: 200,
-    description: 'Lidapay account created or updated successfully',
-    type: LidapayAccount,
-  })
-  @ApiBody({
-    description: 'Lidapay account data',
-    type: LidapayAccount,
-  })
-  async createOrUpdateLidapayAccount(@Request() req, @Body() lidapayData: LidapayAccount) {
-    return this.userService.createOrUpdateLidapayAccount(req.user.sub, lidapayData);
-  }
-  // Get Lidapay account by ID
-  @UseGuards(JwtAuthGuard)
-  @Get('lidapay-account/:id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get Lidapay account by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lidapay account retrieved successfully',
-    type: LidapayAccount,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Lidapay account not found',
-  })
-  @ApiParam({ name: 'id', description: 'Lidapay account ID', required: true })
-  async getLidapayAccountById(@Param('id') lidapayAccountId: string) {
-    const lidapayAccount = await this.userService.getLidapayAccountById(lidapayAccountId);
-    if (!lidapayAccount) {
-      throw new NotFoundException('Lidapay account not found');
-    }
-    return lidapayAccount;
-  }
-  // Get Lidapay account by user ID
-  @UseGuards(JwtAuthGuard)
-  @Get('lidapay-account')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user Lidapay account' })
-  @ApiResponse({
-    status: 200,
-    description: 'User Lidapay account retrieved successfully',
-    type: LidapayAccount,
-  })
-  async getLidapayAccount(@Request() req) {
-    return this.userService.getLidapayAccountByUserId(req.user.sub);
-  }
-
-  // Delete Lidapay account by user ID
-  @UseGuards(AuthGuard('jwt'))
-  @Delete('lidapay-account')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete user Lidapay account' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lidapay account successfully deleted',
+    description: 'User account retrieved successfully',
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Lidapay account successfully deleted' },
+        id: { type: 'string', example: '5f9f1c82f77a8a2b8c9d0e1f' },
+        userId: { type: 'string', example: '5f9f1c82f77a8a2b8c9d0e1f' },
+        balance: { type: 'number', example: 1000 },
+        transactions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: '5f9f1c82f77a8a2b8c9d0e1f' },
+              amount: { type: 'number', example: 500 },
+              date: { type: 'string', example: '2023-04-02T10:30:00Z' },
+              type: { type: 'string', example: 'DEPOSIT' },
+            },
+          },
+        },
       },
     },
   })
-  async deleteLidapayAccount(@Request() req) {
-    return this.userService.deleteLidapayAccountByUserId(req.user.sub);
+  async getUserAccount(@Request() req): Promise<AccountDocument> {
+    const userId = req.user.sub; // Ensure this is the correct user ID
+    this.logger.debug(`User request for user account ==> ${userId}`);
+    const userAccount = await this.userService.getUserAccount(userId);
+    this.logger.debug(`Retrieved user account for user ${userId}: ${JSON.stringify(userAccount)}`);
+    if (!userAccount) {
+        throw new NotFoundException(`User account not found for user ID: ${userId}`);
+    }
+    return userAccount;
   }
- 
-  //
-  // Other endpoints...
 }

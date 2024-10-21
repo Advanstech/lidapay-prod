@@ -34,9 +34,9 @@ import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
-import { LidapayAccount, LidapayAccountDocument } from 'src/user/schemas/lidapay-account.schema'; // Add this import
 import { Wallet, WalletDocument } from './schemas/wallet.schema';
 import { GeneratorUtil } from 'src/utilities/generator.util';
+import { IAccount, AccountDocument } from './schemas/account.schema'; // Ensure correct import
 
 @Injectable()
 export class UserService {
@@ -51,14 +51,14 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
-    @InjectModel(LidapayAccount.name) private lidapayAccountModel: Model<LidapayAccountDocument>,
+    @InjectModel('Account') private accountModel: Model<AccountDocument>, // Change IAccount to Account
     private emailService: EmailService,
     private nodemailService: NodemailService,
     private smsService: SmsService,
     private gravatarService: GravatarService,
     private readonly merchantService: MerchantService,
     private notificationService: NotificationService,
-  ) {}
+  ) { }
   // Create a new user
   async create(userDto: CreateUserDto): Promise<User> {
     try {
@@ -89,7 +89,18 @@ export class UserService {
         points: 0, // Initialize points
         gravatar: gravatarUrl,
       });
-
+      // Generate Account number
+      const accountNumber = await GeneratorUtil.generateAccountNumber(); // Ensure this is awaited
+      // Create account for the newly created user
+      const accountData = {
+        userId: createdUser._id, // Link the account to the user
+        accountId: accountNumber,
+        balance: 0, // Initial balance
+        transactions: [] // Start with an empty transaction array
+      };
+      const createdAccount = await this.accountModel.create(accountData); // Create the account
+      // Link the account to the user
+      createdUser.account = createdAccount._id as ObjectId; // Set the account reference in the user and casto to ObjectId
       // Create wallet
       this.logger.debug('Creating wallet for user');
       const wallet = new this.walletModel({
@@ -103,30 +114,16 @@ export class UserService {
       this.logger.debug(
         `Wallet created for user ${createdUser._id}: ${JSON.stringify(wallet)}`,
       );
-
       // Link wallet to user
       createdUser.wallet = wallet._id as unknown as ObjectId; // Link the wallet to the user
-
-      // Create Lidapay account
-      const accountNumber = GeneratorUtil.generateAccountNumber(); // Use the utility function to generate the account number
-      const lidapayAccount = new this.lidapayAccountModel({
-        user: createdUser._id, // Set user to createdUser's ID
-        accountNumber: accountNumber, // Use the generated account number
-      });
-      await lidapayAccount.save(); // Save Lidapay account
-
-      // Link Lidapay account to user
-      createdUser.lidapayAccount = lidapayAccount._id as ObjectId; // Link the Lidapay account to the user
-
       // Save the user with both wallet and Lidapay account references
       await createdUser.save();
-
       // Send welcome email
       try {
         await this.nodemailService.sendMail(
           userDto.email,
           'Welcome to Lidapay App 👋',
-          EmailTemplates.welcomeEmail(userDto.firstName),
+          EmailTemplates.welcomeEmail(userDto.firstName, userDto.phoneNumber || userDto.mobile, accountNumber), // Updated to include mobileMoneyWalletNumber and accountNumber
         );
       } catch (emailError) {
         this.logger.error(
@@ -277,7 +274,7 @@ export class UserService {
       // Delete associated wallet
       await this.walletModel.findOneAndDelete({ user: userId }).exec();
       // Delete associated Lidapay account
-      await this.lidapayAccountModel.findOneAndDelete({ user: userId }).exec();
+      await this.accountModel.findOneAndDelete({ user: userId }).exec();
 
       const result = await this.userModel.findByIdAndDelete(userId).exec();
       if (!result) {
@@ -612,16 +609,15 @@ export class UserService {
   async validateUserAccounts(userId: string): Promise<void> {
     const user = await this.userModel
       .findById(userId)
-      .populate('wallet lidapayAccount') // Populate wallet and Lidapay account details
+      .populate('wallet Account') // Populate wallet and Lidapay account details
       .exec(); // Ensure the query is executed
 
-    if (!user || !user.wallet || !user.lidapayAccount) {
+    if (!user || !user.wallet || !user.account) {
       throw new NotFoundException('User, wallet, or Lidapay account not found');
     }
     // Type assertion: cast wallet and Lidapay account safely using 'unknown'
     const wallet = user.wallet as unknown as WalletDocument;
-    const lidapayAccount =
-      user.lidapayAccount as unknown as LidapayAccountDocument;
+    const bankAccount = user.account as unknown as AccountDocument;
     // Check if the user has at least one mobile money account or card (credit/debit) in the wallet
     const hasMobileMoney =
       wallet.mobileMoneyAccounts && wallet.mobileMoneyAccounts.length > 0;
@@ -633,8 +629,8 @@ export class UserService {
       );
     }
     // Additional checks for Lidapay account (e.g., checking balance) can be added here if needed
-    if (lidapayAccount.balance <= 0) {
-      throw new BadRequestException('Insufficient funds in Lidapay account');
+    if (bankAccount.balance <= 0) {
+      throw new BadRequestException('Insufficient funds in Lidapa account');
     }
   }
   // Create or update wallet for a user
@@ -668,7 +664,7 @@ export class UserService {
 
     try {
       const wallet = await this.walletModel.findOne({ user: new Types.ObjectId(userId) }).exec();
-      
+
       if (!wallet) {
         this.logger.warn(`Wallet not found for user ID: ${userId}`);
         throw new NotFoundException(`Wallet not found for user ID: ${userId}`);
@@ -694,70 +690,50 @@ export class UserService {
     }
     return { message: 'Wallet successfully deleted' };
   }
-
   // Create or update Lidapay account for a user
-  async createOrUpdateLidapayAccount(
+ 
+  // Other user management methods...
+  // Get account by Id
+  async getAccountById(
+    accountId: string,
+  ): Promise<AccountDocument | null> {
+    return this.accountModel.findById(accountId).exec();
+  }
+  // Method to get the user's account by user ID
+  async getUserAccount(userId: string): Promise<AccountDocument | null> {
+    const user = await this.userModel.findById(userId).populate('account').exec();
+    if (!user || !user.account) {
+      throw new NotFoundException('User or account not found');
+    }
+    return user.account as unknown as AccountDocument; // Cast to unknown first
+  }
+  // Create or Update User account
+  async createOrUpdateUserBankAccount(
     userId: string,
-    lidapayData: any,
-  ): Promise<LidapayAccount> {
-    const lidapayAccount = await this.lidapayAccountModel
+    accountData: any,
+  ): Promise<AccountDocument> {
+    const userBankAccount = await this.accountModel
       .findOneAndUpdate(
         { user: userId },
-        lidapayData,
+        accountData,
         { new: true, upsert: true }, // Create if not exists
       )
       .exec();
 
-    if (!lidapayAccount) {
-      throw new NotFoundException('Lidapay account not found');
+    if (!userBankAccount) {
+      throw new NotFoundException('User Bank account not found');
     }
-    return lidapayAccount;
+    return userBankAccount;
   }
-  // Get Lidapay account by Id
-  async getLidapayAccountById(
-    lidapayAccountId: string,
-  ): Promise<LidapayAccount | null> {
-    return this.lidapayAccountModel.findById(lidapayAccountId).exec();
-  }
-  // Get Lidapay account by user ID
-  async getLidapayAccountByUserId(userId: string): Promise<LidapayAccount> {
-    this.logger.debug(`Querying Lidapay account for user ID: ${userId}`);
-
-    // Ensure userId is a valid ObjectId
-    if (!Types.ObjectId.isValid(userId)) {
-      this.logger.error(`Invalid user ID: ${userId}`);
-      throw new NotFoundException(`Invalid user ID: ${userId}`);
-    }
-
-    try {
-      const lidapayAccount = await this.lidapayAccountModel.findOne({ user: new Types.ObjectId(userId) }).exec();
-
-      if (!lidapayAccount) {
-        this.logger.warn(`Lidapay account not found for user ID: ${userId}`);
-        throw new NotFoundException(`Lidapay account not found for user ID: ${userId}`);
-      }
-
-      this.logger.debug(`Retrieved Lidapay account for user ${userId}: ${JSON.stringify(lidapayAccount)}`);
-      return lidapayAccount;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Error retrieving Lidapay account for user ${userId}: ${error.message}`);
-      throw new NotFoundException(`Error retrieving Lidapay account for user ID: ${userId}`);
-    }
-  }
-  // Delete Lidapay account by user ID
-  async deleteLidapayAccountByUserId(
-    userId: string,
-  ): Promise<{ message: string }> {
-    const result = await this.lidapayAccountModel
+  // Delete User Bank Account
+  async deleteUserBankAccount(userId: string): Promise<{ message: string }> {
+    const result = await this.accountModel
       .findOneAndDelete({ user: userId })
       .exec();
     if (!result) {
-      throw new NotFoundException('Lidapay account not found');
+      throw new NotFoundException('User Bank account not found');
     }
-    return { message: 'Lidapay account successfully deleted' };
+    return { message: 'User Bank account successfully deleted' };
   }
-  // Other user management methods...
+
 }

@@ -9,7 +9,6 @@ export interface User extends Document {
   mobile: string;
   password: string;
   roles: string[];
- 
   emailVerified?: boolean;
   phoneVerified?: boolean;
   verificationToken?: string;
@@ -19,6 +18,7 @@ export interface User extends Document {
   qrCode: string;
   gravatar: string;
   phoneNumberVerificationCode?: string; // Add this line
+  account: Types.ObjectId; // Reference to the Account
 }
 
 export interface InvitationLink {
@@ -87,12 +87,11 @@ export class User extends Document {
   createdAt: Date;
   @Prop({ default: Date.now() })
   updatedAt: Date;
-  // Linking to LidapayAccount schema
-  @Prop({ type: Types.ObjectId, ref: 'LidapayAccount', required: false })
-  lidapayAccount: Types.ObjectId; // Reference to the user's Lidapay account
   // Linking to Wallet schema
   @Prop({ type: Types.ObjectId, ref: 'Wallet', required: false })
   wallet: Types.ObjectId; // Reference to the user's wallet
+  @Prop({ type: Types.ObjectId, ref: 'Account', required: false })
+  account: Types.ObjectId; // Reference to the Account
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
