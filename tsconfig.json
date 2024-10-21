@@ -1,3 +1,6 @@
+
+
+
 {
   "compilerOptions": {
     "module": "commonjs",
@@ -15,7 +18,14 @@
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "src/*": ["src/*"]
+    },
+    "rootDir": "src",
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*"],
+
 }

@@ -8,6 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { InvitationLink, User, UserDocument } from './schemas/user.schema';
+import { Wallet, WalletDocument } from 'src/user/schemas/wallet.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PasswordUtil } from '../utilities/password.util';
 import { ValidationUtil } from '../utilities/validation.util';
@@ -34,7 +35,6 @@ import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
-import { Wallet, WalletDocument } from './schemas/wallet.schema';
 import { GeneratorUtil } from 'src/utilities/generator.util';
 import { IAccount, AccountDocument } from './schemas/account.schema'; // Ensure correct import
 

@@ -13,7 +13,7 @@ import { NodemailService } from 'src/utilities/nodemail.service';
 import { ConfigModule } from '@nestjs/config';
 import { RewardModule } from 'src/reward/reward.module';
 import { NotificationModule } from 'src/notification/notification.module';
-import { Wallet, WalletSchema } from './schemas/wallet.schema';
+import { Wallet, WalletSchema } from 'src/user/schemas/wallet.schema';
 import AccountSchema from './schemas/account.schema';
 
 @Module({
