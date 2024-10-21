@@ -39,6 +39,12 @@ class GeneratorUtil {
         logger.log('generated random transaction +++ ' + transId);
         return transId;
     }
+    static async generateAccountNumber() {
+        const currentDate = new Date();
+        const formattedDate = `${currentDate.getDate().toString().padStart(2, '0')}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getFullYear().toString().slice(-2)}`;
+        const shortUniqueId = (0, uuid_1.v4)().split('-')[0];
+        return `${formattedDate}-${shortUniqueId}`;
+    }
 }
 exports.GeneratorUtil = GeneratorUtil;
 //# sourceMappingURL=generator.util.js.map

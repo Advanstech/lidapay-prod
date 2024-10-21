@@ -10,6 +10,7 @@ exports.GravatarService = void 0;
 const common_1 = require("@nestjs/common");
 const crypto = require("crypto");
 const axios_1 = require("axios");
+const uuid_1 = require("uuid");
 let GravatarService = class GravatarService {
     constructor() {
         this.GRAVATAR_BASE_URL = 'https://www.gravatar.com/avatar/';
@@ -46,6 +47,12 @@ let GravatarService = class GravatarService {
             }
             return null;
         }
+    }
+    async generateAccountNumber() {
+        const currentDate = new Date();
+        const formattedDate = `${currentDate.getDate().toString().padStart(2, '0')}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getFullYear().toString().slice(-2)}`;
+        const shortUniqueId = (0, uuid_1.v4)().split('-')[0];
+        return `${formattedDate}-${shortUniqueId}`;
     }
 };
 exports.GravatarService = GravatarService;

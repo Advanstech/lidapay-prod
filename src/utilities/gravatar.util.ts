@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import axios, { AxiosError } from 'axios';
+import { v4 as uuidv4 } from 'uuid'; // Import uuidv4
 
 @Injectable()
 export class GravatarService {
@@ -54,5 +55,12 @@ export class GravatarService {
       }
       return null;
     }
+  }
+  // Generate Account Number
+  async generateAccountNumber(){
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getDate().toString().padStart(2, '0')}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getFullYear().toString().slice(-2)}`; // Format as ddmmyy
+    const shortUniqueId = uuidv4().split('-')[0]; // Take the first part of the UUID for uniqueness
+    return `${formattedDate}-${shortUniqueId}`; // Concatenate date with short unique ID
   }
 }

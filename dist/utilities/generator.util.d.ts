@@ -3,4 +3,5 @@ export declare class GeneratorUtil {
     static generateMerchantKey(): any;
     static generateTransactionIdPayswitch(prefix?: string): string;
     static psRandomGeneratedNumber(): string;
+    static generateAccountNumber(): Promise<string>;
 }

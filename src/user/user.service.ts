@@ -32,11 +32,11 @@ import {
 import { TokenUtil } from 'src/utilities/token.util';
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
-import { generateAccountNumber } from '../utilities/account.util'; // Import the utility function
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
 import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema'; // Add this import
 import { Wallet, WalletDocument } from './schemas/wallet.schema';
+import { GeneratorUtil } from 'src/utilities/generator.util';
 
 @Injectable()
 export class UserService {
@@ -108,7 +108,7 @@ export class UserService {
       createdUser.wallet = wallet._id as unknown as ObjectId; // Link the wallet to the user
 
       // Create Lidapay account
-      const accountNumber = generateAccountNumber(); // Use the utility function to generate the account number
+      const accountNumber = GeneratorUtil.generateAccountNumber(); // Use the utility function to generate the account number
       const lidapayAccount = new this.lidapayAccountModel({
         user: createdUser._id, // Set user to createdUser's ID
         accountNumber: accountNumber, // Use the generated account number

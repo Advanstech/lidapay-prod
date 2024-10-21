@@ -3,4 +3,5 @@ export declare class GravatarService {
     private readonly DEFAULT_SIZE;
     generateAvatarUrl(email: string, size?: number): string;
     fetchAvatar(email: string, size?: number): Promise<string | null>;
+    generateAccountNumber(): Promise<string>;
 }
