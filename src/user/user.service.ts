@@ -34,7 +34,7 @@ import { NotificationService } from 'src/notification/notification.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 import { ObjectId } from 'mongodb';
 import { Types } from 'mongoose';
-import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema'; // Add this import
+import { LidapayAccount, LidapayAccountDocument } from 'src/user/schemas/lidapay-account.schema'; // Add this import
 import { Wallet, WalletDocument } from './schemas/wallet.schema';
 import { GeneratorUtil } from 'src/utilities/generator.util';
 

@@ -13,7 +13,7 @@ import { NodemailService } from 'src/utilities/nodemail.service';
 import { ConfigModule } from '@nestjs/config';
 import { RewardModule } from 'src/reward/reward.module';
 import { NotificationModule } from 'src/notification/notification.module';
-import { LidapayAccount, LidapayAccountSchema } from './schemas/lidapay-account.schema';
+import { LidapayAccount, LidapayAccountSchema } from 'src/user/schemas/lidapay-account.schema';
 import { Wallet, WalletSchema } from './schemas/wallet.schema';
 
 @Module({
