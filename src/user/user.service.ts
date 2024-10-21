@@ -50,8 +50,8 @@ export class UserService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Wallet.name) private walletModel: Model<Wallet>,
-    @InjectModel(LidapayAccount.name) private lidapayAccountModel: Model<LidapayAccount>,
+    @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    @InjectModel(LidapayAccount.name) private lidapayAccountModel: Model<LidapayAccountDocument>,
     private emailService: EmailService,
     private nodemailService: NodemailService,
     private smsService: SmsService,

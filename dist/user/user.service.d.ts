@@ -7,8 +7,8 @@ import { SmsService } from 'src/utilities/sms.util';
 import { GravatarService } from 'src/utilities/gravatar.util';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { NotificationService } from 'src/notification/notification.service';
-import { LidapayAccount } from './schemas/lidapay-account.schema';
-import { Wallet } from './schemas/wallet.schema';
+import { LidapayAccount, LidapayAccountDocument } from './schemas/lidapay-account.schema';
+import { Wallet, WalletDocument } from './schemas/wallet.schema';
 export declare class UserService {
     private userModel;
     private walletModel;
@@ -22,7 +22,7 @@ export declare class UserService {
     private logger;
     private emailVerifyRewardPoints;
     private phoneVerifyRewardPoints;
-    constructor(userModel: Model<UserDocument>, walletModel: Model<Wallet>, lidapayAccountModel: Model<LidapayAccount>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
+    constructor(userModel: Model<UserDocument>, walletModel: Model<WalletDocument>, lidapayAccountModel: Model<LidapayAccountDocument>, emailService: EmailService, nodemailService: NodemailService, smsService: SmsService, gravatarService: GravatarService, merchantService: MerchantService, notificationService: NotificationService);
     create(userDto: CreateUserDto): Promise<User>;
     findOneByUsername(username: string): Promise<User | undefined>;
     findOneByEmail(email: string): Promise<User | undefined>;
