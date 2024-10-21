@@ -1,6 +1,6 @@
-import { PsmobilemoneyService } from './psmobilemoney.service';
 import { TransferMobileMoneyDto } from './dto/transfer.mobilemoney.dto';
 import { PayMobileMoneyDto } from './dto/pay.mobilemoney.dto';
+import { PsmobilemoneyService } from './psmobilemoney.service';
 export declare class PsmobilemoneyController {
     private psMobilemoneyService;
     private logger;

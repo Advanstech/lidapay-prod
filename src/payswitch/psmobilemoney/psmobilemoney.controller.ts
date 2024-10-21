@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
-import { PsmobilemoneyService } from './psmobilemoney.service';
 import { TransferMobileMoneyDto } from './dto/transfer.mobilemoney.dto';
 import { PayMobileMoneyDto } from './dto/pay.mobilemoney.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { PsmobilemoneyService } from './psmobilemoney.service';
 
 @ApiTags('PS Mobile Money')
 @Controller('api/v1/psmobilemoney')

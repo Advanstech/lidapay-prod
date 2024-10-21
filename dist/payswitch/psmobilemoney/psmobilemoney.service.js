@@ -187,7 +187,7 @@ let PsmobilemoneyService = PsmobilemoneyService_1 = class PsmobilemoneyService {
             processing_code: process.env.PROCESSING_CODE_DEBIT || constants_1.PROCESSING_CODE_DEBIT,
             transaction_id: localTransId,
             desc: description || `debit GhS${amount} from ${customerMsisdn} momo wallet.`,
-            merchant_id: constants_1.PAYSWITCH_MERCHANTID || process.env.PAYSWITCH_MERCHANTID,
+            merchant_id: 'TTM-00006115',
             subscriber_number: customerMsisdn,
             'r-switch': channel,
         };
