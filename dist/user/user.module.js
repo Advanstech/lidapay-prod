@@ -24,6 +24,7 @@ const reward_module_1 = require("../reward/reward.module");
 const notification_module_1 = require("../notification/notification.module");
 const lidapay_account_schema_1 = require("./schemas/lidapay-account.schema");
 const wallet_schema_1 = require("./schemas/wallet.schema");
+const account_util_1 = require("../utilities/account.util");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -46,7 +47,11 @@ exports.UserModule = UserModule = __decorate([
             sms_util_1.SmsService,
             gravatar_util_1.GravatarService,
             merchant_service_1.MerchantService,
-            nodemail_service_1.NodemailService
+            nodemail_service_1.NodemailService,
+            {
+                provide: 'generateAccountNumber',
+                useFactory: () => (0, account_util_1.generateAccountNumber)(),
+            },
         ],
         exports: [user_service_1.UserService, mongoose_1.MongooseModule],
     })

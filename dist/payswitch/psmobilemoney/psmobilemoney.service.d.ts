@@ -11,5 +11,5 @@ export declare class PsmobilemoneyService {
     constructor(httpService: HttpService, transactionService: TransactionService);
     primaryCallbackUrl(): void;
     transferMobilemoney(transDto: TransferMobileMoneyDto): Observable<AxiosResponse<TransferMobileMoneyDto>>;
-    mobileMoneyPayment(transDto: PayMobileMoneyDto): Observable<any>;
+    mobileMoneyPayment(transDto: PayMobileMoneyDto): Observable<AxiosResponse<PayMobileMoneyDto>>;
 }

@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { forwardRef, Module, Provider } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
@@ -15,6 +15,7 @@ import { RewardModule } from 'src/reward/reward.module';
 import { NotificationModule } from 'src/notification/notification.module';
 import { LidapayAccount, LidapayAccountSchema } from './schemas/lidapay-account.schema';
 import { Wallet, WalletSchema } from './schemas/wallet.schema';
+import { generateAccountNumber } from 'src/utilities/account.util';
 
 @Module({
   imports: [
@@ -34,7 +35,11 @@ import { Wallet, WalletSchema } from './schemas/wallet.schema';
     SmsService,
     GravatarService,
     MerchantService,
-    NodemailService
+    NodemailService,
+    {
+      provide: 'generateAccountNumber',
+      useFactory: () => generateAccountNumber(),
+    },
   ],
   exports: [UserService, MongooseModule], // Export UserService and MongooseModule
 })

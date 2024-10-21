@@ -38,7 +38,6 @@ let PsmobilemoneyService = PsmobilemoneyService_1 = class PsmobilemoneyService {
             subscriber_number: recipientMsisdn,
             'r-switch': channel,
         };
-        this.logger.log(`Using merchant_id: ${tmParams.merchant_id}`);
         const tmParamSave = {
             userId: userId,
             userName: userName,
@@ -180,25 +179,42 @@ let PsmobilemoneyService = PsmobilemoneyService_1 = class PsmobilemoneyService {
         }));
     }
     mobileMoneyPayment(transDto) {
-        const { customerMsisdn, amount, token, description, channel } = transDto;
+        const { customerMsisdn, amount, description, channel, transType, userId, userName, currency, transId, } = transDto;
         const localTransId = generator_util_1.GeneratorUtil.generateTransactionIdPayswitch() || 'TNX-';
-        this.logger.log(`local transaction id ==> ${localTransId}`);
-        const mpParams = {
+        this.logger.log(`payment transId =>> ${localTransId}`);
+        const dwParams = {
             amount: amount || '',
-            processing_code: constants_1.PROCESSING_CODE_DEBIT,
+            processing_code: process.env.PROCESSING_CODE_DEBIT || constants_1.PROCESSING_CODE_DEBIT,
             transaction_id: localTransId,
-            desc: description || 'Lidapay mobile money debit ',
-            merchant_id: 'TTM-00006115',
-            subscriber_number: customerMsisdn || '',
-            voucher_code: token || '',
+            desc: description || `debit GhS${amount} from ${customerMsisdn} momo wallet.`,
+            merchant_id: constants_1.PAYSWITCH_MERCHANTID || process.env.PAYSWITCH_MERCHANTID,
+            subscriber_number: customerMsisdn,
             'r-switch': channel,
         };
-        this.logger.log(`LOG RECEIVE MONEY PARAMS ==> ${mpParams}`);
+        const dwParamSave = {
+            userId: userId,
+            userName: userName,
+            transId,
+            paymentType: 'MOMO',
+            retailer: 'PAYSWITCH',
+            fee: constants_1.FEE_CHARGES || 0,
+            originalAmount: dwParams.amount,
+            amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
+            customerMsisdn: dwParams.subscriber_number || '',
+            walletOperator: dwParams.r_switch || '',
+            paymentCurrency: currency || 'GHS',
+            paymentCommentary: '',
+            paymentStatus: 'pending',
+            paymentServiceCode: '',
+            paymentTransactionId: dwParams.transaction_id || '',
+            paymentServiceMessage: '',
+        };
         const base64_encode = generator_util_1.GeneratorUtil.generateMerchantKey();
         const configs = {
             url: constants_1.PAYSWTICH_PROD_BASEURL + '/v1.1/transaction/process',
-            body: mpParams,
-            headers: {
+            body: dwParams,
+            auth: {
+                'Content-Type': 'application/json',
                 Authorization: `Basic ${base64_encode}`,
             },
             agent: new https.Agent({
@@ -208,58 +224,91 @@ let PsmobilemoneyService = PsmobilemoneyService_1 = class PsmobilemoneyService {
         this.logger.log(`RECEIVE MONEY payload config == ${JSON.stringify(configs)}`);
         return this.httpService
             .post(configs.url, configs.body, {
-            headers: configs.headers,
             httpsAgent: configs.agent,
+            headers: configs.auth,
         })
             .pipe((0, operators_1.map)((mpRes) => {
             this.logger.verbose(`RECEIVE MONEY server response => ${JSON.stringify(mpRes.data)}`);
-            if (mpRes.data.code === '000') {
-                this.logger.log(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.log(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.log(`service response DETAILS = ${JSON.stringify(mpRes.data.desc)}`);
-                this.logger.warn(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                return mpRes.data;
+            if (mpRes.data.status == 'Approved') {
+                this.logger.log(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)} `);
+                this.logger.log(`service response CODE = ${JSON.stringify(mpRes.data.code)} `);
+                this.logger.log(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)} `);
+                this.logger.log(`service response TRANSACTIONiD ==> ${JSON.stringify(mpRes.data.transaction_id)} `);
+                dwParamSave.paymentServiceCode = mpRes.data.code;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Success';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was successful`;
+                this.transactionService.updateByTrxn(dwParamSave.transId, dwParamSave);
             }
-            else if (mpRes.data.status === 'Declined') {
-                this.logger.error(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.error(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.error(`service response DETAILS = ${JSON.stringify(mpRes.data.desc)}`);
-                this.logger.error(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                return mpRes.data;
+            else if (mpRes.data.status === 'failed') {
+                this.logger.error(` service response STATUS ==>  ${JSON.stringify(mpRes.data.status)} `);
+                this.logger.error(` debit wallet  service response TRANSACTION ID ==> ${JSON.stringify(mpRes.data.transaction_id)}`);
+                this.logger.error(` response MESSAGE ==>  ${JSON.stringify(mpRes.data.reason)} `);
+                this.logger.error(` response  CODE ==> ${JSON.stringify(mpRes.data.code)} `);
+                dwParamSave.paymentServiceStatus = mpRes.data.status;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Failed';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was failed`;
+                this.transactionService.updateByTrxn(dwParamSave.transId, dwParamSave);
             }
-            else if (mpRes.data.code === '100') {
-                this.logger.debug(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.debug(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.debug(`service response DETAILS = ${JSON.stringify(mpRes.data.desc)}`);
-                this.logger.debug(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                return mpRes.data;
+            else if (mpRes.data.status == null || mpRes.data.status == 'null') {
+                this.logger.debug(` service response STATUS ==>  ${JSON.stringify(mpRes.data.status)} `);
+                this.logger.debug(` response  CODE ==> ${JSON.stringify(mpRes.data.code)} `);
+                this.logger.debug(` response MESSAGE ==>  ${JSON.stringify(mpRes.data.reason)} `);
+                this.logger.debug(` service response TRANSACTION ID ==> ${JSON.stringify(mpRes.data.transaction_id)}`);
+                this.logger.debug(` response custmerDescription ==>  ${JSON.stringify(mpRes.data.desc)} `);
+                dwParamSave.paymentServiceStatus = mpRes.data.status;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Pending';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} is pending`;
+                this.transactionService.updateByTrxn(dwParamSave.transId, dwParamSave);
             }
-            else if (mpRes.data.code === '101') {
-                this.logger.warn(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.warn(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.warn(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                this.logger.warn(`service response DETAILS = ${JSON.stringify(mpRes.data.desc)}`);
-                return mpRes.data;
+            else if (mpRes.data.status == 'PIN_LOCKED') {
+                this.logger.warn(` debit wallet service response STATUS ==>  ${JSON.stringify(mpRes.data.status)} `);
+                this.logger.warn(` service response MESSAGE ==>  ${JSON.stringify(mpRes.data.reason)} `);
+                this.logger.warn(` service response TRANSACTIONID ==> ${JSON.stringify(mpRes.data.transaction_id)} `);
+                dwParamSave.paymentServiceStatus = mpRes.data.status;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Failed';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was failed`;
             }
-            else if (mpRes.data.code === '103') {
-                this.logger.warn(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.warn(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.warn(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                return mpRes.data;
+            else if (mpRes.data.status == 'error') {
+                this.logger.error(` debit wallet service response STATUS ==>  ${JSON.stringify(mpRes.data.status)} `);
+                this.logger.error(` service response CODE ==>  ${JSON.stringify(mpRes.data.code)} `);
+                this.logger.error(` service response MESSAGE ==> ${JSON.stringify(mpRes.data.reason)} `);
+                dwParamSave.paymentServiceStatus = mpRes.data.status;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Failed';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was failed`;
             }
-            else if (mpRes.data.code === '600') {
-                this.logger.error(`debit wallet service response STATUS =  ${JSON.stringify(mpRes.data.status)}`);
-                this.logger.error(`service response MESSAGE =  ${JSON.stringify(mpRes.data.reason)}`);
-                this.logger.error(`service response TRANSACTIONID = ${JSON.stringify(mpRes.data.transaction_id)}`);
-                return mpRes.data;
+            else if (mpRes.data.status == 'TIMEOUT') {
+                this.logger.warn(`debit wallet service response STATUS ==>  ${JSON.stringify(mpRes.data.status)}`);
+                this.logger.warn(`service response STATUS_CODE ==>  ${JSON.stringify(mpRes.data.code)}`);
+                this.logger.warn(`service response TRANSACTION_ID ==> ${JSON.stringify(mpRes.data.transaction_id)}`);
+                this.logger.warn(`service response MESSAGE ==> ${JSON.stringify(mpRes.data.reason)}`);
+                this.logger.warn(`service response DESCRIPTION ==> ${JSON.stringify(mpRes.data.desc)}`);
+                dwParamSave.paymentServiceStatus = mpRes.data.status;
+                dwParamSave.paymentTransactionId = mpRes.data.transaction_id;
+                dwParamSave.paymentServiceMessage = mpRes.data.reason;
+                dwParamSave.paymentStatus = 'Failed';
+                dwParamSave.paymentCommentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was failed`;
             }
             return mpRes.data;
         }), (0, operators_1.catchError)((mpError) => {
-            this.logger.error(`ERROR DEBIT WALLET => ${JSON.stringify(mpError)}`);
-            if (mpError.response) {
-                this.logger.error(`Error response data: ${JSON.stringify(mpError.response.data)}`);
-            }
-            return (0, rxjs_1.of)({ error: 'An error occurred during the debit wallet process', details: mpError.response ? mpError.response.data : 'No response data' });
+            this.logger.error(`ERROR DEBIT WALLET => ${JSON.stringify(mpError.response.data)}`);
+            dwParamSave.transStatus = 'Failed';
+            dwParamSave.serviceStatus = mpError.response.data.status;
+            dwParamSave.serviceTransId = mpError.response.data.transaction_id;
+            dwParamSave.serviceMessage = mpError.response.data.reason;
+            dwParamSave.paymentStatus = 'Failed';
+            dwParamSave.commentary = `Momo Transfer GHs${amount} to ${customerMsisdn} for ${transType} was failed`;
+            const mpErrorMessage = mpError.response.data;
+            throw new common_1.NotFoundException(mpErrorMessage);
         }));
     }
 };
