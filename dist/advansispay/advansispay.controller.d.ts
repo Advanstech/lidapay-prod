@@ -12,8 +12,6 @@ export declare class AdvansispayController {
     primaryCallback(res: Response, qr: PaymentCallbackDto): Promise<any>;
     initiatePayment(paymentData: InitiatePaymentDto): Promise<any>;
     processTransaction(transData: CreateTransactionDto): Promise<any>;
-    paymentCallbackURL(req: any): Promise<{
-        message: string;
-    }>;
     queryTransaction(token: string): Promise<any>;
+    handlePostPaymentStatus(req: any): Promise<void>;
 }

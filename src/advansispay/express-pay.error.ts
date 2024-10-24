@@ -16,5 +16,6 @@ export class ExpressPayError extends Error {
     | 'INVALID_TOKEN'
     | 'SYSTEM_ERROR'
     | 'NETWORK_ERROR'
-    | 'CALLBACK_PROCESSING_FAILED';
+    | 'CALLBACK_PROCESSING_FAILED'
+    | 'POST_STATUS_PROCESSING_FAILED';
   

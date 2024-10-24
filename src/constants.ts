@@ -58,5 +58,5 @@ export const EXPRESSPAY_MERCHANT_ID='824935685957';
 export const EXPRESSPAY_API_KEY='9CLcNmTouUkVUIPWG6UO5-JYnVJYXILSZNxFXI0trI-XEOYNru32Y53B6SoGtXP-v2bxGxxanGWZi0CgoTZ';
 export const EXPRESSPAY_BASE_URL='https://expresspaygh.com';
 export const EXPRESSPAY_TEST_BASE_URL='https://sandbox.expresspaygh.com';
-export const EXPRESSPAY_REDIRECT_URL='https://api.advansistechnologies.com/api/v1/advansispay/redirecturl';
+export const EXPRESSPAY_REDIRECT_URL='https://api.advansistechnologies.com/api/v1/advansispay/redirect-url';
 export const EXPRESSPAY_POST_URL='https://webhook.site/84435c86-a4e2-412b-b6b3-624e19794606';

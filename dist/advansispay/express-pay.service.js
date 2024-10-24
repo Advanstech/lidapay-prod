@@ -34,18 +34,20 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
     }
     async paymentCallbackURL(req) {
-        const { params: { 'order-id': orderId, token }, status } = req.body;
-        this.logger.log(`Received payment callback for order: ${orderId}, status: ${status}`);
+        const { 'order-id': orderId, token } = req.query;
+        this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
         try {
             if (!token || !orderId) {
                 throw new common_1.HttpException('Invalid callback data', common_1.HttpStatus.BAD_REQUEST);
             }
+            const transactionResponse = await this.queryTransaction(token);
+            const paymentStatus = transactionResponse.status;
             await this.transactionService.updateByTrxn(orderId, {
-                status,
+                status: paymentStatus,
                 lastChecked: new Date(),
                 metadata: req.body,
             });
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
             return { message: 'Callback processed successfully' };
         }
         catch (error) {
@@ -55,6 +57,29 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 stack: error.stack,
             });
             throw new express_pay_error_1.ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
+        }
+    }
+    async handlePostPaymentStatus(req) {
+        const { 'order-id': orderId, token, status } = req.body;
+        this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+        try {
+            if (!token || !orderId || !status) {
+                throw new common_1.HttpException('Invalid post data', common_1.HttpStatus.BAD_REQUEST);
+            }
+            await this.transactionService.updateByTrxn(orderId, {
+                status,
+                lastChecked: new Date(),
+                metadata: req.body,
+            });
+            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+        }
+        catch (error) {
+            this.logger.error('Error processing post payment status', {
+                error: error.message,
+                orderId,
+                stack: error.stack,
+            });
+            throw new express_pay_error_1.ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
         }
     }
     async initiatePayment(paymentData) {

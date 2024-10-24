@@ -62,9 +62,6 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
             };
         }
     }
-    async paymentCallbackURL(req) {
-        return this.expressPayService.paymentCallbackURL(req);
-    }
     async queryTransaction(token) {
         try {
             const result = await this.expressPayService.queryTransaction(token);
@@ -81,10 +78,13 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
             };
         }
     }
+    async handlePostPaymentStatus(req) {
+        return await this.expressPayService.handlePostPaymentStatus(req);
+    }
 };
 exports.AdvansispayController = AdvansispayController;
 __decorate([
-    (0, common_1.Get)(`redirecturl`),
+    (0, common_1.Get)(`redirect-url`),
     __param(0, (0, common_1.Res)()),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -124,23 +124,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdvansispayController.prototype, "processTransaction", null);
 __decorate([
-    (0, common_1.Post)('payment-callback'),
-    (0, swagger_1.ApiOperation)({
-        summary: 'Receive payment callback from ExpressPay'
-    }),
-    (0, swagger_1.ApiBody)({
-        description: 'Callback data from ExpressPay',
-        type: callback_dto_1.PaymentCallbackDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Callback processed successfully.' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid callback data.' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error.' }),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AdvansispayController.prototype, "paymentCallbackURL", null);
-__decorate([
     (0, common_1.Post)('query-transaction'),
     (0, swagger_1.ApiOperation)({
         summary: 'Query transaction by token',
@@ -158,6 +141,40 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AdvansispayController.prototype, "queryTransaction", null);
+__decorate([
+    (0, common_1.Post)('post-status'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Receive payment status update from ExpressPay' }),
+    (0, swagger_1.ApiBody)({
+        description: 'Payment status update from ExpressPay',
+        type: Object,
+        schema: {
+            type: 'object',
+            properties: {
+                'order-id': {
+                    type: 'string',
+                    example: 'ADV-M2NN2COD-11D269AA',
+                },
+                token: {
+                    type: 'string',
+                    example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
+                },
+                status: {
+                    type: 'string',
+                    enum: ['success', 'failed', 'pending'],
+                    example: 'success',
+                },
+            },
+            required: ['order-id', 'token', 'status'],
+        },
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Payment status updated successfully.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data.' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdvansispayController.prototype, "handlePostPaymentStatus", null);
 exports.AdvansispayController = AdvansispayController = AdvansispayController_1 = __decorate([
     (0, swagger_1.ApiTags)('Advansis Money'),
     (0, common_1.Controller)('api/v1/advansispay'),

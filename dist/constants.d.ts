@@ -51,5 +51,5 @@ export declare const EXPRESSPAY_MERCHANT_ID = "824935685957";
 export declare const EXPRESSPAY_API_KEY = "9CLcNmTouUkVUIPWG6UO5-JYnVJYXILSZNxFXI0trI-XEOYNru32Y53B6SoGtXP-v2bxGxxanGWZi0CgoTZ";
 export declare const EXPRESSPAY_BASE_URL = "https://expresspaygh.com";
 export declare const EXPRESSPAY_TEST_BASE_URL = "https://sandbox.expresspaygh.com";
-export declare const EXPRESSPAY_REDIRECT_URL = "https://lidapp-ten.vercel.app/receipt";
+export declare const EXPRESSPAY_REDIRECT_URL = "https://api.advansistechnologies.com/api/v1/advansispay/redirect-url";
 export declare const EXPRESSPAY_POST_URL = "https://webhook.site/84435c86-a4e2-412b-b6b3-624e19794606";

@@ -30,23 +30,30 @@ export class ExpressPayService {
   }
   // Payment Callback Url to accept payment response from ExpressPay
   async paymentCallbackURL(req: any) {
-    // Extracting orderId and token from the new response structure
-    const { params: { 'order-id': orderId, token }, status } = req.body; // Updated extraction
-    this.logger.log(`Received payment callback for order: ${orderId}, status: ${status}`);
+    // Extracting orderId and token from the URL parameters
+    const { 'order-id': orderId, token } = req.query; // Extract from query parameters
+    this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
+
     try {
-      // Validate the response (you may want to add more validation logic)
+      // Validate the response (ensure orderId and token are present)
       if (!token || !orderId) {
         throw new HttpException('Invalid callback data', HttpStatus.BAD_REQUEST);
       }
+
+      // Check the payment status using the existing queryTransaction method
+      const transactionResponse = await this.queryTransaction(token);
+      const paymentStatus = transactionResponse.status; // Extract the status from the response
+
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
-        status,
+        status: paymentStatus,
         lastChecked: new Date(),
         metadata: req.body, // Store the full response for reference
       });
 
-      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
 
+      // Optionally, you can send a response back to ExpressPay
       return { message: 'Callback processed successfully' };
     } catch (error) {
       this.logger.error('Error processing payment callback', {
@@ -58,6 +65,37 @@ export class ExpressPayService {
       throw new ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
     }
   }
+
+  // Method to handle the POST request from ExpressPay
+  async handlePostPaymentStatus(req: any) {
+    const { 'order-id': orderId, token, status } = req.body; // Extract from request body
+    this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+
+    try {
+      // Validate the response (ensure orderId, token, and status are present)
+      if (!token || !orderId || !status) {
+        throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
+      }
+
+      // Update transaction status in the database
+      await this.transactionService.updateByTrxn(orderId, {
+        status,
+        lastChecked: new Date(),
+        metadata: req.body, // Store the full response for reference
+      });
+
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+    } catch (error) {
+      this.logger.error('Error processing post payment status', {
+        error: error.message,
+        orderId,
+        stack: error.stack,
+      });
+
+      throw new ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
+    }
+  }
+
   // Step 1
   async initiatePayment(paymentData: InitiatePaymentDto) {
     const localTransId = GeneratorUtil.generateOrderId() || 'TNX-';
@@ -86,7 +124,6 @@ export class ExpressPayService {
         'order-id': ipFormData,
         amount: ipFormData.amount,
       });
-   
       // Wait for response
       const response = await firstValueFrom(
         this.httpService.post(

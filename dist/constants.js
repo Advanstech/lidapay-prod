@@ -55,6 +55,6 @@ exports.EXPRESSPAY_MERCHANT_ID = '824935685957';
 exports.EXPRESSPAY_API_KEY = '9CLcNmTouUkVUIPWG6UO5-JYnVJYXILSZNxFXI0trI-XEOYNru32Y53B6SoGtXP-v2bxGxxanGWZi0CgoTZ';
 exports.EXPRESSPAY_BASE_URL = 'https://expresspaygh.com';
 exports.EXPRESSPAY_TEST_BASE_URL = 'https://sandbox.expresspaygh.com';
-exports.EXPRESSPAY_REDIRECT_URL = 'https://lidapp-ten.vercel.app/receipt';
+exports.EXPRESSPAY_REDIRECT_URL = 'https://api.advansistechnologies.com/api/v1/advansispay/redirect-url';
 exports.EXPRESSPAY_POST_URL = 'https://webhook.site/84435c86-a4e2-412b-b6b3-624e19794606';
 //# sourceMappingURL=constants.js.map

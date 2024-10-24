@@ -1,5 +1,5 @@
 import { HttpService } from "@nestjs/axios";
-import { Body, Controller, Get, HttpException, HttpStatus, Logger, Post, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Logger, Post, Query, Res } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { MobileMoneyService } from "./mobile-money/mobile-money.service";
 import { ExpressPayService } from './express-pay.service';
@@ -18,7 +18,7 @@ export class AdvansispayController {
         private readonly expressPayService: ExpressPayService
     ) { }
     // Redirect URL
-    @Get(`redirecturl`)
+    @Get(`redirect-url`)
     async primaryCallback(
         @Res() res: Response,
         @Query() qr: PaymentCallbackDto
@@ -86,21 +86,6 @@ export class AdvansispayController {
             };
         }
     }
-    // Payment Callback URL
-    @Post('payment-callback')
-    @ApiOperation({
-        summary: 'Receive payment callback from ExpressPay'
-    })
-    @ApiBody({
-        description: 'Callback data from ExpressPay',
-        type: PaymentCallbackDto, // Use the new DTO
-    })
-    @ApiResponse({ status: 200, description: 'Callback processed successfully.' })
-    @ApiResponse({ status: 400, description: 'Invalid callback data.' })
-    @ApiResponse({ status: 500, description: 'Internal server error.' })
-    async paymentCallbackURL(@Body() req: any) {
-        return this.expressPayService.paymentCallbackURL(req);
-    }
     // Query Transaction with token
     @Post('query-transaction')
     @ApiOperation({
@@ -129,6 +114,38 @@ export class AdvansispayController {
                 message: error.message || 'Internal server error.',
             };
         }
+    }
+    // Handler for the POST request from ExpressPay
+    @Post('post-status')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Receive payment status update from ExpressPay' })
+    @ApiBody({
+        description: 'Payment status update from ExpressPay',
+        type: Object,
+        schema: {
+            type: 'object',
+            properties: {
+                'order-id': {
+                    type: 'string',
+                    example: 'ADV-M2NN2COD-11D269AA',
+                },
+                token: {
+                    type: 'string',
+                    example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
+                },
+                status: {
+                    type: 'string',
+                    enum: ['success', 'failed', 'pending'],
+                    example: 'success',
+                },
+            },
+            required: ['order-id', 'token', 'status'],
+        },
+    })
+    @ApiResponse({ status: 200, description: 'Payment status updated successfully.' })
+    @ApiResponse({ status: 400, description: 'Invalid input data.' })
+    async handlePostPaymentStatus(@Body() req: any) {
+        return await this.expressPayService.handlePostPaymentStatus(req);
     }
 
 }
