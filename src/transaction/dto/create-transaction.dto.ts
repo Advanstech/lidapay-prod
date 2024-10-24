@@ -9,19 +9,15 @@ export class CreateTransactionDto {
 
   @ApiProperty({ example: 'AIRTIME', description: 'The type of transaction' })
   transType: string;
-
   @ApiProperty({ example: 100, description: 'The amount of the transaction' })
   amount: number;
-
   @ApiProperty({ example: 'USD', description: 'The currency of the transaction' })
   currency?: string;
   currencyName?: string;
   @ApiProperty({ example: 'pending', description: 'The status of the transaction', enum: ['pending', 'completed', 'failed', 'successfull'] })
   transStatus: string;
-
   @ApiProperty({ example: 'completed', description: 'The service status of the transaction', enum: ['refunded', 'reversed', 'cancelled', 'completed', 'failed'] })
   serviceStatus: string;
-
   @ApiProperty({ example: 'MERCH123', description: 'The referrer client ID' })
   referrerClientId?: string;
 
@@ -132,4 +128,6 @@ export class CreateTransactionDto {
 
   transactionId?: string; // Add this line to include transactionId
   paymentId?: string;
+  expressToken?: string;
+  metadata?: Record<string, any>;
 }

@@ -43,7 +43,7 @@ export declare class UserService {
     deleteAllUsers(): Promise<{
         message: string;
     }>;
-    updatePassword(userId: string, newHashedPassword: string): Promise<void>;
+    updatePassword(userId: string, newPassword: string): Promise<void>;
     trackQRCodeUsage(userId: string): Promise<User>;
     getQRCodeUsageStats(userId: string): Promise<{
         usageCount: number;

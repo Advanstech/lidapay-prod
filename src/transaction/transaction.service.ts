@@ -114,6 +114,19 @@ export class TransactionService {
 
     return updatedTransaction;
   }
+  // Update transaction by expressToken
+  async updateByExpressToken(expressToken: string, updateTransactionDto: UpdateTransactionDto) {
+    const updatedTransaction = await this.transactionModel.findOneAndUpdate(
+      { expressToken: expressToken }, // Use the 'expressToken' field instead of '_id
+      { $set: updateTransactionDto },
+      { new: true },
+    );
+    if (!updatedTransaction) {
+      throw new NotFoundException(`Transaction with expressToken ${expressToken} not found`);
+    }
+    return updatedTransaction;
+  }
+
   //delete transaction
   async remove(
     id: string,

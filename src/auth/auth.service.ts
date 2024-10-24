@@ -14,7 +14,6 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private secretKey = process.env.JWT_SECRET || JWT_SECRET;
 
-
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -68,12 +67,12 @@ export class AuthService {
       throw new Error('Failed to generate tokens');
     }
   }
-
+  // Generate a new refresh token
   generateRefreshToken(payload: any) {
     this.logger.debug(`GenerateRefreshToken ==> ${JSON.stringify(payload)}`);
     return TokenUtil.generateToken(payload, '7d');
   }
-
+  // Call refresh token
   async refreshToken(refreshToken: string) {
     this.logger.log(`RefreshToken input: ${refreshToken}`);
 
@@ -109,29 +108,29 @@ export class AuthService {
   }
   // Change password
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
-    this.logger.log(`Changing password for user: ${userId}`);
+  this.logger.log(`Changing password for user: ${userId}`);
 
-    const user = await this.userService.findOneById(userId);
+  const user = await this.userService.findOneById(userId);
 
-    if (!user) {
+  if (!user) {
       this.logger.error(`User not found for ID: ${userId}`);
       throw new NotFoundException('User not found');
-    }
+  }
 
-    const isPasswordValid = await PasswordUtil.comparePassword(currentPassword, user.password);
+  const isPasswordValid = await PasswordUtil.comparePassword(currentPassword, user.password);
 
-    if (!isPasswordValid) {
+  if (!isPasswordValid) {
       this.logger.error(`Invalid current password for user: ${userId}`);
       throw new UnauthorizedException('Current password is incorrect');
-    }
-
-    // Hash the new password before saving
-    const hashedNewPassword = await PasswordUtil.hashPassword(newPassword);
-    await this.userService.updatePassword(user._id as string, hashedNewPassword); // Type assertion added
-
-    this.logger.log(`Password changed successfully for user: ${userId}`);
-    return true;
   }
+
+  // Hash the new password before saving
+  const hashedNewPassword = await PasswordUtil.hashPassword(newPassword);
+  await this.userService.updatePassword(user._id as string, hashedNewPassword); // Type assertion added
+
+  this.logger.log(`Password changed successfully for user: ${userId}`);
+  return true;
+}
   // Reset password
   async resetPassword(identifier: string): Promise<{ message: string }> {
     this.logger.log(`Resetting password for identifier: ${identifier}`);

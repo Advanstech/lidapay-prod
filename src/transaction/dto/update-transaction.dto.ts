@@ -72,7 +72,6 @@ export class UpdateTransactionDto {
     @IsString()
     serviceTransId?: string;    
 
-    
     @ApiProperty({ description: 'The recipient phone number' })
     @IsOptional()
     @IsString()
@@ -119,5 +118,11 @@ export class UpdateTransactionDto {
 
     curency?: string;
     currencyName?: string;
+    expressToken?: string;
     timestamp?: Date;
+    lastChecked?: Date;
+    
+    @ApiProperty({ description: 'Additional metadata related to the transaction' })
+    @IsOptional()
+    metadata?: Record<string, any>; // Changed from object to Record<string, any>
 }

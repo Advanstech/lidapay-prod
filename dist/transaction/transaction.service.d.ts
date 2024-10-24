@@ -20,6 +20,11 @@ export declare class TransactionService {
     }> & {
         __v?: number;
     }>;
+    updateByExpressToken(expressToken: string, updateTransactionDto: UpdateTransactionDto): Promise<import("mongoose").Document<unknown, {}, TransactionDocument> & Transaction & import("mongoose").Document<unknown, any, any> & Required<{
+        _id: unknown;
+    }> & {
+        __v?: number;
+    }>;
     remove(id: string): Promise<{
         message: string;
         deletedTransaction: Transaction;

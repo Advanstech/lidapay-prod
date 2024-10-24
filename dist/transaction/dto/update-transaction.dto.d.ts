@@ -24,5 +24,8 @@ export declare class UpdateTransactionDto {
     paymentServiceMessage?: string;
     curency?: string;
     currencyName?: string;
+    expressToken?: string;
     timestamp?: Date;
+    lastChecked?: Date;
+    metadata?: Record<string, any>;
 }

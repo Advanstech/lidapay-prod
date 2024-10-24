@@ -234,10 +234,14 @@ let UserService = UserService_1 = class UserService {
             throw new common_2.InternalServerErrorException('Failed to delete all users');
         }
     }
-    async updatePassword(userId, newHashedPassword) {
-        await this.userModel.findByIdAndUpdate(userId, {
-            password: newHashedPassword,
-        });
+    async updatePassword(userId, newPassword) {
+        try {
+            const newHashedPassword = await password_util_1.PasswordUtil.hashPassword(newPassword);
+            await this.userModel.findByIdAndUpdate(userId, { password: newHashedPassword });
+        }
+        catch (error) {
+            throw new Error(`Failed to update password: ${error.message}`);
+        }
     }
     async trackQRCodeUsage(userId) {
         const updatedUser = await this.userModel.findByIdAndUpdate(userId, {

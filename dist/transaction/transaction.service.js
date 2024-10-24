@@ -86,6 +86,13 @@ let TransactionService = TransactionService_1 = class TransactionService {
         }
         return updatedTransaction;
     }
+    async updateByExpressToken(expressToken, updateTransactionDto) {
+        const updatedTransaction = await this.transactionModel.findOneAndUpdate({ expressToken: expressToken }, { $set: updateTransactionDto }, { new: true });
+        if (!updatedTransaction) {
+            throw new common_1.NotFoundException(`Transaction with expressToken ${expressToken} not found`);
+        }
+        return updatedTransaction;
+    }
     async remove(id) {
         const deletedTransaction = await this.transactionModel
             .findByIdAndDelete(id)

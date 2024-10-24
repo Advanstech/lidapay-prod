@@ -45,4 +45,6 @@ export declare class CreateTransactionDto {
     paymentTransactionId?: string;
     transactionId?: string;
     paymentId?: string;
+    expressToken?: string;
+    metadata?: Record<string, any>;
 }

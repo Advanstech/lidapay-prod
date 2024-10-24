@@ -25,6 +25,12 @@ export class GeneratorUtil {
     const randomString = uuidv4().split('-')[0]; // Get a random alphanumeric string
     return `${prefix}-${timestamp}-${randomString}`.toUpperCase();
   }
+  
+  static generateOrderId(prefix: string = 'ADV'): string {
+    const timestamp = Date.now().toString(36); // Convert timestamp to a base-36 string
+    const randomString = uuidv4().split('-')[0]; // Get a random alphanumeric string
+    return `${prefix}-${timestamp}-${randomString}`.toUpperCase();
+  }
 
   static psRandomGeneratedNumber() {
     const logger = new Logger();

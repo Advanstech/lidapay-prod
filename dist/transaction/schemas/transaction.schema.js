@@ -171,6 +171,14 @@ __decorate([
     __metadata("design:type", String)
 ], Transaction.prototype, "paymentType", void 0);
 __decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Transaction.prototype, "expressToken", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Array)
+], Transaction.prototype, "metadata", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ default: Date.now }),
     __metadata("design:type", Date)
 ], Transaction.prototype, "timestamp", void 0);

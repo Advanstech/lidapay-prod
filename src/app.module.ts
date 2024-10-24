@@ -23,6 +23,8 @@ import { ReloadlyModule } from './reloadly/reloadly.module';
 import { AuthenticationModule } from './reloadly/authentication/authentication.module';
 import { ReloadAirtimeModule } from './reloadly/reload-airtime/reload-airtime.module';
 import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
+import { AdvansispayModule } from './advansispay/advansispay.module';
+import { ExpressPayService } from './advansispay/express-pay.service';
 
 @Module({
   imports: [
@@ -47,13 +49,15 @@ import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
     ReloadlyModule,
     AuthenticationModule,
     ReloadAirtimeModule,
-    AffiliateModule
+    AffiliateModule,
+    AdvansispayModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
     EmailService,
-    SmsService
+    SmsService,
+    ExpressPayService
   ],
 })
 export class AppModule {}

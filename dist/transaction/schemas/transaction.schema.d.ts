@@ -40,6 +40,14 @@ export declare class Transaction {
     paymentTransactionId?: string;
     paymentServiceMessage?: string;
     paymentType?: string;
+    expressToken?: string;
+    metadata: Array<{
+        initiatedAt: Date;
+        provider: string;
+        username: string;
+        accountNumber: string;
+        lastQueryAt: Date;
+    }>;
     timestamp?: Date;
 }
 export declare const TransactionSchema: import("mongoose").Schema<Transaction, import("mongoose").Model<Transaction, any, any, any, Document<unknown, any, Transaction> & Transaction & {

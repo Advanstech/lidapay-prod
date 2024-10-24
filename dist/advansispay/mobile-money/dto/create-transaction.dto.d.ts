@@ -1,0 +1,34 @@
+export declare class CreateTransactionDto {
+    customerMsisdn: string;
+    amount: number;
+    description: string;
+    channel: string;
+    transType?: string;
+    userId?: string;
+    userName?: string;
+    currency: string;
+    transId: string;
+    readonly merchantId?: string;
+    readonly serviceName: string;
+    recipientName?: string;
+    customerEmail: string;
+    clientReference: string;
+    token?: string;
+    transStatus?: string;
+    transMessage?: string;
+    serviceStatus?: string;
+    serviceTransId?: string;
+    paymentStatus?: string;
+    otherInfo?: string;
+    r_switch: any;
+    processing_code: any;
+    transaction_id: any;
+    desc: any;
+    merchant_id: any;
+    subscriber_number: any;
+    retailer?: any;
+    fee: any;
+    originalAmount: any;
+    recipientNumber: any;
+    network: any;
+}

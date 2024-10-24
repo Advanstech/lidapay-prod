@@ -91,10 +91,18 @@ export class Transaction {
   paymentServiceMessage?: string; // Added from payswitch context  
   @Prop()
   paymentType?: string; // Added from payswitch context  
-
+  @Prop()
+  expressToken?: string;
+  @Prop()
+  metadata: Array<{
+    initiatedAt: Date,
+    provider: string,
+    username: string,
+    accountNumber: string,
+    lastQueryAt: Date
+  }>;
   @Prop({ default: Date.now })
   timestamp?: Date;
   
 }
-
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

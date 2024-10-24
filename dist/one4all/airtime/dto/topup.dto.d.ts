@@ -2,6 +2,9 @@ export declare class TopupDto {
     readonly retailer?: string;
     userName: string;
     userId: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
     readonly recipientNumber: string;
     readonly amount: number;
     readonly charge?: string;

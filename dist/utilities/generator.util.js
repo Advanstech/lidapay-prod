@@ -23,6 +23,11 @@ class GeneratorUtil {
         const randomString = (0, uuid_1.v4)().split('-')[0];
         return `${prefix}-${timestamp}-${randomString}`.toUpperCase();
     }
+    static generateOrderId(prefix = 'ADV') {
+        const timestamp = Date.now().toString(36);
+        const randomString = (0, uuid_1.v4)().split('-')[0];
+        return `${prefix}-${timestamp}-${randomString}`.toUpperCase();
+    }
     static psRandomGeneratedNumber() {
         const logger = new common_1.Logger();
         let text = '';

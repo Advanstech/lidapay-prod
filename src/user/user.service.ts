@@ -312,14 +312,17 @@ export class UserService {
       throw new InternalServerErrorException('Failed to delete all users');
     }
   }
-  // Update password
+  // Update password  
   async updatePassword(
     userId: string,
-    newHashedPassword: string,
+    newPassword: string,
   ): Promise<void> {
-    await this.userModel.findByIdAndUpdate(userId, {
-      password: newHashedPassword,
-    });
+    try {
+      const newHashedPassword = await PasswordUtil.hashPassword(newPassword); // Change 1: Hash the new password
+      await this.userModel.findByIdAndUpdate(userId, { password: newHashedPassword }); // Change 2: Update the password in the database
+    } catch (error) {
+      throw new Error(`Failed to update password: ${error.message}`);
+    }
   }
   // Track QRcode Usage
   async trackQRCodeUsage(userId: string): Promise<User> {

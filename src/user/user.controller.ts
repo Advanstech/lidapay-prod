@@ -114,12 +114,10 @@ export class UserController {
     if (!authHeader) {
       throw new Error('No authorization header provided');
     }
-
     const [bearer, token] = authHeader.split(' ');
     if (bearer !== 'Bearer' || !token) {
       throw new Error('Invalid authorization header format');
     }
-
     return this.authService.refreshToken(token);
   }
   // User points
