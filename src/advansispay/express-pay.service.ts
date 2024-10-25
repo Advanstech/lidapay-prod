@@ -31,8 +31,8 @@ export class ExpressPayService {
   // Payment Callback Url to accept payment response from ExpressPay
   async paymentCallbackURL(req: any) {
     // Extracting orderId and token from the URL parameters
-    const orderId = String(req.query['order-id']); // Ensure orderId is a string
-    const token = String(req.query.token); // Ensure token is a string
+    const orderId = req.query && req.query['order-id'] ? String(req.query['order-id']) : null; // Ensure orderId is a string or null
+    const token = req.query && req.query.token ? String(req.query.token) : null; // Ensure token is a string or null
     this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
     try {
       // Validate the response (ensure orderId and token are present)
@@ -49,17 +49,13 @@ export class ExpressPayService {
         metadata: req.body, // Store the full response for reference
       });
       this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-      // Optionally, ou can send a response back to ExpressPay
+      // Optionally, you can send a response back to ExpressPay
       return { message: 'Callback processed successfully' };
     } catch (error) {
       this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
       // Define paymentStatus here to avoid the error
       const paymentStatus = 'UNKNOWN'; // Default value or handle accordingly
       this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-      this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
-      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
-      this.logger.log(`Payment initiated successfully. Token: ${token}`);
-      this.logger.log(`Querying transaction status for token: ${token}`);
       this.logger.error('Error processing payment callback', {
         error: error.message,
         orderId,
@@ -92,7 +88,6 @@ export class ExpressPayService {
         orderId,
         stack: error.stack,
       });
-
       throw new ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
     }
   }
@@ -192,21 +187,18 @@ export class ExpressPayService {
       if (error instanceof ExpressPayError) {
         throw error;
       }
-
       throw new ExpressPayError('SYSTEM_ERROR', error.message);
     }
   }
   // STEP 4a: Merchant initiates HTTP POST request to expressPay Query API to check trans status of 
   async queryTransaction(token: string) {
     this.logger.log(`Querying transaction status for token: ${token}`);
-
     try {
       const formData = {
         'merchant-id': this.config.merchantId,
         'api-key': this.config.apiKey,
         token,
       };
-
       const response = await firstValueFrom(
         this.httpService.post(
           `${this.config.testUrl}/api/query.php`,

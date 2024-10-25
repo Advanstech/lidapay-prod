@@ -34,8 +34,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
     }
     async paymentCallbackURL(req) {
-        const orderId = String(req.query['order-id']);
-        const token = String(req.query.token);
+        const orderId = req.query && req.query['order-id'] ? String(req.query['order-id']) : null;
+        const token = req.query && req.query.token ? String(req.query.token) : null;
         this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
         try {
             if (!token || !orderId) {
@@ -55,10 +55,6 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
             const paymentStatus = 'UNKNOWN';
             this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-            this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
-            this.logger.log(`Payment initiated successfully. Token: ${token}`);
-            this.logger.log(`Querying transaction status for token: ${token}`);
             this.logger.error('Error processing payment callback', {
                 error: error.message,
                 orderId,
