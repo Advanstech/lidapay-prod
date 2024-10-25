@@ -23,10 +23,10 @@ export class AdvansispayController {
         @Res() res: Response,
         @Query() qr: PaymentCallbackDto
     ): Promise<any> {
-        const { 'order-id': orderId, token } = qr; // Updated extraction
+        const { 'order-id': orderId, token } = qr; // Extracting orderId and token
         this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
         // Call the paymentCallbackURL service method to update transactions
-        await this.expressPayService.paymentCallbackURL(qr); // New line added
+        await this.expressPayService.paymentCallbackURL(qr); // Pass the entire qr object
         res.status(HttpStatus.OK).json({ orderId, token }); // Example usage
     }
     //  Initiate Payment as Step 1

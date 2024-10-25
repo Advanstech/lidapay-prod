@@ -34,8 +34,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
     }
     async paymentCallbackURL(req) {
-        const orderId = req.query && req.query['order-id'] ? String(req.query['order-id']) : null;
-        const token = req.query && req.query.token ? String(req.query.token) : null;
+        const orderId = req['order-id'] ? String(req['order-id']) : null;
+        const token = req.token ? String(req.token) : null;
         this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
         try {
             if (!token || !orderId) {
@@ -43,6 +43,20 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             }
             const transactionResponse = await this.queryTransaction(token);
             const paymentStatus = String(transactionResponse.status);
+            const transactionExists = await this.transactionService.findByTransId(orderId);
+            if (!transactionExists) {
+                this.logger.warn(`Transaction with orderId ${orderId} not found. Cannot update status.`);
+                return { message: 'Transaction not found' };
+            }
+            if (transactionResponse.result === 3) {
+                this.logger.warn(`No transaction data available for token: ${token}. Updating status to UNKNOWN.`);
+                await this.transactionService.updateByTrxn(orderId, {
+                    status: 'UNKNOWN',
+                    lastChecked: new Date(),
+                    metadata: req.body,
+                });
+                return { message: 'Transaction status updated to UNKNOWN' };
+            }
             await this.transactionService.updateByTrxn(orderId, {
                 status: paymentStatus,
                 lastChecked: new Date(),
@@ -218,6 +232,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 amount,
                 resultText,
                 originalResponse: response.data,
+                result,
             };
         }
         catch (error) {

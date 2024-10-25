@@ -23,5 +23,6 @@ export declare class ExpressPayService {
         amount: any;
         resultText: any;
         originalResponse: any;
+        result: any;
     }>;
 }
