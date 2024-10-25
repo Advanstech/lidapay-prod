@@ -3,6 +3,8 @@ export type TransactionDocument = Transaction & Document;
 export declare class Transaction {
     userId: string;
     userName: string;
+    firstName?: string;
+    lastName?: string;
     retailer?: string;
     transType: string;
     amount: number;

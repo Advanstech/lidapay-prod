@@ -25,6 +25,14 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
+], Transaction.prototype, "firstName", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Transaction.prototype, "lastName", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
 ], Transaction.prototype, "retailer", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ required: true }),

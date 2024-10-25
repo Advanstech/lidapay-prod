@@ -93,7 +93,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 lastname: paymentData.lastName,
                 email: paymentData.email,
                 phonenumber: paymentData.phoneNumber,
-                username: paymentData.username || paymentData.email,
+                username: paymentData.username || paymentData.phoneNumber,
                 accountnumber: paymentData.accountNumber || '',
                 currency: 'GHS',
                 amount: paymentData.amount.toFixed(2),
@@ -126,9 +126,11 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             const ipParamSave = {
                 userId: paymentData.userId,
                 userName: paymentData.userName,
+                firstName: paymentData.firstName || '',
+                lastName: paymentData.lastName || '',
                 email: paymentData.email,
                 transId: ipFormData['order-id'],
-                paymentType: 'MOMO',
+                paymentType: 'DEBIT',
                 retailer: 'EXPRESSPAY',
                 fee: constants_1.FEE_CHARGES || 0,
                 originalAmount: paymentData.amount,
@@ -145,7 +147,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 expressToken: token,
                 serviceStatus: 'pending',
                 transStatus: 'pending',
-                transType: 'MOMO',
+                transType: paymentData.transType || 'MOMO',
+                recipientNumber: ipFormData.phonenumber
             };
             await this.transactionService.create(ipParamSave);
             return {

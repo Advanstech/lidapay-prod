@@ -1,6 +1,8 @@
 export declare class CreateTransactionDto {
     userId: string;
     userName: string;
+    firstName?: string;
+    lastName?: string;
     transType: string;
     amount: number;
     currency?: string;

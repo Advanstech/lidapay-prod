@@ -10,7 +10,10 @@ export class Transaction {
   userId: string;
   @Prop({ required: false })
   userName: string;
-
+  @Prop()
+  firstName?:string;
+  @Prop()
+  lastName?: string;
   @Prop()
   retailer?: string;
   @Prop({ required: true })

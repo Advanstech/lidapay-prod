@@ -68,4 +68,7 @@ export class InitiatePaymentDto {
     paymentTransactionId: string;
     paymentServiceMessage: string;
     payTransRef: string;
+    transType?: string;
+    orderId?: string;
+    recipientNumber: string;
 }

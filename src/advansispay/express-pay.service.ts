@@ -83,7 +83,6 @@ export class ExpressPayService {
         lastChecked: new Date(),
         metadata: req.body, // Store the full response for reference
       });
-
       this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
     } catch (error) {
       this.logger.error('Error processing post payment status', {
@@ -108,7 +107,7 @@ export class ExpressPayService {
         lastname: paymentData.lastName,
         email: paymentData.email,
         phonenumber: paymentData.phoneNumber,
-        username: paymentData.username || paymentData.email, // Default to email if username not provided
+        username: paymentData.username || paymentData.phoneNumber, // Default to email if username not provided
         accountnumber: paymentData.accountNumber || '', // Include empty string if not provided
         currency: 'GHS',
         amount: paymentData.amount.toFixed(2),
@@ -151,9 +150,11 @@ export class ExpressPayService {
        const ipParamSave: any = {
         userId: paymentData.userId,
         userName: paymentData.userName,
+        firstName:  paymentData.firstName || '',
+        lastName:  paymentData.lastName || '',
         email: paymentData.email,
         transId: ipFormData['order-id'],
-        paymentType: 'MOMO',
+        paymentType: 'DEBIT',
         retailer: 'EXPRESSPAY',
         fee: FEE_CHARGES || 0,
         originalAmount: paymentData.amount,
@@ -170,7 +171,8 @@ export class ExpressPayService {
         expressToken: token,
         serviceStatus: 'pending',
         transStatus: 'pending',
-        transType: 'MOMO',
+        transType: paymentData.transType || 'MOMO',
+        recipientNumber: ipFormData.phonenumber
       };
       // persist to Transaction
       await this.transactionService.create(ipParamSave);

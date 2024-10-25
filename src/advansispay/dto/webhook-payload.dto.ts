@@ -9,4 +9,6 @@ export class WebhookPayloadDto {
   @IsString()
   @IsNotEmpty()
   token: string;
+
+  orderId?: string;
 }

@@ -9,4 +9,7 @@ export class PaymentCallbackDto {
 
     @IsString()
     'order-id': string;
+    
+    @IsString()
+    orderId?: string;
 }

@@ -6,6 +6,8 @@ export class CreateTransactionDto {
 
   @ApiProperty({ example: 'user123', description: 'The ID of the user initiating the transaction' })
   userName: string;
+  firstName?: string;
+  lastName?: string;
 
   @ApiProperty({ example: 'AIRTIME', description: 'The type of transaction' })
   transType: string;
