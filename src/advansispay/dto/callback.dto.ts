@@ -5,11 +5,11 @@ export class PaymentCallbackDto {
     token: string;
 
     @IsString()
-    status: string;
+    status?: string;
 
     @IsString()
-    'order-id': string;
-    
+    'order-id'?: string;
+
     @IsString()
     orderId?: string;
 }

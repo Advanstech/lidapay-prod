@@ -33,26 +33,21 @@ export class ExpressPayService {
     // Extracting orderId and token from the URL parameters
     const { 'order-id': orderId, token } = req.query; // Extract from query parameters
     this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
-
     try {
       // Validate the response (ensure orderId and token are present)
       if (!token || !orderId) {
         throw new HttpException('Invalid callback data', HttpStatus.BAD_REQUEST);
       }
-
       // Check the payment status using the existing queryTransaction method
       const transactionResponse = await this.queryTransaction(token);
       const paymentStatus = transactionResponse.status; // Extract the status from the response
-
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
         status: paymentStatus,
         lastChecked: new Date(),
         metadata: req.body, // Store the full response for reference
       });
-
       this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-
       // Optionally, you can send a response back to ExpressPay
       return { message: 'Callback processed successfully' };
     } catch (error) {
@@ -61,11 +56,9 @@ export class ExpressPayService {
         orderId,
         stack: error.stack,
       });
-
       throw new ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
     }
   }
-
   // Method to handle the POST request from ExpressPay
   async handlePostPaymentStatus(req: any) {
     const { 'order-id': orderId, token, status } = req.body; // Extract from request body
