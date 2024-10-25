@@ -21,13 +21,5 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], PaymentCallbackDto.prototype, "status", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
 ], PaymentCallbackDto.prototype, "order-id", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], PaymentCallbackDto.prototype, "orderId", void 0);
 //# sourceMappingURL=callback.dto.js.map

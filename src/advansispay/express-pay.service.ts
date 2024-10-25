@@ -49,9 +49,17 @@ export class ExpressPayService {
         metadata: req.body, // Store the full response for reference
       });
       this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-      // Optionally, you can send a response back to ExpressPay
+      // Optionally, ou can send a response back to ExpressPay
       return { message: 'Callback processed successfully' };
     } catch (error) {
+      this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
+      // Define paymentStatus here to avoid the error
+      const paymentStatus = 'UNKNOWN'; // Default value or handle accordingly
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
+      this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+      this.logger.log(`Payment initiated successfully. Token: ${token}`);
+      this.logger.log(`Querying transaction status for token: ${token}`);
       this.logger.error('Error processing payment callback', {
         error: error.message,
         orderId,
@@ -64,20 +72,20 @@ export class ExpressPayService {
   async handlePostPaymentStatus(req: any) {
     const orderId = String(req.body['order-id']); // Ensure orderId is a string
     const token = String(req.body.token); // Ensure token is a string
-    const status = String(req.body.status); // Ensure status is a string
-    this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+    const paymentStatus = String(req.body.status); // Ensure paymentStatus is a string
+    this.logger.log(`Received post payment status for order: ${orderId}, status: ${paymentStatus}`);
     try {
       // Validate the response (ensure orderId, token, and status are present)
-      if (!token || !orderId || !status) {
+      if (!token || !orderId || !paymentStatus) {
         throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
       }
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
-        status,
+        status: paymentStatus,
         lastChecked: new Date(),
         metadata: req.body, // Store the full response for reference
       });
-      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
     } catch (error) {
       this.logger.error('Error processing post payment status', {
         error: error.message,
@@ -138,12 +146,12 @@ export class ExpressPayService {
         throw new ExpressPayError('PAYMENT_INITIATION_FAILED', { status, message });
       }
       this.logger.log(`Payment initiated successfully. Token: ${token}`);
-       // save transaction to database
-       const ipParamSave: any = {
+      // save transaction to database
+      const ipParamSave: any = {
         userId: paymentData.userId,
         userName: paymentData.userName,
-        firstName:  paymentData.firstName || '',
-        lastName:  paymentData.lastName || '',
+        firstName: paymentData.firstName || '',
+        lastName: paymentData.lastName || '',
         email: paymentData.email,
         transId: ipFormData['order-id'],
         paymentType: 'DEBIT',

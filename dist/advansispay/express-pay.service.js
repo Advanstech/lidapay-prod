@@ -52,6 +52,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             return { message: 'Callback processed successfully' };
         }
         catch (error) {
+            this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
+            const paymentStatus = 'UNKNOWN';
+            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
+            this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+            this.logger.log(`Payment initiated successfully. Token: ${token}`);
+            this.logger.log(`Querying transaction status for token: ${token}`);
             this.logger.error('Error processing payment callback', {
                 error: error.message,
                 orderId,
@@ -63,18 +70,18 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
     async handlePostPaymentStatus(req) {
         const orderId = String(req.body['order-id']);
         const token = String(req.body.token);
-        const status = String(req.body.status);
-        this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
+        const paymentStatus = String(req.body.status);
+        this.logger.log(`Received post payment status for order: ${orderId}, status: ${paymentStatus}`);
         try {
-            if (!token || !orderId || !status) {
+            if (!token || !orderId || !paymentStatus) {
                 throw new common_1.HttpException('Invalid post data', common_1.HttpStatus.BAD_REQUEST);
             }
             await this.transactionService.updateByTrxn(orderId, {
-                status,
+                status: paymentStatus,
                 lastChecked: new Date(),
                 metadata: req.body,
             });
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${status}`);
+            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
         }
         catch (error) {
             this.logger.error('Error processing post payment status', {
