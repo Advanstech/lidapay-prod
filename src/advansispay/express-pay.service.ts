@@ -31,7 +31,8 @@ export class ExpressPayService {
   // Payment Callback Url to accept payment response from ExpressPay
   async paymentCallbackURL(req: any) {
     // Extracting orderId and token from the URL parameters
-    const { 'order-id': orderId, token } = req.query; // Extract from query parameters
+    const orderId = String(req.query['order-id']); // Ensure orderId is a string
+    const token = String(req.query.token); // Ensure token is a string
     this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
     try {
       // Validate the response (ensure orderId and token are present)
@@ -61,7 +62,9 @@ export class ExpressPayService {
   }
   // Method to handle the POST request from ExpressPay
   async handlePostPaymentStatus(req: any) {
-    const { 'order-id': orderId, token, status } = req.body; // Extract from request body
+    const orderId = String(req.body['order-id']); // Ensure orderId is a string
+    const token = String(req.body.token); // Ensure token is a string
+    const status = String(req.body.status); // Ensure status is a string
     this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
 
     try {

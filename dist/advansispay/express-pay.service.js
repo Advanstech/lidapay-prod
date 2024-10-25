@@ -34,7 +34,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
     }
     async paymentCallbackURL(req) {
-        const { 'order-id': orderId, token } = req.query;
+        const orderId = String(req.query['order-id']);
+        const token = String(req.query.token);
         this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
         try {
             if (!token || !orderId) {
@@ -60,7 +61,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         }
     }
     async handlePostPaymentStatus(req) {
-        const { 'order-id': orderId, token, status } = req.body;
+        const orderId = String(req.body['order-id']);
+        const token = String(req.body.token);
+        const status = String(req.body.status);
         this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
         try {
             if (!token || !orderId || !status) {
