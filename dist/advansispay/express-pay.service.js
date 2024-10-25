@@ -42,7 +42,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 throw new common_1.HttpException('Invalid callback data', common_1.HttpStatus.BAD_REQUEST);
             }
             const transactionResponse = await this.queryTransaction(token);
-            const paymentStatus = transactionResponse.status;
+            const paymentStatus = String(transactionResponse.status);
             await this.transactionService.updateByTrxn(orderId, {
                 status: paymentStatus,
                 lastChecked: new Date(),

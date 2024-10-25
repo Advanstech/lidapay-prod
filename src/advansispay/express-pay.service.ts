@@ -41,7 +41,7 @@ export class ExpressPayService {
       }
       // Check the payment status using the existing queryTransaction method
       const transactionResponse = await this.queryTransaction(token);
-      const paymentStatus = transactionResponse.status; // Extract the status from the response
+      const paymentStatus = String(transactionResponse.status); // Ensure paymentStatus is a string
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
         status: paymentStatus,
@@ -66,13 +66,11 @@ export class ExpressPayService {
     const token = String(req.body.token); // Ensure token is a string
     const status = String(req.body.status); // Ensure status is a string
     this.logger.log(`Received post payment status for order: ${orderId}, status: ${status}`);
-
     try {
       // Validate the response (ensure orderId, token, and status are present)
       if (!token || !orderId || !status) {
         throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
       }
-
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
         status,
@@ -90,7 +88,6 @@ export class ExpressPayService {
       throw new ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
     }
   }
-
   // Step 1
   async initiatePayment(paymentData: InitiatePaymentDto) {
     const localTransId = GeneratorUtil.generateOrderId() || 'TNX-';
@@ -113,7 +110,6 @@ export class ExpressPayService {
         'post-url': this.config.postUrl,
         'order-img-url': paymentData.orderImgUrl || '',
       };
-     
       console.log('initiate payment payload  =>>', ipFormData);
       this.logger.debug('Sending payment request to ExpressPay', {
         'order-id': ipFormData,
