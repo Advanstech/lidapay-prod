@@ -236,12 +236,12 @@ __decorate([
 ], TransactionController.prototype, "remove", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)(':transId'),
+    (0, common_1.Get)('trans-id/:transId'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a transaction by transaction Id' }),
     (0, swagger_1.ApiParam)({ name: 'transId', type: 'string', description: 'Transaction ID', example: '1234567890' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'The transaction has been successfully retrieved.', type: transaction_schema_1.Transaction }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Transaction not found.' }),
-    __param(0, (0, common_1.Param)('transactionId')),
+    __param(0, (0, common_1.Param)('transId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)

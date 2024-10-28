@@ -28,13 +28,10 @@ export class TransactionService {
     if (!createTransactionDto.transactionId) {
       createTransactionDto.transactionId = this.generateUniqueTransactionId(); // Generate a unique transaction ID
     }
-    return this.transactionModel.create(createTransactionDto);
-
     // Ensure transactionId is not null before inserting
     if (createTransactionDto.transactionId === null) {
       throw new Error('Transaction ID cannot be null');
     }
-
     // Check for existing transaction with the same transactionId
     const existingTransaction = await this.transactionModel.findOne({
       transactionId: createTransactionDto.transactionId,
@@ -42,9 +39,8 @@ export class TransactionService {
     if (existingTransaction) {
       throw new Error('Transaction with this ID already exists.');
     }
-
     // Proceed with the insert operation
-    await this.transactionModel.create(createTransactionDto);
+    return this.transactionModel.create(createTransactionDto);
   }
   //find all transactions with pagination
   async findAll(
@@ -81,7 +77,8 @@ export class TransactionService {
   }
   // Find by Transaction Id
   async findByTransId(transId: string): Promise<Transaction> {
-    const transaction = await this.transactionModel.findOne({ transId }).exec();
+    this.logger.debug(`Find transaction by transId =>> ${transId}`);
+    const transaction = await this.transactionModel.findOne({ transId: transId }).exec();
     if (!transaction) {
       throw new NotFoundException(`Transaction #${transId} not found`);
     }
@@ -103,7 +100,7 @@ export class TransactionService {
   //update transaction by trxn
   async updateByTrxn(trxn: string, updateTransactionDto: UpdateTransactionDto) {
     const updatedTransaction = await this.transactionModel.findOneAndUpdate(
-      { trxn: trxn }, // Use the 'trxn' field instead of '_id'
+      { transId: trxn }, // Use the 'trxn' field instead of '_id'
       { $set: updateTransactionDto },
       { new: true },
     );
@@ -111,7 +108,7 @@ export class TransactionService {
     if (!updatedTransaction) {
       throw new NotFoundException(`Transaction with trxn ${trxn} not found`);
     }
-
+ 
     return updatedTransaction;
   }
   // Update transaction by expressToken
@@ -126,7 +123,6 @@ export class TransactionService {
     }
     return updatedTransaction;
   }
-
   //delete transaction
   async remove(
     id: string,
@@ -210,7 +206,6 @@ export class TransactionService {
       .findByIdAndUpdate(id, updateTransactionDto, { new: true })
       .exec();
   }
-
   // Add a new method to delete all transaction
   async deleteAll(): Promise<void> {
     await this.transactionModel.deleteMany({});

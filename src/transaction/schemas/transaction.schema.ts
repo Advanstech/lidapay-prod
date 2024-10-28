@@ -11,7 +11,7 @@ export class Transaction {
   @Prop({ required: false })
   userName: string;
   @Prop()
-  firstName?:string;
+  firstName?: string;
   @Prop()
   lastName?: string;
   @Prop()
@@ -27,9 +27,21 @@ export class Transaction {
   @Prop({ required: false })
   currencyName?: string;
 
-  @Prop({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved' ] })
+  @Prop({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved'] })
   transStatus: string;
-  @Prop({ required: true, enum: ['pending', 'inprogress','refunded', 'reversed', 'cancelled', 'completed', 'failed', 'success', 'approved' ] })
+  @Prop({
+    required: true, enum: [
+      'pending',
+      'inprogress',
+      'refunded',
+      'reversed', 'cancelled',
+      'completed', 'failed',
+      'success',
+      'approved',
+      'declined',
+      'error',
+    ]
+  })
   serviceStatus: string;
   @Prop({ required: false })
   serviceCode: string;
@@ -106,6 +118,7 @@ export class Transaction {
   }>;
   @Prop({ default: Date.now })
   timestamp?: Date;
-  
+  @Prop()
+  queryLastChecked?: Date;
 }
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

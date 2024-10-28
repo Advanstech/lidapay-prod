@@ -28,4 +28,5 @@ export declare class UpdateTransactionDto {
     timestamp?: Date;
     lastChecked?: Date;
     metadata?: Record<string, any>;
+    queryLastChecked?: Date;
 }

@@ -27,7 +27,6 @@ let TransactionService = TransactionService_1 = class TransactionService {
         if (!createTransactionDto.transactionId) {
             createTransactionDto.transactionId = this.generateUniqueTransactionId();
         }
-        return this.transactionModel.create(createTransactionDto);
         if (createTransactionDto.transactionId === null) {
             throw new Error('Transaction ID cannot be null');
         }
@@ -37,7 +36,7 @@ let TransactionService = TransactionService_1 = class TransactionService {
         if (existingTransaction) {
             throw new Error('Transaction with this ID already exists.');
         }
-        await this.transactionModel.create(createTransactionDto);
+        return this.transactionModel.create(createTransactionDto);
     }
     async findAll(page, limit) {
         const skip = (page - 1) * limit;
@@ -64,7 +63,8 @@ let TransactionService = TransactionService_1 = class TransactionService {
         return transaction;
     }
     async findByTransId(transId) {
-        const transaction = await this.transactionModel.findOne({ transId }).exec();
+        this.logger.debug(`Find transaction by transId =>> ${transId}`);
+        const transaction = await this.transactionModel.findOne({ transId: transId }).exec();
         if (!transaction) {
             throw new common_1.NotFoundException(`Transaction #${transId} not found`);
         }
@@ -80,7 +80,7 @@ let TransactionService = TransactionService_1 = class TransactionService {
         return updatedTransaction;
     }
     async updateByTrxn(trxn, updateTransactionDto) {
-        const updatedTransaction = await this.transactionModel.findOneAndUpdate({ trxn: trxn }, { $set: updateTransactionDto }, { new: true });
+        const updatedTransaction = await this.transactionModel.findOneAndUpdate({ transId: trxn }, { $set: updateTransactionDto }, { new: true });
         if (!updatedTransaction) {
             throw new common_1.NotFoundException(`Transaction with trxn ${trxn} not found`);
         }

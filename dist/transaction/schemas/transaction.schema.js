@@ -55,7 +55,19 @@ __decorate([
     __metadata("design:type", String)
 ], Transaction.prototype, "transStatus", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, enum: ['pending', 'inprogress', 'refunded', 'reversed', 'cancelled', 'completed', 'failed', 'success', 'approved'] }),
+    (0, mongoose_1.Prop)({
+        required: true, enum: [
+            'pending',
+            'inprogress',
+            'refunded',
+            'reversed', 'cancelled',
+            'completed', 'failed',
+            'success',
+            'approved',
+            'declined',
+            'error',
+        ]
+    }),
     __metadata("design:type", String)
 ], Transaction.prototype, "serviceStatus", void 0);
 __decorate([
@@ -190,6 +202,10 @@ __decorate([
     (0, mongoose_1.Prop)({ default: Date.now }),
     __metadata("design:type", Date)
 ], Transaction.prototype, "timestamp", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Date)
+], Transaction.prototype, "queryLastChecked", void 0);
 exports.Transaction = Transaction = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Transaction);

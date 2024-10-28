@@ -125,4 +125,5 @@ export class UpdateTransactionDto {
     @ApiProperty({ description: 'Additional metadata related to the transaction' })
     @IsOptional()
     metadata?: Record<string, any>; // Changed from object to Record<string, any>
+    queryLastChecked?: Date;
 }

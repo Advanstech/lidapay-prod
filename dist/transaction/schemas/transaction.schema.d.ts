@@ -51,6 +51,7 @@ export declare class Transaction {
         lastQueryAt: Date;
     }>;
     timestamp?: Date;
+    queryLastChecked?: Date;
 }
 export declare const TransactionSchema: import("mongoose").Schema<Transaction, import("mongoose").Model<Transaction, any, any, any, Document<unknown, any, Transaction> & Transaction & {
     _id: import("mongoose").Types.ObjectId;

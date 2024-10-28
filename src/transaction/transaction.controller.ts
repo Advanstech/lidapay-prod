@@ -174,12 +174,12 @@ export class TransactionController {
   }
   // Get transaction by transaction id
   @UseGuards(JwtAuthGuard)
-  @Get(':transId')
+  @Get('trans-id/:transId')
   @ApiOperation({ summary: 'Get a transaction by transaction Id' })
   @ApiParam({ name: 'transId', type: 'string', description: 'Transaction ID', example: '1234567890' })
   @ApiResponse({ status: 200, description: 'The transaction has been successfully retrieved.', type: Transaction })
   @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  async getTransactionsByTransactionId(@Param('transactionId') transactionId: string) {
+  async getTransactionsByTransactionId(@Param('transId') transactionId: string) {
     return this.transactionService.findByTransId(transactionId);
   }
   // Get transactions by type

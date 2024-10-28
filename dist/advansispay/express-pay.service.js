@@ -41,34 +41,55 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             if (!token || !orderId) {
                 throw new common_1.HttpException('Invalid callback data', common_1.HttpStatus.BAD_REQUEST);
             }
-            const transactionResponse = await this.queryTransaction(token);
-            const paymentStatus = String(transactionResponse.status);
+            this.logger.log(`Payment Callback URL orderId =>>${orderId}`);
             const transactionExists = await this.transactionService.findByTransId(orderId);
             if (!transactionExists) {
                 this.logger.warn(`Transaction with orderId ${orderId} not found. Cannot update status.`);
                 return { message: 'Transaction not found' };
             }
+            this.logger.log(`Payment Callback Query Transaction with Token =>>${token}`);
+            const transactionResponse = await this.queryTransaction(token);
+            const paymentStatus = String(transactionResponse.status);
             if (transactionResponse.result === 3) {
                 this.logger.warn(`No transaction data available for token: ${token}. Updating status to UNKNOWN.`);
                 await this.transactionService.updateByTrxn(orderId, {
-                    status: 'UNKNOWN',
+                    paymentServiceCode: '3',
+                    paymentStatus: 'UNKNOWN',
+                    paymentServiceMessage: `UNKNOWN error`,
                     lastChecked: new Date(),
                     metadata: req.body,
+                    paymentCommentary: `Payment status is unknown for order ID: ${orderId}. Please check the transaction details.`,
                 });
                 return { message: 'Transaction status updated to UNKNOWN' };
             }
-            await this.transactionService.updateByTrxn(orderId, {
-                status: paymentStatus,
-                lastChecked: new Date(),
-                metadata: req.body,
-            });
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-            return { message: 'Callback processed successfully' };
+            else if (transactionResponse.result === 2) {
+                this.logger.error(`Transaction declined for token: ${token}. Result text: ${transactionResponse.resultText}`);
+                await this.transactionService.updateByTrxn(orderId, {
+                    paymentServiceCode: '2',
+                    paymentStatus: 'DECLINED',
+                    paymentServiceMessage: `Payment with order-ID: ${orderId} DECLINED`,
+                    lastChecked: new Date(),
+                    metadata: req.body,
+                    paymentCommentary: `Payment declined for order-ID: ${orderId}, token: ${token}. Reason: ${transactionResponse.resultText}`
+                });
+            }
+            else if (transactionResponse.result === 1) {
+                await this.transactionService.updateByTrxn(orderId, {
+                    paymentServiceCode: '1',
+                    paymentStatus: 'COMPLETED',
+                    paymentServiceMessage: `SUCCESS`,
+                    lastChecked: new Date(),
+                    metadata: req.body,
+                    paymentCommentary: `Transaction payment completed successfully with token: ${token}`
+                });
+                this.logger.log(`Transaction status updated for order: ${orderId}, new status: COMPLETED`);
+                return { message: 'Callback processed successfully' };
+            }
+            else {
+                this.logger.warn(`Unexpected transaction result: ${transactionResponse.result}`);
+            }
         }
         catch (error) {
-            this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
-            const paymentStatus = 'UNKNOWN';
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
             this.logger.error('Error processing payment callback', {
                 error: error.message,
                 orderId,
@@ -203,7 +224,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 },
             }));
             const { result, orderId, amount, 'transaction-id': transactionId, 'result-text': resultText, } = response.data;
-            this.logger.debug('Transaction query response', {
+            this.logger.debug('Query Transaction response', {
                 token,
                 result,
                 orderId,
@@ -217,9 +238,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             };
             const status = statusMap[result];
             await this.transactionService.updateByExpressToken(token, {
-                status,
-                transactionId,
-                lastChecked: new Date(),
+                serviceStatus: status,
+                paymentTransactionId: transactionId,
+                queryLastChecked: new Date(),
                 metadata: {
                     ...response.data,
                     lastQueryAt: new Date(),
