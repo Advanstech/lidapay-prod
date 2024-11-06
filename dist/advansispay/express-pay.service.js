@@ -49,7 +49,6 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             }
             this.logger.log(`Payment Callback Query Transaction with Token =>>${token}`);
             const transactionResponse = await this.queryTransaction(token);
-            const paymentStatus = String(transactionResponse.status);
             if (transactionResponse.result === 3) {
                 this.logger.warn(`No transaction data available for token: ${token}. Updating status to UNKNOWN.`);
                 await this.transactionService.updateByTrxn(orderId, {
@@ -70,7 +69,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     paymentServiceMessage: `Payment with order-ID: ${orderId} DECLINED`,
                     lastChecked: new Date(),
                     metadata: req.body,
-                    paymentCommentary: `Payment declined for order-ID: ${orderId}, token: ${token}. Reason: ${transactionResponse.resultText}`
+                    paymentCommentary: `Payment declined for order-ID: ${orderId}, token: ${token}. Reason: ${transactionResponse.resultText}`,
                 });
             }
             else if (transactionResponse.result === 1) {
@@ -80,7 +79,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     paymentServiceMessage: `SUCCESS`,
                     lastChecked: new Date(),
                     metadata: req.body,
-                    paymentCommentary: `Transaction payment completed successfully with token: ${token}`
+                    paymentCommentary: `Transaction payment completed successfully with token: ${token}`,
                 });
                 this.logger.log(`Transaction status updated for order: ${orderId}, new status: COMPLETED`);
                 return { message: 'Callback processed successfully' };
@@ -161,7 +160,10 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     orderId: ipFormData['order-id'],
                     message,
                 });
-                throw new express_pay_error_1.ExpressPayError('PAYMENT_INITIATION_FAILED', { status, message });
+                throw new express_pay_error_1.ExpressPayError('PAYMENT_INITIATION_FAILED', {
+                    status,
+                    message,
+                });
             }
             this.logger.log(`Payment initiated successfully. Token: ${token}`);
             const ipParamSave = {
@@ -189,7 +191,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 serviceStatus: 'pending',
                 transStatus: 'pending',
                 transType: paymentData.transType || 'MOMO',
-                recipientNumber: ipFormData.phonenumber
+                recipientNumber: ipFormData.phonenumber,
             };
             await this.transactionService.create(ipParamSave);
             return {
@@ -228,7 +230,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 token,
                 result,
                 orderId,
-                resultText
+                resultText,
             });
             const statusMap = {
                 1: 'COMPLETED',
@@ -244,7 +246,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 metadata: {
                     ...response.data,
                     lastQueryAt: new Date(),
-                }
+                },
             });
             return {
                 status,

@@ -31,7 +31,8 @@ let MobileMoneyService = MobileMoneyService_1 = class MobileMoneyService {
             amount: transData.amount,
             processing_code: constants_1.PROCESSING_CODE_DEBIT || process.env.PROCESSING_CODE_DEBIT,
             transaction_id: generator_util_1.GeneratorUtil.generateTransactionIdPayswitch() || 'TNX-',
-            desc: transData.description || `debit GhS${transData.amount} from ${transData.customerMsisdn} momo wallet.`,
+            desc: transData.description ||
+                `debit GhS${transData.amount} from ${transData.customerMsisdn} momo wallet.`,
             merchant_id: 'TTM-00006115',
             subscriber_number: transData.customerMsisdn,
             'r-switch': transData.channel,
@@ -41,7 +42,7 @@ let MobileMoneyService = MobileMoneyService_1 = class MobileMoneyService {
             data: ptParams,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Basic ${base64_encode}`,
+                Authorization: `Basic ${base64_encode}`,
             },
             httpsAgent: new https_1.Agent({
                 rejectUnauthorized: false,
@@ -49,7 +50,10 @@ let MobileMoneyService = MobileMoneyService_1 = class MobileMoneyService {
         };
         try {
             console.log('Sending transaction data:', JSON.stringify(ptParams));
-            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(configs.url, configs.data, { headers: configs.headers, httpsAgent: configs.httpsAgent }));
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(configs.url, configs.data, {
+                headers: configs.headers,
+                httpsAgent: configs.httpsAgent,
+            }));
             await this.saveOrUpdateTransaction(response.data);
             return response.data;
         }

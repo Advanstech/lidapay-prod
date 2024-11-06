@@ -84,7 +84,22 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
 };
 exports.AdvansispayController = AdvansispayController;
 __decorate([
-    (0, common_1.Get)(`redirect-url`),
+    (0, common_1.Get)('redirect-url'),
+    (0, swagger_1.ApiOperation)({ summary: 'Handle payment callback' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'order-id',
+        description: 'Order ID from the payment gateway',
+        required: true,
+        example: 'ADV-M2NN2COD-11D269AA',
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: 'token',
+        description: 'Token for the transaction',
+        required: true,
+        example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Callback processed successfully.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid callback data.' }),
     __param(0, (0, common_1.Res)()),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -95,8 +110,23 @@ __decorate([
     (0, common_1.Post)('initiate-payment'),
     (0, swagger_1.ApiOperation)({ summary: 'Initiate a mobile money payment' }),
     (0, swagger_1.ApiBody)({
-        description: 'Payment initiation data',
-        type: initiate_payment_dto_1.InitiatePaymentDto,
+        description: 'Initiate payment data',
+        schema: {
+            type: 'object',
+            properties: {
+                firstName: { type: 'string', example: 'Kofi' },
+                lastName: { type: 'string', example: 'Owusu' },
+                email: { type: 'string', example: 'kofi.owusu@gmail.com' },
+                phoneNumber: { type: 'string', example: '233205678901' },
+                username: { type: 'string', example: 'kofiowusu' },
+                amount: { type: 'number', example: 10 },
+                orderDesc: { type: 'string', example: 'Kofi airtime payment to 233205678901 on 29102024' },
+                userId: { type: 'string', example: '1234567890abcdef' },
+                accountNumber: { type: 'string', example: '1234' },
+                orderImgUrl: { type: 'string', example: 'https://www.ghanaweb.com' },
+            },
+            required: ['firstName', 'lastName', 'email', 'phoneNumber', 'username', 'amount', 'orderDesc', 'userId', 'accountNumber', 'orderImgUrl'],
+        },
     }),
     (0, swagger_1.ApiResponse)({ status: 201, description: 'Payment initiated successfully.' }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data.' }),
@@ -109,13 +139,27 @@ __decorate([
 __decorate([
     (0, common_1.Post)('debit-wallet'),
     (0, swagger_1.ApiOperation)({
-        summary: 'Process a mobile money transaction'
+        summary: 'Process a mobile money transaction',
     }),
     (0, swagger_1.ApiBody)({
         description: 'Transaction data to be processed',
-        type: create_transaction_dto_1.CreateTransactionDto,
+        schema: {
+            type: 'object',
+            properties: {
+                amount: { type: 'number', example: 100.5 },
+                currency: { type: 'string', example: 'GHS' },
+                customerEmail: { type: 'string', example: 'customer@example.com' },
+                customerMsisdn: { type: 'string', example: '233241234567' },
+                description: { type: 'string', example: 'Payment for order #123' },
+                callbackUrl: { type: 'string', example: 'https://example.com/callback' },
+            },
+            required: ['amount', 'currency', 'customerEmail', 'customerMsisdn'],
+        },
     }),
-    (0, swagger_1.ApiResponse)({ status: 201, description: 'Transaction processed successfully.' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Transaction processed successfully.',
+    }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data.' }),
     (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error.' }),
     __param(0, (0, common_1.Body)()),
@@ -125,13 +169,12 @@ __decorate([
 ], AdvansispayController.prototype, "processTransaction", null);
 __decorate([
     (0, common_1.Post)('query-transaction'),
-    (0, swagger_1.ApiOperation)({
-        summary: 'Query transaction by token',
-    }),
+    (0, swagger_1.ApiOperation)({ summary: 'Query transaction by token' }),
     (0, swagger_1.ApiQuery)({
         name: 'token',
         description: 'Transaction token',
         required: true,
+        example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
     }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Transaction found.' }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Transaction not found.' }),
@@ -147,14 +190,10 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Receive payment status update from ExpressPay' }),
     (0, swagger_1.ApiBody)({
         description: 'Payment status update from ExpressPay',
-        type: Object,
         schema: {
             type: 'object',
             properties: {
-                'order-id': {
-                    type: 'string',
-                    example: 'ADV-M2NN2COD-11D269AA',
-                },
+                'order-id': { type: 'string', example: 'ADV-M2NN2COD-11D269AA' },
                 token: {
                     type: 'string',
                     example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
