@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EXPRESSPAY_MERCHANT_ID = exports.PHONE_VERIFICATION_REWARD_POINTS = exports.EMAIL_VERIFICATION_REWARD_POINTS = exports.REFERRAL_REWARD_POINTS = exports.MERCHANT_INVITATION_LINK_REWARD_POINTS = exports.INVITATION_LINK_REWARD_POINTS = exports.QR_CODE_SCAN_REWARD_POINTS = exports.EMAIL_FROM = exports.AWS_SECRET_ACCESS_KEY = exports.AWS_ACCESS_KEY_ID = exports.AWS_REGION = exports.RELOADLY_TOKEN_SANDBOX = exports.RELOADLY_BASEURL_SANDBOX = exports.RELOADLY_BASEURL = exports.RELOADLY_AUDIENCE_SANDBOX = exports.RELOADLY_GRANT_TYPE_SANDBOX = exports.RELOADLY_CLIENT_SECRET_SANDBOX = exports.RELOADLY_CLIENT_SECRET = exports.RELOADLY_CLIENT_ID_SANDBOX = exports.RELOADLY_CLIENT_ID = exports.PROCESSING_CODE_DEBIT = exports.PROCESSING_CODE_SEND = exports.PAYSWITCH_APIKEY_PROD = exports.PAYSWITCH_USERNAME_PROD = exports.PAYSWITCH_APIKEY = exports.PAYSWITCH_USERNAME = exports.PAYSWITCH_CHECKOUT_URL = exports.PAYSWTICH_PROD_BASEURL = exports.PAYSWITCH_TEST_BASEURL = exports.PAYSWITCH_MERCHANTID = exports.ONE4ALL_RETAILER = exports.ONE4ALL_APISECRET = exports.ONE4ALL_APIKEY = exports.ONE4ALL_BASEURL = exports.RESPONSE_URL = exports.EMAIL_PASSWORD = exports.EMAIL_ADDRESS = exports.GMAIL_MAIL_PORT = exports.GMAIL_MAIL_SERVICE = exports.TWILIO_TOKEN = exports.TWILIO_ACCOUNT_SID = exports.APP_URL = exports.DOMAIN_URL = exports.DISCOUNT = exports.FEE_CHARGES = exports.MOMO_CHARGES = exports.JWT_EXPIRE = exports.JWT_SECRET = exports.MONGODB_URI = exports.SERVER_PORT = void 0;
-exports.EXPRESSPAY_POST_URL = exports.EXPRESSPAY_REDIRECT_URL = exports.EXPRESSPAY_TEST_BASE_URL = exports.EXPRESSPAY_BASE_URL = exports.EXPRESSPAY_API_KEY = void 0;
+exports.EXPRESSPAY_POST_URL = exports.EXPRESSPAY_REDIRECT_URL = exports.EXPRESSPAY_TEST_BASE_URL = exports.EXPRESSPAY_BASE_URL = exports.EXPRESSPAY_LIVE_API_KEY = exports.EXPRESSPAY_LIVE_MERCHANT_ID = exports.EXPRESSPAY_API_KEY = void 0;
 exports.SERVER_PORT = '1124';
 exports.MONGODB_URI = 'mongodb+srv://advansistechnology:Y1VPrv9zPPi1ZyJR@cluster0.ht8lvd6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 exports.JWT_SECRET = 'aflKxwRJSMeK9F2QT4fwpMeJf36POk6yJV_adQssw5c';
@@ -53,8 +53,10 @@ exports.EMAIL_VERIFICATION_REWARD_POINTS = 10;
 exports.PHONE_VERIFICATION_REWARD_POINTS = 10;
 exports.EXPRESSPAY_MERCHANT_ID = '824935685957';
 exports.EXPRESSPAY_API_KEY = '9CLcNmTouUkVUIPWG6UO5-JYnVJYXILSZNxFXI0trI-XEOYNru32Y53B6SoGtXP-v2bxGxxanGWZi0CgoTZ';
+exports.EXPRESSPAY_LIVE_MERCHANT_ID = '726706259030';
+exports.EXPRESSPAY_LIVE_API_KEY = 'Y3MvQIx9Vkx7A2Z1LCqsV-NTD8KYt12l7Vwxs97eDb-Hdcs6BcKKUcVn4PLAsaf-3FYnx2xA2fFO5QhtyI1';
 exports.EXPRESSPAY_BASE_URL = 'https://expresspaygh.com';
 exports.EXPRESSPAY_TEST_BASE_URL = 'https://sandbox.expresspaygh.com';
 exports.EXPRESSPAY_REDIRECT_URL = 'https://api.advansistechnologies.com/api/v1/advansispay/redirect-url';
-exports.EXPRESSPAY_POST_URL = 'https://webhook.site/84435c86-a4e2-412b-b6b3-624e19794606';
+exports.EXPRESSPAY_POST_URL = 'https://api.advansistechnologies.com/api/v1/advansispay/post-status';
 //# sourceMappingURL=constants.js.map

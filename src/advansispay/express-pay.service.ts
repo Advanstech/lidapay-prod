@@ -13,6 +13,8 @@ import {
   EXPRESSPAY_REDIRECT_URL,
   EXPRESSPAY_POST_URL,
   FEE_CHARGES,
+  EXPRESSPAY_LIVE_MERCHANT_ID,
+  EXPRESSPAY_LIVE_API_KEY,
 } from 'src/constants';
 import { ExpressPayError } from './express-pay.error';
 import { GeneratorUtil } from 'src/utilities/generator.util';
@@ -29,7 +31,9 @@ export class ExpressPayService {
   ) {
     this.config = {
       merchantId: process.env.EXPRESSPAY_MERCHANT_ID || EXPRESSPAY_MERCHANT_ID,
+      liveMerchantId: process.env.EXPRESSPAY_LIVE_MERCHANT_ID || EXPRESSPAY_LIVE_MERCHANT_ID,
       apiKey: process.env.EXPRESSPAY_API_KEY || EXPRESSPAY_API_KEY,
+      liveApiKey: process.env.EXPRESSPAY_LIVE_API_KEY || EXPRESSPAY_LIVE_API_KEY,
       baseUrl: process.env.EXPRESSPAY_BASE_URL || EXPRESSPAY_BASE_URL,
       testUrl: process.env.EXPRESSPAY_TEST_BASE_URL || EXPRESSPAY_TEST_BASE_URL,
       redirectUrl:
@@ -165,16 +169,46 @@ export class ExpressPayService {
     this.logger.log(
       `Initiating payment for orderId as localTransId:: ${localTransId}`,
     );
+    const ipParamSave: any = {
+      userId: paymentData.userId,
+      userName: paymentData.userName,
+      firstName: paymentData.firstName || '',
+      lastName: paymentData.lastName || '',
+      email: paymentData.email,
+      transId: localTransId,
+      paymentType: 'DEBIT',
+      retailer: 'EXPRESSPAY',
+      fee: FEE_CHARGES || 0,
+      originalAmount: paymentData.amount,
+      amount: (Number(paymentData.amount) + Number(FEE_CHARGES)).toString() || '',
+      customerMsisdn: paymentData.phoneNumber,
+      walletOperator: '',
+      paymentCurrency: 'GHS',
+      paymentCommentary: '',
+      paymentStatus: 'pending',
+      paymentServiceCode: '',
+      paymentTransactionId: '',
+      paymentServiceMessage: '',
+      payTransRef: paymentData.payTransRef || '',
+      expressToken: '',
+      serviceStatus: 'pending',
+      transStatus: 'pending',
+      transType: paymentData.transType || 'MOMO',
+      recipientNumber: paymentData.phoneNumber,
+      timestamp: new Date(),
+      queryLastChecked: new Date()
+    };
+
     try {
       const ipFormData: any = {
-        'merchant-id': this.config.merchantId,
-        'api-key': this.config.apiKey,
+        'merchant-id': this.config.liveMerchantId,
+        'api-key': this.config.liveApiKey,
         firstname: paymentData.firstName,
         lastname: paymentData.lastName,
         email: paymentData.email,
         phonenumber: paymentData.phoneNumber,
-        username: paymentData.username || paymentData.phoneNumber, // Default to email if username not provided
-        accountnumber: paymentData.accountNumber || '', // Include empty string if not provided
+        username: paymentData.username || paymentData.phoneNumber,
+        accountnumber: paymentData.accountNumber || '',
         currency: 'GHS',
         amount: paymentData.amount.toFixed(2),
         'order-id': localTransId,
@@ -183,16 +217,17 @@ export class ExpressPayService {
         'post-url': this.config.postUrl,
         'order-img-url': paymentData.orderImgUrl || '',
       };
-      console.log('initiate payment payload  =>>', ipFormData);
+      // Log params
+      console.log('initiate payment payload  =>>');
       this.logger.debug('Sending payment request to ExpressPay', {
         'order-id': ipFormData,
         amount: ipFormData.amount,
       });
-      // Wait for response
+
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.config.testUrl}/api/submit.php`,
-          qr.stringify(ipFormData), // Use querystring.stringify to format as x-www-form-urlencoded
+          `${this.config.baseUrl}/api/submit.php`,
+          qr.stringify(ipFormData),
           {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
@@ -200,7 +235,7 @@ export class ExpressPayService {
           },
         ),
       );
-      // Extracted Response from ExpressPay
+
       const { status, token, message } = response.data;
       if (status !== 1) {
         this.logger.error('Payment initiation failed', {
@@ -208,54 +243,98 @@ export class ExpressPayService {
           orderId: ipFormData['order-id'],
           message,
         });
+
+        const failedTransaction = {
+          ...ipParamSave,
+          transStatus: 'failed',
+          serviceStatus: 'FAILED',
+          paymentStatus: 'FAILED',
+          paymentServiceCode: status.toString(),
+          paymentTransactionId: '',
+          paymentServiceMessage: message || 'Payment initiation failed',
+          paymentCommentary: `Transaction failed: ${message}`,
+          expressToken: '',
+          metadata: [{
+            result: status,
+            'result-text': message,
+            'order-id': localTransId,
+            token: '',
+            currency: 'GHS',
+            amount: paymentData.amount.toFixed(2),
+            'transaction-id': '',
+            'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
+            lastQueryAt: new Date().toISOString()
+          }],
+          timestamp: new Date(),
+          queryLastChecked: new Date()
+        };
+        await this.transactionService.create(failedTransaction);
+
         throw new ExpressPayError('PAYMENT_INITIATION_FAILED', {
           status,
           message,
         });
       }
+
       this.logger.log(`Payment initiated successfully. Token: ${token}`);
-      // save transaction to database
-      const ipParamSave: any = {
-        userId: paymentData.userId,
-        userName: paymentData.userName,
-        firstName: paymentData.firstName || '',
-        lastName: paymentData.lastName || '',
-        email: paymentData.email,
-        transId: ipFormData['order-id'],
-        paymentType: 'DEBIT',
-        retailer: 'EXPRESSPAY',
-        fee: FEE_CHARGES || 0,
-        originalAmount: paymentData.amount,
-        amount:
-          (Number(paymentData.amount) + Number(FEE_CHARGES)).toString() || '',
-        customerMsisdn: paymentData.phoneNumber,
-        walletOperator: '',
-        paymentCurrency: 'GHS',
-        paymentCommentary: '',
-        paymentStatus: 'pending',
-        paymentServiceCode: '',
-        paymentTransactionId: '',
-        paymentServiceMessage: '',
-        payTransRef: paymentData.payTransRef || '',
-        expressToken: token,
-        serviceStatus: 'pending',
-        transStatus: 'pending',
-        transType: paymentData.transType || 'MOMO',
-        recipientNumber: ipFormData.phonenumber,
-      };
+
+      // Update ipParamSave with success data
+      ipParamSave.expressToken = token;
+      ipParamSave.metadata = [{
+        result: 1,
+        'result-text': 'Pending',
+        'order-id': localTransId,
+        token: token,
+        currency: 'GHS',
+        amount: paymentData.amount.toFixed(2),
+        'transaction-id': '',
+        'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
+        lastQueryAt: new Date().toISOString()
+      }];
+
       // persist to Transaction
       await this.transactionService.create(ipParamSave);
+
       return {
-        checkoutUrl: `${this.config.testUrl}/api/checkout.php?token=${token}`,
+        checkoutUrl: `${this.config.baseUrl}/api/checkout.php?token=${token}`,
         token,
         'order-id': ipParamSave.transId,
       };
     } catch (error) {
       this.logger.error('Payment initiation error', {
         error: error.message,
-        'order-id': error['order-id'],
+        'order-id': localTransId,
         stack: error.stack,
       });
+
+      if (!(error instanceof ExpressPayError)) {
+        const errorTransaction = {
+          ...ipParamSave,
+          transId: localTransId,
+          transStatus: 'failed',
+          serviceStatus: 'FAILED',
+          paymentStatus: 'FAILED',
+          paymentServiceCode: '500',
+          paymentTransactionId: '',
+          paymentServiceMessage: 'SYSTEM_ERROR',
+          paymentCommentary: `System error occurred: ${error.message}`,
+          expressToken: '',
+          metadata: [{
+            result: 0,
+            'result-text': error.message,
+            'order-id': localTransId,
+            token: '',
+            currency: 'GHS',
+            amount: paymentData.amount.toFixed(2),
+            'transaction-id': '',
+            'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
+            lastQueryAt: new Date().toISOString()
+          }],
+          timestamp: new Date(),
+          queryLastChecked: new Date()
+        };
+        await this.transactionService.create(errorTransaction);
+      }
 
       if (error instanceof ExpressPayError) {
         throw error;
@@ -274,7 +353,7 @@ export class ExpressPayService {
       };
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.config.testUrl}/api/query.php`,
+          `${this.config.baseUrl}/api/query.php`,
           qr.stringify(formData),
           {
             headers: {

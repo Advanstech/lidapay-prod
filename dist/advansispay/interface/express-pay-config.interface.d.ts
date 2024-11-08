@@ -5,4 +5,6 @@ export interface ExpressPayConfig {
     testUrl: string;
     redirectUrl: string;
     postUrl: string;
+    liveMerchantId: string;
+    liveApiKey: string;
 }
