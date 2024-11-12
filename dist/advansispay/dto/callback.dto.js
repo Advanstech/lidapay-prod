@@ -11,15 +11,27 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentCallbackDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class PaymentCallbackDto {
 }
 exports.PaymentCallbackDto = PaymentCallbackDto;
 __decorate([
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, swagger_1.ApiProperty)({
+        description: 'Transaction token from ExpressPay',
+        example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0'
+    }),
     __metadata("design:type", String)
 ], PaymentCallbackDto.prototype, "token", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, swagger_1.ApiProperty)({
+        description: 'Order ID from ExpressPay',
+        example: 'ADV-M2NN2COD-11D269AA',
+        name: 'order-id'
+    }),
     __metadata("design:type", String)
 ], PaymentCallbackDto.prototype, "order-id", void 0);
 //# sourceMappingURL=callback.dto.js.map

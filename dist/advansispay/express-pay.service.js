@@ -77,7 +77,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             else if (transactionResponse.result === 1) {
                 await this.transactionService.updateByTrxn(orderId, {
                     paymentServiceCode: '1',
-                    paymentStatus: 'COMPLETED',
+                    paymentStatus: 'APPROVED',
                     paymentServiceMessage: `SUCCESS`,
                     lastChecked: new Date(),
                     metadata: req.body,
@@ -85,6 +85,18 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 });
                 this.logger.log(`Transaction status updated for order: ${orderId}, new status: COMPLETED`);
                 return { message: 'Callback processed successfully' };
+            }
+            else if (transactionResponse.result === 4) {
+                this.logger.log(`Transaction pending for token: ${token}. Waiting for post-url callback.`);
+                await this.transactionService.updateByTrxn(orderId, {
+                    paymentServiceCode: '4',
+                    paymentStatus: 'PENDING',
+                    paymentServiceMessage: `Payment processing in progress`,
+                    lastChecked: new Date(),
+                    metadata: req.body,
+                    paymentCommentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url.`,
+                });
+                return { message: 'Transaction is pending, waiting for final status' };
             }
             else {
                 this.logger.warn(`Unexpected transaction result: ${transactionResponse.result}`);
@@ -102,18 +114,42 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
     async handlePostPaymentStatus(req) {
         const orderId = String(req.body['order-id']);
         const token = String(req.body.token);
-        const paymentStatus = String(req.body.status);
-        this.logger.log(`Received post payment status for order: ${orderId}, status: ${paymentStatus}`);
+        const result = Number(req.body.result);
+        const resultText = String(req.body['result-text']);
+        const transactionId = req.body['transaction-id'] || '';
+        this.logger.log(`Received post payment status for order: ${orderId}, result: ${result}, resultText: ${resultText}`);
         try {
-            if (!token || !orderId || !paymentStatus) {
+            if (!token || !orderId || result === undefined) {
                 throw new common_1.HttpException('Invalid post data', common_1.HttpStatus.BAD_REQUEST);
             }
+            let paymentStatus;
+            switch (result) {
+                case 1:
+                    paymentStatus = 'APPROVED';
+                    break;
+                case 2:
+                    paymentStatus = 'DECLINED';
+                    break;
+                case 3:
+                    paymentStatus = 'ERROR';
+                    break;
+                case 4:
+                    paymentStatus = 'PENDING';
+                    break;
+                default:
+                    paymentStatus = 'UNKNOWN';
+            }
             await this.transactionService.updateByTrxn(orderId, {
-                status: paymentStatus,
+                paymentServiceCode: String(result),
+                paymentStatus: paymentStatus,
+                paymentServiceMessage: resultText,
+                paymentTransactionId: transactionId,
                 lastChecked: new Date(),
                 metadata: req.body,
+                paymentCommentary: `Post-URL update: ${resultText} (Result: ${result})`,
             });
             this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
+            return { message: 'Post payment status processed successfully' };
         }
         catch (error) {
             this.logger.error('Error processing post payment status', {
@@ -121,6 +157,27 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 orderId,
                 stack: error.stack,
             });
+            try {
+                await this.transactionService.updateByTrxn(orderId, {
+                    paymentServiceCode: '500',
+                    paymentStatus: 'ERROR',
+                    paymentServiceMessage: 'Error processing post payment status',
+                    lastChecked: new Date(),
+                    metadata: {
+                        ...req.body,
+                        error: error.message,
+                        errorTimestamp: new Date(),
+                    },
+                    paymentCommentary: `Failed to process post-URL update: ${error.message}`,
+                });
+            }
+            catch (updateError) {
+                this.logger.error('Failed to update transaction with error status', {
+                    error: updateError.message,
+                    orderId,
+                    originalError: error.message,
+                });
+            }
             throw new express_pay_error_1.ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
         }
     }

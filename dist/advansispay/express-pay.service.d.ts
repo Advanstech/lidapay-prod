@@ -10,7 +10,9 @@ export declare class ExpressPayService {
     paymentCallbackURL(req: any): Promise<{
         message: string;
     }>;
-    handlePostPaymentStatus(req: any): Promise<void>;
+    handlePostPaymentStatus(req: any): Promise<{
+        message: string;
+    }>;
     initiatePayment(paymentData: InitiatePaymentDto): Promise<{
         checkoutUrl: string;
         token: any;

@@ -78,8 +78,16 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
             };
         }
     }
-    async handlePostPaymentStatus(req) {
-        return await this.expressPayService.handlePostPaymentStatus(req);
+    async handlePostPaymentStatus(postData) {
+        try {
+            this.logger.log(`Received payment status update: ${JSON.stringify(postData)}`);
+            await this.expressPayService.handlePostPaymentStatus(postData);
+            return;
+        }
+        catch (error) {
+            this.logger.error(`Error processing payment status: ${error.message}`);
+            throw new common_1.HttpException(error.message || 'Internal server error', error.status || common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 };
 exports.AdvansispayController = AdvansispayController;
@@ -197,21 +205,17 @@ __decorate([
                 token: {
                     type: 'string',
                     example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
-                },
-                status: {
-                    type: 'string',
-                    enum: ['success', 'failed', 'pending'],
-                    example: 'success',
-                },
+                }
             },
-            required: ['order-id', 'token', 'status'],
+            required: ['order-id', 'token'],
         },
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Payment status updated successfully.' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Payment status processed successfully.' }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data.' }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error.' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [callback_dto_1.PaymentCallbackDto]),
     __metadata("design:returntype", Promise)
 ], AdvansispayController.prototype, "handlePostPaymentStatus", null);
 exports.AdvansispayController = AdvansispayController = AdvansispayController_1 = __decorate([

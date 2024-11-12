@@ -13,5 +13,5 @@ export declare class AdvansispayController {
     initiatePayment(paymentData: InitiatePaymentDto): Promise<any>;
     processTransaction(transData: CreateTransactionDto): Promise<any>;
     queryTransaction(token: string): Promise<any>;
-    handlePostPaymentStatus(req: any): Promise<void>;
+    handlePostPaymentStatus(postData: PaymentCallbackDto): Promise<void>;
 }
