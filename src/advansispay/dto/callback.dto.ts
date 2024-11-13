@@ -18,4 +18,6 @@ export class PaymentCallbackDto {
         name: 'order-id'
     })
     'order-id': string;
+
+    result?: any;
 }

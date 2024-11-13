@@ -111,15 +111,16 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             throw new express_pay_error_1.ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
         }
     }
-    async handlePostPaymentStatus(req) {
-        const orderId = String(req.body['order-id']);
-        const token = String(req.body.token);
-        const result = Number(req.body.result);
-        const resultText = String(req.body['result-text']);
-        const transactionId = req.body['transaction-id'] || '';
-        this.logger.log(`Received post payment status for order: ${orderId}, result: ${result}, resultText: ${resultText}`);
+    async handlePostPaymentStatus(postData) {
+        const orderId = postData['order-id'];
+        const token = postData.token;
+        const result = postData.result !== undefined ? Number(postData.result) : null;
+        const resultText = postData['result-text'] || '';
+        const transactionId = postData['transaction-id'] || '';
+        this.logger.log(`Received post payment status for order: ${orderId}, token: ${token}, result: ${result}, resultText: ${resultText}`);
         try {
-            if (!token || !orderId || result === undefined) {
+            if (!token || !orderId) {
+                this.logger.error('Invalid post data', { orderId, token, result });
                 throw new common_1.HttpException('Invalid post data', common_1.HttpStatus.BAD_REQUEST);
             }
             let paymentStatus;
@@ -145,7 +146,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 paymentServiceMessage: resultText,
                 paymentTransactionId: transactionId,
                 lastChecked: new Date(),
-                metadata: req.body,
+                metadata: postData,
                 paymentCommentary: `Post-URL update: ${resultText} (Result: ${result})`,
             });
             this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
@@ -157,26 +158,28 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 orderId,
                 stack: error.stack,
             });
-            try {
-                await this.transactionService.updateByTrxn(orderId, {
-                    paymentServiceCode: '500',
-                    paymentStatus: 'ERROR',
-                    paymentServiceMessage: 'Error processing post payment status',
-                    lastChecked: new Date(),
-                    metadata: {
-                        ...req.body,
-                        error: error.message,
-                        errorTimestamp: new Date(),
-                    },
-                    paymentCommentary: `Failed to process post-URL update: ${error.message}`,
-                });
-            }
-            catch (updateError) {
-                this.logger.error('Failed to update transaction with error status', {
-                    error: updateError.message,
-                    orderId,
-                    originalError: error.message,
-                });
+            if (orderId) {
+                try {
+                    await this.transactionService.updateByTrxn(orderId, {
+                        paymentServiceCode: '500',
+                        paymentStatus: 'ERROR',
+                        paymentServiceMessage: 'Error processing post payment status',
+                        lastChecked: new Date(),
+                        metadata: {
+                            ...postData,
+                            error: error.message,
+                            errorTimestamp: new Date(),
+                        },
+                        paymentCommentary: `Failed to process post-URL update: ${error.message}`,
+                    });
+                }
+                catch (updateError) {
+                    this.logger.error('Failed to update transaction with error status', {
+                        error: updateError.message,
+                        orderId,
+                        originalError: error.message,
+                    });
+                }
             }
             throw new express_pay_error_1.ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
         }

@@ -173,22 +173,13 @@ export class AdvansispayController {
     }
   }
   // Handler for the POST request from ExpressPay
+
   @Post('post-status')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Receive payment status update from ExpressPay' })
   @ApiBody({
     description: 'Payment status update from ExpressPay',
-    schema: {
-      type: 'object',
-      properties: {
-        'order-id': { type: 'string', example: 'ADV-M2NN2COD-11D269AA' },
-        token: {
-          type: 'string',
-          example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
-        }
-      },
-      required: ['order-id', 'token'],
-    },
+    type: PaymentCallbackDto,
   })
   @ApiResponse({ status: 200, description: 'Payment status processed successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input data.' })
@@ -196,23 +187,14 @@ export class AdvansispayController {
   async handlePostPaymentStatus(@Body() postData: PaymentCallbackDto): Promise<void> {
     try {
       this.logger.log(`Received payment status update: ${JSON.stringify(postData)}`);
-      
-      // According to ExpressPay docs Step 4B, we need to:
-      // 1. Receive the post-url callback with order-id and token
-      // 2. Query the transaction status using these details
-      // 3. Update local state based on query results
-      // 4. Return 200 OK immediately
       await this.expressPayService.handlePostPaymentStatus(postData);
-      
-      // Return void as per ExpressPay requirements
-      return;
     } catch (error) {
       this.logger.error(`Error processing payment status: ${error.message}`);
       throw new HttpException(
         error.message || 'Internal server error',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
-  
+
 }

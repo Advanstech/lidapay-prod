@@ -19,6 +19,7 @@ import {
 import { ExpressPayError } from './express-pay.error';
 import { GeneratorUtil } from 'src/utilities/generator.util';
 import * as qr from 'querystring'; // Add this import
+import { PaymentCallbackDto } from './dto/callback.dto';
 
 @Injectable()
 export class ExpressPayService {
@@ -147,23 +148,23 @@ export class ExpressPayService {
     }
   }
   // Method to handle the POST request from ExpressPay
-  async handlePostPaymentStatus(req: any) {
-    const orderId = String(req.body['order-id']); // Ensure orderId is a string
-    const token = String(req.body.token); // Ensure token is a string
-    const result = Number(req.body.result); // Get the result code
-    const resultText = String(req.body['result-text']); // Get the result description
-    const transactionId = req.body['transaction-id'] || ''; // Get transaction ID if available
 
-    this.logger.log(
-      `Received post payment status for order: ${orderId}, result: ${result}, resultText: ${resultText}`,
-    );
-
+  async handlePostPaymentStatus(postData: PaymentCallbackDto) {
+    const orderId = postData['order-id'];
+    const token = postData.token;
+    const result = postData.result !== undefined ? Number(postData.result) : null;
+    const resultText = postData['result-text'] || '';
+    const transactionId = postData['transaction-id'] || '';
+  
+    this.logger.log(`Received post payment status for order: ${orderId}, token: ${token}, result: ${result}, resultText: ${resultText}`);
+  
     try {
       // Validate the response
-      if (!token || !orderId || result === undefined) {
+      if (!token || !orderId) {
+        this.logger.error('Invalid post data', { orderId, token, result });
         throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
       }
-
+  
       // Map result codes to status
       let paymentStatus;
       switch (result) {
@@ -182,6 +183,7 @@ export class ExpressPayService {
         default:
           paymentStatus = 'UNKNOWN';
       }
+  
       // Update transaction status in the database
       await this.transactionService.updateByTrxn(orderId, {
         paymentServiceCode: String(result),
@@ -189,14 +191,12 @@ export class ExpressPayService {
         paymentServiceMessage: resultText,
         paymentTransactionId: transactionId,
         lastChecked: new Date(),
-        metadata: req.body, // Store the full response for reference
+        metadata: postData, // Store the full response for reference
         paymentCommentary: `Post-URL update: ${resultText} (Result: ${result})`,
       });
-
-      this.logger.log(
-        `Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`,
-      );
-
+  
+      this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
+  
       return { message: 'Post payment status processed successfully' };
     } catch (error) {
       this.logger.error('Error processing post payment status', {
@@ -204,30 +204,32 @@ export class ExpressPayService {
         orderId,
         stack: error.stack,
       });
-
+  
       // Update transaction with error status
-      try {
-        await this.transactionService.updateByTrxn(orderId, {
-          paymentServiceCode: '500', // Using 500 to indicate system error
-          paymentStatus: 'ERROR',
-          paymentServiceMessage: 'Error processing post payment status',
-          lastChecked: new Date(),
-          metadata: {
-            ...req.body,
-            error: error.message,
-            errorTimestamp: new Date(),
-          },
-          paymentCommentary: `Failed to process post-URL update: ${error.message}`,
-        });
-      } catch (updateError) {
-        // Log if we can't even update the error status
-        this.logger.error('Failed to update transaction with error status', {
-          error: updateError.message,
-          orderId,
-          originalError: error.message,
-        });
+      if (orderId) {
+        try {
+          await this.transactionService.updateByTrxn(orderId, {
+            paymentServiceCode: '500', // Using 500 to indicate system error
+            paymentStatus: 'ERROR',
+            paymentServiceMessage: 'Error processing post payment status',
+            lastChecked: new Date(),
+            metadata: {
+              ...postData,
+              error: error.message,
+              errorTimestamp: new Date(),
+            },
+            paymentCommentary: `Failed to process post-URL update: ${error.message}`,
+          });
+        } catch (updateError) {
+          // Log if we can't even update the error status
+          this.logger.error('Failed to update transaction with error status', {
+            error: updateError.message,
+            orderId,
+            originalError: error.message,
+          });
+        }
       }
-
+  
       throw new ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
     }
   }

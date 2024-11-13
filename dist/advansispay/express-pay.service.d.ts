@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { TransactionService } from 'src/transaction/transaction.service';
+import { PaymentCallbackDto } from './dto/callback.dto';
 export declare class ExpressPayService {
     private readonly httpService;
     private readonly transactionService;
@@ -10,7 +11,7 @@ export declare class ExpressPayService {
     paymentCallbackURL(req: any): Promise<{
         message: string;
     }>;
-    handlePostPaymentStatus(req: any): Promise<{
+    handlePostPaymentStatus(postData: PaymentCallbackDto): Promise<{
         message: string;
     }>;
     initiatePayment(paymentData: InitiatePaymentDto): Promise<{

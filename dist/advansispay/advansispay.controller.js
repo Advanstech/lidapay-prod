@@ -82,7 +82,6 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
         try {
             this.logger.log(`Received payment status update: ${JSON.stringify(postData)}`);
             await this.expressPayService.handlePostPaymentStatus(postData);
-            return;
         }
         catch (error) {
             this.logger.error(`Error processing payment status: ${error.message}`);
@@ -198,17 +197,7 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Receive payment status update from ExpressPay' }),
     (0, swagger_1.ApiBody)({
         description: 'Payment status update from ExpressPay',
-        schema: {
-            type: 'object',
-            properties: {
-                'order-id': { type: 'string', example: 'ADV-M2NN2COD-11D269AA' },
-                token: {
-                    type: 'string',
-                    example: '4686671a924bd07e32.72722384671a924bd07ea5.886127862734671a924bd0',
-                }
-            },
-            required: ['order-id', 'token'],
-        },
+        type: callback_dto_1.PaymentCallbackDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Payment status processed successfully.' }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data.' }),
