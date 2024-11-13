@@ -73,7 +73,7 @@ let AirtimeService = AirtimeService_1 = class AirtimeService {
         const taParams = {
             userId: userId,
             userName: userName,
-            transType: 'AIRTIME TOPUP',
+            transType: 'AIRTIME',
             retailer: retailer ?? 'PRYMO',
             network: network || 0,
             operator: this.getOperatorName(network || 0),

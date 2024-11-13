@@ -56,6 +56,22 @@ let ReloadAirtimeController = ReloadAirtimeController_1 = class ReloadAirtimeCon
         const aar = this.reloadAirtimeService.makeAsynchronousTopUp(aarDto);
         return aar;
     }
+    async getTopupStatus(transactionId) {
+        try {
+            this.logger.log(`TRANSACTION ID: ${transactionId}`);
+            const status = await this.reloadAirtimeService.getTopupStatus(transactionId);
+            return status;
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            throw new common_1.InternalServerErrorException('Failed to fetch topup status');
+        }
+    }
 };
 exports.ReloadAirtimeController = ReloadAirtimeController;
 __decorate([
@@ -216,6 +232,106 @@ __decorate([
     __metadata("design:paramtypes", [reload_airtime_dto_1.ReloadAirtimeDto, Object]),
     __metadata("design:returntype", Promise)
 ], ReloadAirtimeController.prototype, "asyncAirtimeRecharge", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, merchant_auth_guard_1.MerchantAuthGuard),
+    (0, common_1.Get)('topup-status/:transactionId'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get Topup Transaction Status',
+        description: 'Retrieve the status of a topup transaction using its ID'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Transaction status retrieved successfully',
+        schema: {
+            type: 'object',
+            properties: {
+                transactionId: {
+                    type: 'number',
+                    example: 4602843
+                },
+                status: {
+                    type: 'string',
+                    example: 'SUCCESSFUL',
+                    enum: ['SUCCESSFUL', 'PENDING', 'FAILED']
+                },
+                operatorTransactionId: {
+                    type: 'string',
+                    example: '7297929551:OrderConfirmed'
+                },
+                customIdentifier: {
+                    type: 'string',
+                    example: 'TRX-123456789'
+                },
+                recipientPhone: {
+                    type: 'string',
+                    example: '447951631337'
+                },
+                operatorId: {
+                    type: 'number',
+                    example: 535
+                },
+                operatorName: {
+                    type: 'string',
+                    example: 'EE PIN England'
+                },
+                deliveredAmount: {
+                    type: 'number',
+                    example: 4.9985
+                },
+                deliveredAmountCurrencyCode: {
+                    type: 'string',
+                    example: 'GBP'
+                },
+                transactionDate: {
+                    type: 'string',
+                    example: '2024-03-20 08:13:39'
+                },
+                balanceInfo: {
+                    type: 'object',
+                    properties: {
+                        oldBalance: {
+                            type: 'number',
+                            example: 5109.53732
+                        },
+                        newBalance: {
+                            type: 'number',
+                            example: 2004.50532
+                        },
+                        currencyCode: {
+                            type: 'string',
+                            example: 'NGN'
+                        }
+                    }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Transaction not found',
+        schema: {
+            type: 'object',
+            properties: {
+                statusCode: {
+                    type: 'number',
+                    example: 404
+                },
+                message: {
+                    type: 'string',
+                    example: 'Transaction not found'
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or expired token'
+    }),
+    __param(0, (0, common_1.Param)('transactionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ReloadAirtimeController.prototype, "getTopupStatus", null);
 exports.ReloadAirtimeController = ReloadAirtimeController = ReloadAirtimeController_1 = __decorate([
     (0, swagger_1.ApiTags)('Reloadly Airtime'),
     (0, swagger_1.ApiBearerAuth)(),

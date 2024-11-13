@@ -96,7 +96,7 @@ export class AirtimeService {
     const taParams: any = {
       userId: userId,
       userName: userName,
-      transType: 'AIRTIME TOPUP',
+      transType: 'AIRTIME',
       retailer: retailer ?? 'PRYMO',
       network: network || 0,
       operator: this.getOperatorName(network || 0),
@@ -153,6 +153,7 @@ export class AirtimeService {
             taParams.transStatus = taRes.data.status;
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'Insufficient balance, topup failed';
+            // Update transaction
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
           } else if (taRes.data['status-code']=== '09') {
             this.logger.warn(`recharge requested but awaiting status`);
@@ -162,6 +163,7 @@ export class AirtimeService {
             taParams.transStatus = taRes.data.status;
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'recharge requested but awaiting status';
+            // Update transaction
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
           } else if (taRes.data['status-code'] === '06') {
             this.logger.log(`other error message`);
@@ -171,6 +173,7 @@ export class AirtimeService {
             taParams.transStatus = taRes.data.status;
             taParams.serviceStatus = taRes.data.status;
             taParams.commentary = 'Other error message';
+            // Update transaction
             this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
           } else if (taRes.data['status-code'] == '00') {
             this.logger.verbose(`airtime topup successful`);
@@ -202,7 +205,6 @@ export class AirtimeService {
           taParams.transStatus = taError.response.data.status;
           taParams.serviceStatus = taError.response.data.status;
           taParams.commentary = 'Airtime topup failed';
-
           // Update the transaction using the transactionId
           this.transService.updateByTrxn(taParams.trxn, taParams as UpdateTransactionDto);
 

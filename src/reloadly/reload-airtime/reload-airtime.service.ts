@@ -7,7 +7,6 @@ import {
   RELOADLY_CLIENT_ID_SANDBOX,
   RELOADLY_CLIENT_SECRET_SANDBOX,
   RELOADLY_GRANT_TYPE_SANDBOX,
-  RELOADLY_TOKEN_SANDBOX,
 } from '../../constants';
 import { HttpService } from '@nestjs/axios';
 import { catchError, map } from 'rxjs/operators';
@@ -18,7 +17,7 @@ import { GeneratorUtil } from 'src/utilities/generator.util';
 import { ValidationUtil } from 'src/utilities/validation.util';
 import { TransactionService } from 'src/transaction/transaction.service';
 import { UpdateTransactionDto } from 'src/transaction/dto/update-transaction.dto';
-import { time } from 'console';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ReloadAirtimeService {
@@ -30,7 +29,7 @@ export class ReloadAirtimeService {
   constructor(
     private httpService: HttpService,
     private readonly transService: TransactionService,
-  ) {}
+  ) { }
 
   public generateAccessToken(): Observable<{ accessToken: string }> {
     const gatPayload = {
@@ -177,43 +176,43 @@ export class ReloadAirtimeService {
             this.transService.updateByTrxn(mtPayloadSave.trxn, mtPayloadSave as UpdateTransactionDto);
           }
           //response sample
-        //   {
-        //     "transactionId": 4602843,
-        //     "status": "SUCCESSFUL",
-        //     "operatorTransactionId": "7297929551:OrderConfirmed",
-        //     "customIdentifier": "This is example identifier 130",
-        //     "recipientPhone": 447951631337,
-        //     "recipientEmail": null,
-        //     "senderPhone": 11231231231,
-        //     "countryCode": "GB",
-        //     "operatorId": 535,
-        //     "operatorName": "EE PIN England",
-        //     "discount": 63.37,
-        //     "discountCurrencyCode": "NGN",
-        //     "requestedAmount": 3168.4,
-        //     "requestedAmountCurrencyCode": "NGN",
-        //     "deliveredAmount": 4.9985,
-        //     "deliveredAmountCurrencyCode": "GBP",
-        //     "transactionDate": "2021-12-06 08:13:39",
-        //     "fee": 2.99891,
-        //     "pinDetail": {
-        //         "serial": 558111,
-        //         "info1": "DIAL *611",
-        //         "info2": "DIAL *611",
-        //         "info3": "DIAL *611",
-        //         "value": null,
-        //         "code": 773709733097662,
-        //         "ivr": "1-888-888-8888",
-        //         "validity": "30 days"
-        //     },
-        //     "balanceInfo": {
-        //         "oldBalance": 5109.53732,
-        //         "newBalance": 2004.50532,
-        //         "currencyCode": "NGN",
-        //         "currencyName": "Nigerian Naira",
-        //         "updatedAt": "2021-12-06 13:13:39"
-        //     }
-        // }
+          //   {
+          //     "transactionId": 4602843,
+          //     "status": "SUCCESSFUL",
+          //     "operatorTransactionId": "7297929551:OrderConfirmed",
+          //     "customIdentifier": "This is example identifier 130",
+          //     "recipientPhone": 447951631337,
+          //     "recipientEmail": null,
+          //     "senderPhone": 11231231231,
+          //     "countryCode": "GB",
+          //     "operatorId": 535,
+          //     "operatorName": "EE PIN England",
+          //     "discount": 63.37,
+          //     "discountCurrencyCode": "NGN",
+          //     "requestedAmount": 3168.4,
+          //     "requestedAmountCurrencyCode": "NGN",
+          //     "deliveredAmount": 4.9985,
+          //     "deliveredAmountCurrencyCode": "GBP",
+          //     "transactionDate": "2021-12-06 08:13:39",
+          //     "fee": 2.99891,
+          //     "pinDetail": {
+          //         "serial": 558111,
+          //         "info1": "DIAL *611",
+          //         "info2": "DIAL *611",
+          //         "info3": "DIAL *611",
+          //         "value": null,
+          //         "code": 773709733097662,
+          //         "ivr": "1-888-888-8888",
+          //         "validity": "30 days"
+          //     },
+          //     "balanceInfo": {
+          //         "oldBalance": 5109.53732,
+          //         "newBalance": 2004.50532,
+          //         "currencyCode": "NGN",
+          //         "currencyName": "Nigerian Naira",
+          //         "updatedAt": "2021-12-06 13:13:39"
+          //     }
+          // }
           return mtRes.data;
         }),
         catchError((mtError) => {
@@ -227,7 +226,7 @@ export class ReloadAirtimeService {
           mtPayloadSave.serviceCode = mtErrorMessage.errorCode || 'Unknown code';
           mtPayloadSave.timestamp = mtErrorMessage.timeStamp || new Date().toISOString();
           mtPayloadSave.commentary = `Airtime reload failed=> ${mtErrorMessage.message || 'Unknown error'}`;
-        
+
           this.transService.updateByTrxn(mtPayloadSave.trxn, mtPayloadSave as UpdateTransactionDto);
 
           throw new NotFoundException(mtErrorMessage);
@@ -277,7 +276,7 @@ export class ReloadAirtimeService {
     const matPayloadSave: any = {
       userId: userId,
       userName: userName,
-      transType: 'ASYNC RELOADLY AIRTIME TOPUP',
+      transType: 'RELOADLY',
       retailer: 'RELOADLY',
       network: matPayload.operatorId,
       operator: matPayload.operatorName,
@@ -298,12 +297,10 @@ export class ReloadAirtimeService {
       serviceTransId: '',
       serviceMessage: '',
     };
-
+    // Save matPayLoadSave
     this.transService.create(matPayloadSave);
-
     // Access URL
     const matURL = `https://topups-sandbox.reloadly.com/topups-async`;
-
     // https config
     const config = {
       url: matURL,
@@ -314,7 +311,6 @@ export class ReloadAirtimeService {
         Authorization: `Bearer ${rAccessToken}`,
       },
     };
-
     this.logger.log(`Make Async TopUp configs == ${JSON.stringify(config)}`);
 
     return this.httpService
@@ -324,7 +320,7 @@ export class ReloadAirtimeService {
           this.logger.debug(
             `MAKE ASYNC TOP-UP RESPONSE ++++ ${JSON.stringify(matRes.data)}`,
           );
-          if (matRes.data.status === 'SUCCESSFUL') {
+          if (matRes.data) {
             this.logger.log(`topup successful`);
             matPayloadSave.serviceMessage = matRes.data.message;
             matPayloadSave.serviceTransId = matRes.data.transactionId;
@@ -357,7 +353,45 @@ export class ReloadAirtimeService {
         }),
       );
   }
-
+  // get topup status
+  async getTopupStatus(trxnId: string): Promise<any> {
+    const accessToken = await this.reloadlyAccessToken();
+    // https config
+    const config = {
+      url: `${this.reloadLyBaseURL}/topups/${trxnId}/status`,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/com.reloadly.topups-v1+json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
+    this.logger.debug(`TOPUP STATUS CONFIG: ${JSON.stringify(config)}`)
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(config.url, { headers: config.headers })
+        .pipe(
+          map((gtsRes) => {
+            this.logger.debug(
+              `RELOADLY AIRTIME TOPUP  STATUS --- ${JSON.stringify(gtsRes.data)}`,
+            )
+            
+          }),
+          catchError(error => {
+            this.logger.error(`Error fetching topup status: ${JSON.stringify(error.response?.data)}`);
+            throw new NotFoundException(error.response?.data || 'Failed to fetch topup status');
+          })
+        )
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+  // number lookup
+  async numberLookup(accessToken: string, msisdn: string): Promise<any> {
+    return '';
+  }
+  // access token
   private async reloadlyAccessToken(): Promise<string> {
     const tokenPayload = {
       client_id: RELOADLY_CLIENT_ID_SANDBOX,

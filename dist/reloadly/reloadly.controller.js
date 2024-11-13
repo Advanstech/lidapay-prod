@@ -66,16 +66,14 @@ let ReloadlyController = ReloadlyController_1 = class ReloadlyController {
             this.logger.error(`Error finding country by code: ${error}`);
         }
     }
-    async getNetworkGenerator(gngDto) {
-        if (!gngDto) {
-            throw new Error('Invalid input data');
-        }
+    async getNetworkOperators(gngDto) {
         try {
-            const gng = await this.reloadlyService.networkOperators(gngDto);
-            return gng;
+            const operators = await this.reloadlyService.networkOperators(gngDto);
+            return operators;
         }
         catch (error) {
-            this.logger.error(`Error getting network generator: ${error}`);
+            this.logger.error(`Error getting network operators: ${error}`);
+            throw error;
         }
     }
     async findOperatorById(adoDto) {
@@ -95,14 +93,13 @@ let ReloadlyController = ReloadlyController_1 = class ReloadlyController {
             throw new Error('Invalid input data');
         }
         try {
-            const accessToken = await this.getAccessToken();
-            this.logger.debug(`access token <:::> ${JSON.stringify(accessToken)}`);
-            const ado = await this.reloadlyService.autoDetectOperator(adoDto);
-            this.logger.debug(`network autodetect input ==>${JSON.stringify(adoDto)}`);
+            const ado = this.reloadlyService.autoDetectOperator(adoDto);
+            this.logger.debug(`Network autodetect input ==>${JSON.stringify(adoDto)}`);
             return ado;
         }
         catch (error) {
             this.logger.error(`Error auto detecting operator: ${error}`);
+            throw new Error('Internal server error');
         }
     }
     async getNetworkOperatorByCode(gnobcDto) {
@@ -115,6 +112,7 @@ let ReloadlyController = ReloadlyController_1 = class ReloadlyController {
         }
         catch (error) {
             this.logger.error(`Error getting network operator by code: ${error}`);
+            throw new Error('Internal server error');
         }
     }
 };
@@ -180,25 +178,67 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ReloadlyController.prototype, "findCountryByCode", null);
 __decorate([
-    (0, common_1.Post)('operators'),
+    (0, common_1.Post)('network-operators'),
     (0, swagger_1.ApiOperation)({ summary: 'Get network operators' }),
     (0, swagger_1.ApiBody)({
         type: network_operators_dto_1.NetworkOperatorsDto,
         schema: {
             type: 'object',
             properties: {
-                countryCode: {
-                    type: 'string',
-                    description: 'The ISO country code',
-                    example: 'NG'
+                size: {
+                    type: 'number',
+                    description: 'Number of items per page',
+                    example: 10,
+                    default: 10
+                },
+                page: {
+                    type: 'number',
+                    description: 'Page number',
+                    example: 2,
+                    default: 2
+                },
+                includeCombo: {
+                    type: 'boolean',
+                    description: 'Include combo offers',
+                    example: false,
+                    default: false
+                },
+                comboOnly: {
+                    type: 'boolean',
+                    description: 'Show only combo offers',
+                    example: false,
+                    default: false
+                },
+                bundlesOnly: {
+                    type: 'boolean',
+                    description: 'Show only bundles',
+                    example: false,
+                    default: false
+                },
+                dataOnly: {
+                    type: 'boolean',
+                    description: 'Show only data offers',
+                    example: false,
+                    default: false
+                },
+                pinOnly: {
+                    type: 'boolean',
+                    description: 'Show only PIN offers',
+                    example: false,
+                    default: false
                 }
-            },
-            required: ['countryCode']
+            }
         },
         examples: {
             validRequest: {
                 value: {
-                    countryCode: 'NG'
+                    size: 10,
+                    page: 1,
+                    includeCombo: false,
+                    comboOnly: false,
+                    bundlesOnly: false,
+                    dataOnly: false,
+                    pinOnly: false
                 },
                 summary: 'Valid network operators request'
             }
@@ -211,9 +251,9 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [network_operators_dto_1.NetworkOperatorsDto]),
     __metadata("design:returntype", Promise)
-], ReloadlyController.prototype, "getNetworkGenerator", null);
+], ReloadlyController.prototype, "getNetworkOperators", null);
 __decorate([
-    (0, common_1.Post)('/operator/id'),
+    (0, common_1.Post)('/operator-id'),
     (0, swagger_1.ApiOperation)({ summary: 'Find operator by ID' }),
     (0, swagger_1.ApiBody)({
         type: network_operators_dto_1.NetworkOperatorsDto,

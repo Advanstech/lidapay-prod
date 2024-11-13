@@ -17,6 +17,7 @@ const axios_1 = require("@nestjs/axios");
 const operators_1 = require("rxjs/operators");
 const generator_util_1 = require("../../utilities/generator.util");
 const transaction_service_1 = require("../../transaction/transaction.service");
+const rxjs_1 = require("rxjs");
 let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
     constructor(httpService, transService) {
         this.httpService = httpService;
@@ -163,7 +164,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         const matPayloadSave = {
             userId: userId,
             userName: userName,
-            transType: 'ASYNC RELOADLY AIRTIME TOPUP',
+            transType: 'RELOADLY',
             retailer: 'RELOADLY',
             network: matPayload.operatorId,
             operator: matPayload.operatorName,
@@ -200,7 +201,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             .post(config.url, config.body, { headers: config.headers })
             .pipe((0, operators_1.map)((matRes) => {
             this.logger.debug(`MAKE ASYNC TOP-UP RESPONSE ++++ ${JSON.stringify(matRes.data)}`);
-            if (matRes.data.status === 'SUCCESSFUL') {
+            if (matRes.data) {
                 this.logger.log(`topup successful`);
                 matPayloadSave.serviceMessage = matRes.data.message;
                 matPayloadSave.serviceTransId = matRes.data.transactionId;
@@ -224,6 +225,34 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             this.transService.updateByTrxn(matPayloadSave.trxn, matPayloadSave);
             throw new common_1.NotFoundException(matErrorMessage);
         }));
+    }
+    async getTopupStatus(trxnId) {
+        const accessToken = await this.reloadlyAccessToken();
+        const config = {
+            url: `${this.reloadLyBaseURL}/topups/${trxnId}/status`,
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/com.reloadly.topups-v1+json',
+                Authorization: `Bearer ${accessToken}`,
+            },
+        };
+        this.logger.debug(`TOPUP STATUS CONFIG: ${JSON.stringify(config)}`);
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(config.url, { headers: config.headers })
+                .pipe((0, operators_1.map)((gtsRes) => {
+                this.logger.debug(`RELOADLY AIRTIME TOPUP  STATUS --- ${JSON.stringify(gtsRes.data)}`);
+            }), (0, operators_1.catchError)(error => {
+                this.logger.error(`Error fetching topup status: ${JSON.stringify(error.response?.data)}`);
+                throw new common_1.NotFoundException(error.response?.data || 'Failed to fetch topup status');
+            })));
+            return response;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async numberLookup(accessToken, msisdn) {
+        return '';
     }
     async reloadlyAccessToken() {
         const tokenPayload = {

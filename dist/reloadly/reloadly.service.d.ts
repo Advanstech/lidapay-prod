@@ -12,11 +12,11 @@ export declare class ReloadlyService {
     accessToken(): Promise<Observable<any>>;
     getAccountBalance(): Promise<Observable<any>>;
     countryList(): Promise<Observable<any>>;
-    findCountryByCode(reloadDto: ReloadlyDto): Observable<AxiosResponse<ReloadlyDto>>;
-    networkOperators(netDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;
-    findOperatorById(fobDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;
-    autoDetectOperator(adoDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;
-    getOperatorByCode(gobcDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>>;
+    findCountryByCode(reloadDto: ReloadlyDto): Promise<Observable<AxiosResponse<ReloadlyDto>>>;
+    networkOperators(netDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>>;
+    findOperatorById(fobDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>>;
+    autoDetectOperator(adoDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>>;
+    getOperatorByCode(gobcDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>>;
     fxRates(): Promise<any>;
     private reloadlyAccessToken;
 }

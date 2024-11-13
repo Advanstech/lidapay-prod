@@ -14,7 +14,6 @@ export class ReloadlyController {
   constructor(
     private readonly reloadlyService: ReloadlyService
   ) { }
-
   // Check account balance
   @Get('/account-balance')
   @ApiOperation({ summary: 'Get account balance' })
@@ -29,7 +28,6 @@ export class ReloadlyController {
       // Return an error response or throw an exception
     }
   }
-
   // Get access token
   @Get('/auth/access-token')
   @ApiOperation({ summary: 'Get access token' })
@@ -45,7 +43,6 @@ export class ReloadlyController {
       // Return an error response or throw an exception
     }
   }
-
   // List available countries
   @Get('/countries')
   @ApiOperation({ summary: 'List all countries' })
@@ -61,7 +58,6 @@ export class ReloadlyController {
       // Return an error response or throw an exception
     }
   }
-
   // Get country by countryCode
   @Post('country/code')
   @ApiOperation({ summary: 'Find country by code' })
@@ -104,27 +100,68 @@ export class ReloadlyController {
       // Return an error response or throw an exception
     }
   }
-
-  // Get network operators
-  @Post('operators')
+  // Get all network operators with pagination
+  @Post('network-operators')
   @ApiOperation({ summary: 'Get network operators' })
   @ApiBody({
     type: NetworkOperatorsDto,
     schema: {
       type: 'object',
       properties: {
-        countryCode: {
-          type: 'string',
-          description: 'The ISO country code',
-          example: 'NG'
+        size: {
+          type: 'number',
+          description: 'Number of items per page',
+          example: 10,
+          default: 10
+        },
+        page: {
+          type: 'number',
+          description: 'Page number',
+          example: 2,
+          default: 2
+        },
+        includeCombo: {
+          type: 'boolean',
+          description: 'Include combo offers',
+          example: false,
+          default: false
+        },
+        comboOnly: {
+          type: 'boolean',
+          description: 'Show only combo offers',
+          example: false,
+          default: false
+        },
+        bundlesOnly: {
+          type: 'boolean',
+          description: 'Show only bundles',
+          example: false,
+          default: false
+        },
+        dataOnly: {
+          type: 'boolean',
+          description: 'Show only data offers',
+          example: false,
+          default: false
+        },
+        pinOnly: {
+          type: 'boolean',
+          description: 'Show only PIN offers',
+          example: false,
+          default: false
         }
-      },
-      required: ['countryCode']
+      }
     },
     examples: {
       validRequest: {
         value: {
-          countryCode: 'NG'
+          size: 10,
+          page: 1,
+          includeCombo: false,
+          comboOnly: false,
+          bundlesOnly: false,
+          dataOnly: false,
+          pinOnly: false
         },
         summary: 'Valid network operators request'
       }
@@ -133,23 +170,19 @@ export class ReloadlyController {
   @ApiResponse({ status: 200, description: 'Returns the list of network operators' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async getNetworkGenerator(
+  async getNetworkOperators(
     @Body() gngDto: NetworkOperatorsDto
   ): Promise<any> {
-    if (!gngDto) {
-      throw new Error('Invalid input data');
-    }
     try {
-      const gng = await this.reloadlyService.networkOperators(gngDto);
-      return gng;
+      const operators = await this.reloadlyService.networkOperators(gngDto);
+      return operators;
     } catch (error) {
-      this.logger.error(`Error getting network generator: ${error}`);
-      // Return an error response or throw an exception
+      this.logger.error(`Error getting network operators: ${error}`);
+      throw error; // Let the exception filter handle the error
     }
   }
-
-  //  Get network operators by id
-  @Post('/operator/id')
+  //  Get network operators by id eg. 340
+  @Post('/operator-id')
   @ApiOperation({ summary: 'Find operator by ID' })
   @ApiBody({
     type: NetworkOperatorsDto,
@@ -190,7 +223,6 @@ export class ReloadlyController {
       // Return an error response or throw an exception
     }
   }
-
   // Autodetect  network operator
   @Post('/operator/autodetect')
   @ApiOperation({ summary: 'Auto-detect operator' })
@@ -232,17 +264,15 @@ export class ReloadlyController {
       throw new Error('Invalid input data');
     }
     try {
-      const accessToken = await this.getAccessToken();
-      this.logger.debug(`access token <:::> ${JSON.stringify(accessToken)}`);
-      const ado = await this.reloadlyService.autoDetectOperator(adoDto);
-      this.logger.debug(`network autodetect input ==>${JSON.stringify(adoDto)}`);
+      const ado = this.reloadlyService.autoDetectOperator(adoDto);
+      this.logger.debug(`Network autodetect input ==>${JSON.stringify(adoDto)}`);
       return ado;
     } catch (error) {
       this.logger.error(`Error auto detecting operator: ${error}`);
       // Return an error response or throw an exception
+      throw new Error('Internal server error');
     }
   }
-
   // Get network operator by country-code
   @Post('/operator/country-code')
   @ApiOperation({ summary: 'Get network operator by country code' })
@@ -283,6 +313,7 @@ export class ReloadlyController {
     } catch (error) {
       this.logger.error(`Error getting network operator by code: ${error}`);
       // Return an error response or throw an exception
+      throw new Error('Internal server error');
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Post, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, UseGuards, Request, BadRequestException, InternalServerErrorException, NotFoundException, Param, UnauthorizedException } from '@nestjs/common';
 import { ReloadAirtimeService } from './reload-airtime.service';
 import { ReloadAirtimeDto } from './dto/reload.airtime.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -111,7 +111,7 @@ export class ReloadAirtimeController {
     const ar = this.reloadAirtimeService.makeTopUp(airDto);
     return ar;
   }
-
+  // reloadly async airtime recharge
   @UseGuards(JwtAuthGuard, MerchantAuthGuard)
   @Post('/recharge-async')
   @ApiOperation({ summary: 'Recharge airtime asynchronously' })
@@ -191,4 +191,117 @@ export class ReloadAirtimeController {
     const aar = this.reloadAirtimeService.makeAsynchronousTopUp(aarDto);
     return aar;
   }
+  // Topup status
+  @UseGuards(JwtAuthGuard, MerchantAuthGuard)
+  @Get('topup-status/:transactionId')
+  @ApiOperation({
+    summary: 'Get Topup Transaction Status',
+    description: 'Retrieve the status of a topup transaction using its ID'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction status retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        transactionId: {
+          type: 'number',
+          example: 4602843
+        },
+        status: {
+          type: 'string',
+          example: 'SUCCESSFUL',
+          enum: ['SUCCESSFUL', 'PENDING', 'FAILED']
+        },
+        operatorTransactionId: {
+          type: 'string',
+          example: '7297929551:OrderConfirmed'
+        },
+        customIdentifier: {
+          type: 'string',
+          example: 'TRX-123456789'
+        },
+        recipientPhone: {
+          type: 'string',
+          example: '447951631337'
+        },
+        operatorId: {
+          type: 'number',
+          example: 535
+        },
+        operatorName: {
+          type: 'string',
+          example: 'EE PIN England'
+        },
+        deliveredAmount: {
+          type: 'number',
+          example: 4.9985
+        },
+        deliveredAmountCurrencyCode: {
+          type: 'string',
+          example: 'GBP'
+        },
+        transactionDate: {
+          type: 'string',
+          example: '2024-03-20 08:13:39'
+        },
+        balanceInfo: {
+          type: 'object',
+          properties: {
+            oldBalance: {
+              type: 'number',
+              example: 5109.53732
+            },
+            newBalance: {
+              type: 'number',
+              example: 2004.50532
+            },
+            currencyCode: {
+              type: 'string',
+              example: 'NGN'
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Transaction not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: {
+          type: 'number',
+          example: 404
+        },
+        message: {
+          type: 'string',
+          example: 'Transaction not found'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired token'
+  })
+  async getTopupStatus(
+    @Param('transactionId') transactionId: string,
+  ) {
+    try {
+      this.logger.log(`TRANSACTION ID: ${transactionId}`);
+      const status = await this.reloadAirtimeService.getTopupStatus(transactionId);
+      return status;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to fetch topup status');
+    }
+  }
+
 }

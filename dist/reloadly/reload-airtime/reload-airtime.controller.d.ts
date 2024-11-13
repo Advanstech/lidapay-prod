@@ -8,4 +8,5 @@ export declare class ReloadAirtimeController {
     testReloadLyAirtime(): string;
     airtimeRecharge(airDto: ReloadAirtimeDto, req: any): Promise<any>;
     asyncAirtimeRecharge(aarDto: ReloadAirtimeDto, req: any): Promise<any>;
+    getTopupStatus(transactionId: string): Promise<any>;
 }

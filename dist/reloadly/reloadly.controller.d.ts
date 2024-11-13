@@ -9,7 +9,7 @@ export declare class ReloadlyController {
     getAccessToken(): Promise<any>;
     listCountryList(): Promise<any>;
     findCountryByCode(fcbDto: ReloadlyDto): Promise<any>;
-    getNetworkGenerator(gngDto: NetworkOperatorsDto): Promise<any>;
+    getNetworkOperators(gngDto: NetworkOperatorsDto): Promise<any>;
     findOperatorById(adoDto: NetworkOperatorsDto): Promise<any>;
     autoDetectOperator(adoDto: NetworkOperatorsDto): Promise<any>;
     getNetworkOperatorByCode(gnobcDto: NetworkOperatorsDto): Promise<any>;

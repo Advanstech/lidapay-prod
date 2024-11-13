@@ -6,7 +6,6 @@ import {
   RELOADLY_CLIENT_ID_SANDBOX,
   RELOADLY_CLIENT_SECRET_SANDBOX,
   RELOADLY_GRANT_TYPE_SANDBOX,
-  RELOADLY_TOKEN_SANDBOX
 } from "../constants";
 import { HttpService } from "@nestjs/axios";
 import { catchError, map } from "rxjs/operators";
@@ -25,7 +24,7 @@ export class ReloadlyService {
     private httpService: HttpService
   ) {
   }
-
+  // Access Token
   async accessToken(): Promise<Observable<any>> {
     this.logger.verbose(`ACCESS TOKEN LOADING ...`);
     // token payload
@@ -35,10 +34,8 @@ export class ReloadlyService {
       grant_type: RELOADLY_GRANT_TYPE_SANDBOX,
       audience: RELOADLY_AUDIENCE_SANDBOX
     };
-
     // Access URL
     const gatURL = `${this.authURL}/oauth/token`;
-
     // http config
     const config = {
       url: gatURL,
@@ -86,9 +83,8 @@ export class ReloadlyService {
       }),
     );
   }
-
+  // Get all countries
   async countryList(): Promise<Observable<any>> {
-
     let accessToken = await this.reloadlyAccessToken();
     this.logger.debug(`country access token ${JSON.stringify(accessToken)}`);
 
@@ -119,11 +115,11 @@ export class ReloadlyService {
         })
       );
   }
-
-  findCountryByCode(reloadDto: ReloadlyDto): Observable<AxiosResponse<ReloadlyDto>> {
+  // Find a country by code
+  async findCountryByCode(reloadDto: ReloadlyDto): Promise<Observable<AxiosResponse<ReloadlyDto>>> {
     const { countryCode } = reloadDto;
 
-    let accessToken = this.accessToken();
+    let accessToken = await this.accessToken();
     // let accessToken = 'eyJraWQiOiI1N2JjZjNhNy01YmYwLTQ1M2QtODQ0Mi03ODhlMTA4OWI3MDIiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMzAyOSIsImlzcyI6Imh0dHBzOi8vcmVsb2FkbHktc2FuZGJveC5hdXRoMC5jb20vIiwiaHR0cHM6Ly9yZWxvYWRseS5jb20vc2FuZGJveCI6dHJ1ZSwiaHR0cHM6Ly9yZWxvYWRseS5jb20vcHJlcGFpZFVzZXJJZCI6IjIzMDI5IiwiZ3R5IjoiY2xpZW50LWNyZWRlbnRpYWxzIiwiYXVkIjoiaHR0cHM6Ly90b3B1cHMtaHMyNTYtc2FuZGJveC5yZWxvYWRseS5jb20iLCJuYmYiOjE3MTY1NDI1MTUsImF6cCI6IjIzMDI5Iiwic2NvcGUiOiJzZW5kLXRvcHVwcyByZWFkLW9wZXJhdG9ycyByZWFkLXByb21vdGlvbnMgcmVhZC10b3B1cHMtaGlzdG9yeSByZWFkLXByZXBhaWQtYmFsYW5jZSByZWFkLXByZXBhaWQtY29tbWlzc2lvbnMiLCJleHAiOjE3MTY2Mjg5MTUsImh0dHBzOi8vcmVsb2FkbHkuY29tL2p0aSI6ImRkZjExNzAyLTQ1MTktNDlhYy1iOTc5LWU4YzhkYTRmZWUxZCIsImlhdCI6MTcxNjU0MjUxNSwianRpIjoiMjQ1MTVhNDEtMmZkYi00MTRkLTliZDQtODc2ZTEyNTQyNTIzIn0._Pc0SuRPuXETMowD8k_mcNdc-KhPRWpbD113VrvgEZg';
     this.logger.log(`country access token ${JSON.stringify(accessToken)}`);
 
@@ -154,12 +150,11 @@ export class ReloadlyService {
         })
       );
   }
+  // List network operators (telcos)
+  async networkOperators(netDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>> {
 
-  networkOperators(netDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>> {
-
-    const accessToken: any = RELOADLY_TOKEN_SANDBOX;
-    // const accessToken = "eyJraWQiOiI1N2JjZjNhNy01YmYwLTQ1M2QtODQ0Mi03ODhlMTA4OWI3MDIiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMzAyOSIsImlzcyI6Imh0dHBzOi8vcmVsb2FkbHktc2FuZGJveC5hdXRoMC5jb20vIiwiaHR0cHM6Ly9yZWxvYWRseS5jb20vc2FuZGJveCI6dHJ1ZSwiaHR0cHM6Ly9yZWxvYWRseS5jb20vcHJlcGFpZFVzZXJJZCI6IjIzMDI5IiwiZ3R5IjoiY2xpZW50LWNyZWRlbnRpYWxzIiwiYXVkIjoiaHR0cHM6Ly90b3B1cHMtaHMyNTYtc2FuZGJveC5yZWxvYWRseS5jb20iLCJuYmYiOjE3MTY3OTk2MTMsImF6cCI6IjIzMDI5Iiwic2NvcGUiOiJzZW5kLXRvcHVwcyByZWFkLW9wZXJhdG9ycyByZWFkLXByb21vdGlvbnMgcmVhZC10b3B1cHMtaGlzdG9yeSByZWFkLXByZXBhaWQtYmFsYW5jZSByZWFkLXByZXBhaWQtY29tbWlzc2lvbnMiLCJleHAiOjE3MTY4ODYwMTMsImh0dHBzOi8vcmVsb2FkbHkuY29tL2p0aSI6ImRkZjExNzAyLTQ1MTktNDlhYy1iOTc5LWU4YzhkYTRmZWUxZCIsImlhdCI6MTcxNjc5OTYxMywianRpIjoiNGE0NTU3MTMtZTg1ZS00YmY2LTk5MjQtOWEwZTY0NzhiZTgwIn0.ymHCUMNePx_w2xmOEBodg9eO1PnCXClLqLzuZJlmnwM";
-    console.debug(`network operators ==> ${JSON.stringify(accessToken)}`);
+    const accessToken: any = await this.reloadlyAccessToken();
+    console.debug(`network operators token ==> ${JSON.stringify(accessToken)}`);
 
     const {
       size,
@@ -184,7 +179,8 @@ export class ReloadlyService {
       pinOnly: false
     };
 
-    const noURL = this.reloadLyBaseURL + `/operators?includeBundles=${noPayload.includeBundles}&includeData=${noPayload.includeData}&suggestedAmountsMap=${noPayload.suggestedAmountsMap}&size=${noPayload.size}&page=${noPayload.page}&includeCombo=${noPayload.includeCombo}&comboOnly=${noPayload.comboOnly}&bundlesOnly=${noPayload.bundlesOnly}&dataOnly=${noPayload.dataOnly}&pinOnly=${noPayload.pinOnly}`;
+    const noURL = this.reloadLyBaseURL + 
+    `/operators?includeBundles=${noPayload.includeBundles}&includeData=${noPayload.includeData}&suggestedAmountsMap=${noPayload.suggestedAmountsMap}&size=${noPayload.size}&page=${noPayload.page}&includeCombo=${noPayload.includeCombo}&comboOnly=${noPayload.comboOnly}&bundlesOnly=${noPayload.bundlesOnly}&dataOnly=${noPayload.dataOnly}&pinOnly=${noPayload.pinOnly}`;
 
     const config = {
       url: noURL,
@@ -214,13 +210,11 @@ export class ReloadlyService {
       );
 
   }
-
-  findOperatorById(fobDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>> {
+  // find operator by Id
+  async findOperatorById(fobDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>> {
     const { operatorId } = fobDto;
 
-    let accessToken = RELOADLY_TOKEN_SANDBOX;
-    // this.logger.log(`country access token ${JSON.stringify(accessToken)}`);
-
+    let accessToken = await this.reloadlyAccessToken();
     const fobURL = `https://topups-sandbox.reloadly.com/operators/${operatorId}`;
 
 
@@ -249,20 +243,18 @@ export class ReloadlyService {
         })
       );
   }
+  // Auto Detect Operator
+  async autoDetectOperator(adoDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>> {
+    const { phone, countryIsoCode } = adoDto;
+    const token = await this.reloadlyAccessToken();
 
-  autoDetectOperator(adoDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>> {
-
-    const { phone, countryIsoCode, accessToken } = adoDto;
     const adoPayload = {
       phone,
       countryisocode: countryIsoCode,
-      accessToken: RELOADLY_TOKEN_SANDBOX,
+      accessToken: token,
       suggestedAmountsMap: true,
       suggestedAmount: false
     };
-
-    // let accessToken = 'eyJraWQiOiI1N2JjZjNhNy01YmYwLTQ1M2QtODQ0Mi03ODhlMTA4OWI3MDIiLCJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMzAyOSIsImlzcyI6Imh0dHBzOi8vcmVsb2FkbHktc2FuZGJveC5hdXRoMC5jb20vIiwiaHR0cHM6Ly9yZWxvYWRseS5jb20vc2FuZGJveCI6dHJ1ZSwiaHR0cHM6Ly9yZWxvYWRseS5jb20vcHJlcGFpZFVzZXJJZCI6IjIzMDI5IiwiZ3R5IjoiY2xpZW50LWNyZWRlbnRpYWxzIiwiYXVkIjoiaHR0cHM6Ly90b3B1cHMtaHMyNTYtc2FuZGJveC5yZWxvYWRseS5jb20iLCJuYmYiOjE3MTY1NDI1MTUsImF6cCI6IjIzMDI5Iiwic2NvcGUiOiJzZW5kLXRvcHVwcyByZWFkLW9wZXJhdG9ycyByZWFkLXByb21vdGlvbnMgcmVhZC10b3B1cHMtaGlzdG9yeSByZWFkLXByZXBhaWQtYmFsYW5jZSByZWFkLXByZXBhaWQtY29tbWlzc2lvbnMiLCJleHAiOjE3MTY2Mjg5MTUsImh0dHBzOi8vcmVsb2FkbHkuY29tL2p0aSI6ImRkZjExNzAyLTQ1MTktNDlhYy1iOTc5LWU4YzhkYTRmZWUxZCIsImlhdCI6MTcxNjU0MjUxNSwianRpIjoiMjQ1MTVhNDEtMmZkYi00MTRkLTliZDQtODc2ZTEyNTQyNTIzIn0._Pc0SuRPuXETMowD8k_mcNdc-KhPRWpbD113VrvgEZg';
-    // this.logger.log(`country access token ${JSON.stringify(accessToken)}`);
 
     const adoURL = this.reloadLyBaseURL + `/operators/auto-detect/phone/${adoPayload.phone}/countries/${adoPayload.countryisocode}?suggestedAmountsMap=${adoPayload.suggestedAmountsMap}&suggestedAmounts=${adoPayload.suggestedAmount}`;
 
@@ -291,14 +283,15 @@ export class ReloadlyService {
         })
       );
   }
+  // Get Operator by code
+  async getOperatorByCode(gobcDto: NetworkOperatorsDto): Promise<Observable<AxiosResponse<NetworkOperatorsDto>>> {
 
-  getOperatorByCode(gobcDto: NetworkOperatorsDto): Observable<AxiosResponse<NetworkOperatorsDto>> {
-
-    const { countryIsoCode, accessToken } = gobcDto;
+    const { countryIsoCode } = gobcDto;
+    const token = await this.reloadlyAccessToken();
 
     const gobcPayload = {
       countrycode: countryIsoCode,
-      accessToken: RELOADLY_TOKEN_SANDBOX || accessToken,
+      accessToken: token || '',
       suggestedAmountsMap: true,
       suggestedAmount: false,
       includePin: false,
@@ -310,7 +303,6 @@ export class ReloadlyService {
       bundlesOnly: false,
       pinOnly: false
     };
-
 
     const gobcURL = this.reloadLyBaseURL +
       `/operators/countries/${gobcPayload.countrycode}?suggestedAmountsMap=${gobcPayload.suggestedAmount}&suggestedAmounts=${gobcPayload.suggestedAmount}&includePin=${gobcPayload.includePin}&includeData=${gobcPayload.includeData}&includeBundles=${gobcPayload.includeBundles}&includeCombo=${gobcPayload.includeCombo}&comboOnly=${gobcPayload.comboOnly}&bundlesOnly=${gobcPayload.bundlesOnly}&dataOnly=${gobcPayload.dataOnly}&pinOnly=${gobcPayload.pinOnly}`;
@@ -340,11 +332,11 @@ export class ReloadlyService {
         })
       );
   }
-
+  // fxRates
   async fxRates(): Promise<any> {
   }
-
-  private async reloadlyAccessToken(): Promise<any> {
+  // Get Access Token
+  private async reloadlyAccessToken(): Promise<Observable<any>> {
     const tokenPayload = {
       client_id: RELOADLY_CLIENT_ID_SANDBOX,
       client_secret: RELOADLY_CLIENT_SECRET_SANDBOX,

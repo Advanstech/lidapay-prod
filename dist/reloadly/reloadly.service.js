@@ -83,9 +83,9 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(clErrorMessage);
         }));
     }
-    findCountryByCode(reloadDto) {
+    async findCountryByCode(reloadDto) {
         const { countryCode } = reloadDto;
-        let accessToken = this.accessToken();
+        let accessToken = await this.accessToken();
         this.logger.log(`country access token ${JSON.stringify(accessToken)}`);
         const fcbURL = `https://topups-sandbox.reloadly.com/countries/${countryCode}`;
         const config = {
@@ -108,9 +108,9 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(clErrorMessage);
         }));
     }
-    networkOperators(netDto) {
-        const accessToken = constants_1.RELOADLY_TOKEN_SANDBOX;
-        console.debug(`network operators ==> ${JSON.stringify(accessToken)}`);
+    async networkOperators(netDto) {
+        const accessToken = await this.reloadlyAccessToken();
+        console.debug(`network operators token ==> ${JSON.stringify(accessToken)}`);
         const { size, page, includeCombo, comboOnly, bundlesOnly, dataOnly, pinOnly } = netDto;
         const noPayload = {
             includeBundles: true,
@@ -124,7 +124,8 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             dataOnly: false,
             pinOnly: false
         };
-        const noURL = this.reloadLyBaseURL + `/operators?includeBundles=${noPayload.includeBundles}&includeData=${noPayload.includeData}&suggestedAmountsMap=${noPayload.suggestedAmountsMap}&size=${noPayload.size}&page=${noPayload.page}&includeCombo=${noPayload.includeCombo}&comboOnly=${noPayload.comboOnly}&bundlesOnly=${noPayload.bundlesOnly}&dataOnly=${noPayload.dataOnly}&pinOnly=${noPayload.pinOnly}`;
+        const noURL = this.reloadLyBaseURL +
+            `/operators?includeBundles=${noPayload.includeBundles}&includeData=${noPayload.includeData}&suggestedAmountsMap=${noPayload.suggestedAmountsMap}&size=${noPayload.size}&page=${noPayload.page}&includeCombo=${noPayload.includeCombo}&comboOnly=${noPayload.comboOnly}&bundlesOnly=${noPayload.bundlesOnly}&dataOnly=${noPayload.dataOnly}&pinOnly=${noPayload.pinOnly}`;
         const config = {
             url: noURL,
             headers: {
@@ -144,9 +145,9 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(noErrorMessage);
         }));
     }
-    findOperatorById(fobDto) {
+    async findOperatorById(fobDto) {
         const { operatorId } = fobDto;
-        let accessToken = constants_1.RELOADLY_TOKEN_SANDBOX;
+        let accessToken = await this.reloadlyAccessToken();
         const fobURL = `https://topups-sandbox.reloadly.com/operators/${operatorId}`;
         const config = {
             url: fobURL,
@@ -168,12 +169,13 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(fobErrorMessage);
         }));
     }
-    autoDetectOperator(adoDto) {
-        const { phone, countryIsoCode, accessToken } = adoDto;
+    async autoDetectOperator(adoDto) {
+        const { phone, countryIsoCode } = adoDto;
+        const token = await this.reloadlyAccessToken();
         const adoPayload = {
             phone,
             countryisocode: countryIsoCode,
-            accessToken: constants_1.RELOADLY_TOKEN_SANDBOX,
+            accessToken: token,
             suggestedAmountsMap: true,
             suggestedAmount: false
         };
@@ -198,11 +200,12 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             throw new common_1.NotFoundException(fobErrorMessage);
         }));
     }
-    getOperatorByCode(gobcDto) {
-        const { countryIsoCode, accessToken } = gobcDto;
+    async getOperatorByCode(gobcDto) {
+        const { countryIsoCode } = gobcDto;
+        const token = await this.reloadlyAccessToken();
         const gobcPayload = {
             countrycode: countryIsoCode,
-            accessToken: constants_1.RELOADLY_TOKEN_SANDBOX || accessToken,
+            accessToken: token || '',
             suggestedAmountsMap: true,
             suggestedAmount: false,
             includePin: false,

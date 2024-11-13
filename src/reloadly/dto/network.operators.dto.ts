@@ -1,17 +1,17 @@
 export class NetworkOperatorsDto {
-  includeBundles: boolean;
-  includeData: boolean;
-  suggestedAmountsMap: boolean;
-  size: number;
-  page: number;
-  includeCombo: any;
-  comboOnly: string;
-  bundlesOnly: string;
-  dataOnly: string;
-  pinOnly: string;
+  includeBundles?: boolean;
+  includeData?: boolean;
+  suggestedAmountsMap?: boolean;
+  size?: number;
+  page?: number;
+  includeCombo?: boolean;
+  comboOnly?: boolean;
+  bundlesOnly?: boolean;
+  dataOnly?: boolean;
+  pinOnly?: boolean;
   operatorId: number;
-  phone: number;
-  countryIsoCode: string;
-  suggestedAmount: boolean;
-  accessToken: any;
+  phone?: number;
+  countryIsoCode?: string;
+  suggestedAmount?: boolean;
+  accessToken?: any;
 }
