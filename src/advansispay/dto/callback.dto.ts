@@ -18,6 +18,20 @@ export class PaymentCallbackDto {
         name: 'order-id'
     })
     'order-id': string;
+    orderId: string;
+
+    @ApiProperty({
+        description: 'Transaction amount',
+        example: '100.00'
+    })
+    amount?: string;
+
+    @ApiProperty({
+        description: 'Currency code',
+        example: 'GHS',
+        default: 'GHS'
+    })
+    currency?: string;
 
     result?: any;
 }

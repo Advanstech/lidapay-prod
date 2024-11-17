@@ -1,11 +1,31 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  NotFoundException,
+  ParseIntPipe,
+  ValidationPipe
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+  ApiQuery
+} from '@nestjs/swagger';
 import { TransactionService } from './transaction.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { MerchantAuthGuard } from '../auth/merchant-auth.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiSecurity } from '@nestjs/swagger';
 import { Transaction } from './schemas/transaction.schema';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserOrMerchantGuard } from '../auth/user-or-merchant.guard';
 
 @ApiTags('Transactions')
@@ -13,242 +33,83 @@ import { UserOrMerchantGuard } from '../auth/user-or-merchant.guard';
 @ApiBearerAuth()
 @UseGuards(UserOrMerchantGuard)
 export class TransactionController {
-  constructor(
-    private readonly transactionService: TransactionService
-  ) { }
+  constructor(private readonly transactionService: TransactionService) { }
 
-  // Create  a new transaction
-  @Post()
+  @Post('create')
   @ApiOperation({ summary: 'Create a new transaction' })
-  @ApiResponse({ status: 201, description: 'The transaction has been successfully created.', type: Transaction })
+  @ApiResponse({
+    status: 201,
+    description: 'Transaction created successfully.',
+    type: Transaction
+  })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiBody({
     type: CreateTransactionDto,
-    description: 'Transaction data',
+    description: 'Transaction creation data',
     examples: {
       airtime: {
         value: {
           userId: '123456',
-          transType: 'airtime',
-          amount: 10,
-          currency: 'GHS',
-          transStatus: 'pending',
-          serviceStatus: 'pending',
-          transactionId: 'TRX123456',
+          userName: 'John Doe',
+          transType: 'AIRTIME',
+          transId: 'TRX-123456',
+          recipientNumber: '233241234567',
           operator: 'MTN',
-          recipientNumber: '233241234567'
+          network: '1',
+          retailer: 'PRYMO',
+          monetary: {
+            amount: 10,
+            fee: 0,
+            currency: 'GHS',
+            originalAmount: '10'
+          },
+          status: {
+            transaction: 'pending',
+            service: 'pending'
+          }
         }
       },
       momo: {
         value: {
           userId: '789012',
-          transType: 'momo',
-          amount: 50,
-          currency: 'GHS',
-          transStatus: 'pending',
-          serviceStatus: 'pending',
-          transactionId: 'TRX789012',
-          operator: 'Vodafone',
+          userName: 'Jane Smith',
+          transType: 'MOMO',
+          transId: 'TRX-789012',
           recipientNumber: '233501234567',
-          momoTransType: 'send'
+          operator: 'Vodafone',
+          network: '2',
+          retailer: 'EXPRESSPAY',
+          monetary: {
+            amount: 50,
+            fee: 1,
+            currency: 'GHS',
+            originalAmount: '50'
+          },
+          status: {
+            transaction: 'pending',
+            service: 'pending'
+          },
+          payment: {
+            type: 'DEBIT',
+            currency: 'GHS'
+          }
         }
       }
     }
   })
-  create(@Body() createTransactionDto: CreateTransactionDto) {
+  create(@Body(ValidationPipe) createTransactionDto: CreateTransactionDto) {
     return this.transactionService.create(createTransactionDto);
   }
-  // Get all transactions
-  @UseGuards(JwtAuthGuard)
+
   @Get()
-  @ApiOperation({ summary: 'Get all transactions' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all transactions with pagination' })
+  @ApiQuery({ name: 'page', type: 'number', required: false, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', type: 'number', required: false, description: 'Items per page (default: 10)' })
   @ApiResponse({
     status: 200,
-    description: 'Return all transactions.',
-    example: {
-      "transactions": [
-        {
-          "id": "616e7f7a0c2e4d001a6a1fc9",
-          "userId": "616e7f7a0c2e4d001a6a1fc9",
-          "transType": "airtime",
-          "amount": 10,
-          "currency": "GHS",
-          "transStatus": "pending",
-          "serviceStatus": "pending",
-          "transactionId": "TRX123456",
-          "operator": "MTN",
-          "recipientNumber": "233241234567",
-          "createdAt": "2021-10-14T14:30:00.000Z",
-          "updatedAt": "2021-10-14T14:30:00.000Z"
-        }
-      ],
-      "total": 50,
-      "totalPages": 5
-    }
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiQuery({ name: 'page', type: 'number', required: false })
-  @ApiQuery({ name: 'limit', type: 'number', required: false })
-  async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<{ transactions: Transaction[], total: number, totalPages: number }> {
-    return this.transactionService.findAll(page, limit);
-  }
-  // Get a transaction by id
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a transaction by id' })
-  @ApiParam({ name: 'id', type: 'string', description: 'Transaction ID', example: '616e7f7a0c2e4d001a6a1fc9' })
-  @ApiResponse({ status: 200, description: 'Return the transaction.', type: Transaction })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiParam({ name: 'id', type: 'string', description: 'Transaction ID' })
-  async findOne(@Param('id') id: string): Promise<Transaction> {
-    try {
-      const transaction = await this.transactionService.findOne(id);
-      return transaction;
-    } catch (error) {
-      throw new NotFoundException(`Transaction #${id} not found`);
-    }
-  }
-  // Update  a transaction
-  @Put('update/:id')
-  @ApiOperation({ summary: 'Update a transaction' })
-  @ApiParam({ name: 'id', type: 'string', description: 'Transaction ID' })
-  @ApiResponse({ status: 200, description: 'The transaction has been successfully updated.', type: Transaction })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiBody({
-    type: UpdateTransactionDto,
-    description: 'Updated transaction data',
-    examples: {
-      completed: {
-        value: {
-          transStatus: 'completed',
-          serviceStatus: 'completed',
-          transMessage: 'Transaction successful'
-        }
-      },
-      failed: {
-        value: {
-          transStatus: 'failed',
-          serviceStatus: 'failed',
-          transMessage: 'Insufficient balance'
-        }
-      }
-    }
-  })
-  update(@Param('id') id: string, @Body() updateTransactionDto: UpdateTransactionDto) {
-    return this.transactionService.update(id, updateTransactionDto);
-  }
-  // Update a transaction by trxn
-  @Put('update-by-trxn/:trxn')
-  @ApiOperation({ summary: 'Update a transaction by trxn' })
-  @ApiParam({ name: 'trxn', type: 'string', description: 'Transaction trxn' })
-  @ApiResponse({ status: 200, description: 'The transaction has been successfully updated.', type: Transaction })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiBody({
-    type: UpdateTransactionDto,
-    description: 'Updated transaction data',
-    examples: {
-      completed: {
-        value: {
-          transStatus: 'completed',
-          serviceStatus: 'completed',
-          transMessage: 'Transaction successful'
-        }
-      },
-    }
-  })
-  updateByTrxn(@Param('trxn') trxn: string, @Body() updateTransactionDto: UpdateTransactionDto) {
-    return this.transactionService.updateByTrxn(trxn, updateTransactionDto);
-  }
-  // Delete a transaction by id
-  @Delete('remove/:id')
-  @ApiOperation({ summary: 'Delete a transaction' })
-  @ApiParam({ name: 'id', type: 'string', description: 'Transaction ID' })
-  @ApiResponse({ status: 200, description: 'The transaction has been successfully deleted.', type: Transaction })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  remove(@Param('id') id: string) {
-    return this.transactionService.remove(id);
-  }
-  // Get transaction by transaction id
-  @UseGuards(JwtAuthGuard)
-  @Get('trans-id/:transId')
-  @ApiOperation({ summary: 'Get a transaction by transaction Id' })
-  @ApiParam({ name: 'transId', type: 'string', description: 'Transaction ID', example: '1234567890' })
-  @ApiResponse({ status: 200, description: 'The transaction has been successfully retrieved.', type: Transaction })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  async getTransactionsByTransactionId(@Param('transId') transactionId: string) {
-    return this.transactionService.findByTransId(transactionId);
-  }
-  // Get transactions by type
-  @Get('type/:type')
-  @ApiOperation({ summary: 'Get transactions by type' })
-  @ApiParam({ name: 'type', type: 'string', description: 'Transaction type (e.g., airtime, momo)' })
-  @ApiResponse({ status: 200, description: 'Return transactions of the specified type.', type: [Transaction] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findByType(@Param('type') type: string): Promise<Transaction[]> {
-    return this.transactionService.findByType(type);
-  }
-  // Get transactions by status
-  @Get('status/:status')
-  @ApiOperation({ summary: 'Get transactions by status' })
-  @ApiParam({ name: 'status', type: 'string', description: 'Transaction status (e.g., pending, completed, failed)' })
-  @ApiResponse({ status: 200, description: 'Return transactions with the specified status.', type: [Transaction] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findByStatus(@Param('status') status: string): Promise<Transaction[]> {
-    return this.transactionService.findByStatus(status);
-  }
-  // Get transactions by date range
-  @Get('date-range')
-  @ApiOperation({ summary: 'Get transactions by date range' })
-  @ApiQuery({ name: 'startDate', type: 'string', description: 'Start date (YYYY-MM-DD)', example: '2022-01-01' })
-  @ApiQuery({ name: 'endDate', type: 'string', description: 'End date (YYYY-MM-DD)', example: '2022-01-31' })
-  @ApiResponse({ status: 200, description: 'Return transactions within the specified date range.', type: [Transaction] })
-  @ApiResponse({ status: 400, description: 'Invalid date format' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findByDateRange(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string
-  ): Promise<Transaction[]> {
-    return this.transactionService.findByDateRange(new Date(startDate), new Date(endDate));
-  }
-  // Get transaction statistics for a user
-  @Get('stats/:userId')
-  @ApiOperation({ summary: 'Get transaction statistics for a user' })
-  @ApiParam({ name: 'userId', type: 'string', description: 'User ID' })
-  @ApiResponse({
-    status: 200, description: 'Return transaction statistics for the user.', schema: {
-      type: 'object',
-      properties: {
-        totalTransactions: { type: 'number' },
-        totalAmount: { type: 'number' },
-        transactionsByType: {
-          type: 'object',
-          additionalProperties: { type: 'number' }
-        },
-        transactionsByStatus: {
-          type: 'object',
-          additionalProperties: { type: 'number' }
-        }
-      }
-    }
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getTransactionStats(@Param('userId') userId: string): Promise<any> {
-    return this.transactionService.getTransactionStats(userId);
-  }
-  // Get transactions by user id with pagination
-  @UseGuards(JwtAuthGuard)
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get transactions by user id with pagination' })
-  @ApiParam({ name: 'userId', type: 'string', description: 'User ID' })
-  @ApiQuery({ name: 'page', type: 'number', required: false, description: 'Page number' })
-  @ApiQuery({ name: 'limit', type: 'number', required: false, description: 'Number of transactions per page' })
-  @ApiResponse({
-    status: 200,
-    description: 'Return transactions for the user with pagination.',
+    description: 'Returns paginated transactions',
     schema: {
       type: 'object',
       properties: {
@@ -261,13 +122,261 @@ export class TransactionController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findByUserId(
+  findAll(
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10
+  ) {
+    return this.transactionService.findAll(page, limit);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get transaction by ID' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  async findOne(@Param('id') id: string) {
+    const transaction = await this.transactionService.findById(id);
+    if (!transaction) {
+      throw new NotFoundException(`Transaction #${id} not found`);
+    }
+    return transaction;
+  }
+
+  @Put('update/trxn-id:trxn')
+  @ApiOperation({ summary: 'Update transaction by transaction ID' })
+  @ApiParam({ name: 'trxn', description: 'Transaction ID' })
+  @ApiBody({
+    type: UpdateTransactionDto,
+    description: 'Transaction update data',
+    examples: {
+      success: {
+        value: {
+          status: {
+            transaction: 'completed',
+            service: 'completed'
+          },
+          monetary: {
+            balance_before: '100',
+            balance_after: '90',
+            currentBalance: '90'
+          },
+          commentary: 'Transaction completed successfully'
+        }
+      },
+      failed: {
+        value: {
+          status: {
+            transaction: 'failed',
+            service: 'failed'
+          },
+          payment: {
+            status: 'failed',
+            serviceMessage: 'Insufficient balance'
+          },
+          commentary: 'Transaction failed due to insufficient balance'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  updateByTrxn(
+    @Param('trxn') trxn: string,
+    @Body(ValidationPipe) updateTransactionDto: UpdateTransactionDto
+  ) {
+    return this.transactionService.updateByTrxn(trxn, updateTransactionDto);
+  }
+  // Update by TransId
+  @Put('update/trans-id/:transId')
+  @ApiOperation({ summary: 'Update transaction by transaction ID and TransId' })
+  @ApiParam({ name: 'transId', description: 'Transaction ID' })
+  @ApiParam({ name: 'trxn', description: 'Transaction ID' })
+  @ApiBody({
+    type: UpdateTransactionDto,
+    description: 'Transaction update data',
+    examples: {
+      success: {
+        value: {
+          status: {
+            transaction: 'completed',
+            service: 'completed'
+          },
+          monetary: {
+            balance_before: '100',
+            balance_after: '90',
+            currentBalance: '90'
+          },
+          commentary: 'Transaction completed successfully'
+        }
+      },
+      failed: {
+        value: {
+          status: {
+            transaction: 'failed',
+            service: 'failed'
+          },
+          payment: {
+            status: 'failed',
+            serviceMessage: 'Insufficient balance'
+          },
+          commentary: 'Transaction failed due to insufficient balance'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  updateByTransId(
+    @Param('transId') transId: string,
+    @Param('trxn') trxn: string,
+    @Body(ValidationPipe) updateTransactionDto: UpdateTransactionDto
+  ) {
+    return this.transactionService.updateByTransId(transId, updateTransactionDto);
+  }
+
+  // Delete by TransId and Trxn
+  @Delete('delete/:trxn')
+  @ApiOperation({ summary: 'Delete transaction by transaction ID and TransId and Trxn' })
+  @ApiParam({ name: 'transId', description: 'Transaction ID' })
+  @ApiParam({ name: 'trxn', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  deleteByTransIdTrxn(
+    @Param('trxn') trxn: string
+  ) {
+    return this.transactionService.removeByTrxn(trxn);
+  }
+  // Find transaction by userId
+  @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get transactions by user ID with pagination' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiQuery({ name: 'page', type: 'number', required: false })
+  @ApiQuery({ name: 'limit', type: 'number', required: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns user transactions with pagination',
+    schema: {
+      type: 'object',
+      properties: {
+        transactions: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Transaction' }
+        },
+        total: { type: 'number' },
+        totalPages: { type: 'number' }
+      }
+    }
+  })
+  findByUserId(
     @Param('userId') userId: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
-  ): Promise<any> {
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10
+  ) {
     return this.transactionService.findByUserId(userId, page, limit);
+  }
+
+  @Get('stats/:userId')
+  @ApiOperation({ summary: 'Get transaction statistics for a user' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns transaction statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        _id: {
+          type: 'object',
+          properties: {
+            transType: { type: 'string' },
+            status: { type: 'string' }
+          }
+        },
+        count: { type: 'number' },
+        totalAmount: { type: 'number' },
+        avgAmount: { type: 'number' },
+        minAmount: { type: 'number' },
+        maxAmount: { type: 'number' }
+      }
+    }
+  })
+  getTransactionStats(@Param('userId') userId: string) {
+    return this.transactionService.getTransactionStats(userId);
+  }
+
+  @Get('date-range')
+  @ApiOperation({ summary: 'Get transactions by date range' })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    type: String,
+    description: 'Start date (YYYY-MM-DD)'
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: true,
+    type: String,
+    description: 'End date (YYYY-MM-DD)'
+  })
+  @ApiResponse({
+    status: 200,
+    type: [Transaction],
+    description: 'Returns transactions within date range'
+  })
+  findByDateRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
+  ) {
+    return this.transactionService.findByDateRange(
+      new Date(startDate),
+      new Date(endDate)
+    );
+  }
+
+  @Delete('remove/:id')
+  @ApiOperation({ summary: 'Delete transaction' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        deletedTransaction: { $ref: '#/components/schemas/Transaction' }
+      }
+    }
+  })
+  remove(@Param('id') id: string) {
+    return this.transactionService.remove(id);
+  }
+
+  @Get('trans-id/:transId')
+  @ApiOperation({ summary: 'Get transaction by transaction ID' })
+  @ApiParam({ name: 'transId', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  async findByTransId(@Param('transId') transId: string) {
+    const transaction = await this.transactionService.findByTransId(transId);
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with ID ${transId} not found`);
+    }
+    return transaction;
+  }
+  /*
+   * find transaction by trxn
+  */
+  @Get('trans-trxn/:trxn')
+  @ApiOperation({ summary: 'Get transaction by transaction reference' })
+  @ApiParam({ name: 'trxn', description: 'Transaction reference' })
+  @ApiResponse({ status: 200, type: Transaction })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  async findByTrxn(@Param('trxn') trxn: string) {
+    const transaction = await this.transactionService.findByTrxn(trxn);
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with reference ${trxn} not found`);
+    }
+    return transaction;
   }
 
 }

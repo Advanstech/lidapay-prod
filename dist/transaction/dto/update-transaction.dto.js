@@ -16,10 +16,9 @@ class UpdateTransactionDto {
 }
 exports.UpdateTransactionDto = UpdateTransactionDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'The status of the transaction', required: false, enum: ['pending', 'completed', 'failed', 'successful'] }),
+    (0, swagger_1.ApiProperty)({ description: 'The status of the transaction', required: false }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsEnum)(['pending', 'completed', 'failed', 'successful']),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UpdateTransactionDto.prototype, "status", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ description: 'The transaction message' }),
@@ -157,4 +156,22 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], UpdateTransactionDto.prototype, "metadata", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Payment details for the transaction', required: false }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], UpdateTransactionDto.prototype, "payment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateTransactionDto.prototype, "commentary", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateTransactionDto.prototype, "deliveredAmount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateTransactionDto.prototype, "requestedAmount", void 0);
 //# sourceMappingURL=update-transaction.dto.js.map

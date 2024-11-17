@@ -468,7 +468,6 @@ export class UserController {
   async trackQRCodeUsage(@Request() req) {
     return this.userService.trackQRCodeUsage(req.user.sub);
   }
-
   // Get QR code usage stats
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -881,7 +880,7 @@ export class UserController {
    }
   // Get wallet by user Id
   @UseGuards(JwtAuthGuard)
-  @Get('wallet')
+  @Get('wallet/user')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user wallet' })
   @ApiResponse({
@@ -889,7 +888,7 @@ export class UserController {
     description: 'User wallet retrieved successfully',
     type: Wallet,
   })
-  async getWallet(@Request() req) {
+  async getWalletUserId(@Request() req) {
     const userId = req.user.sub; // Ensure this is the correct user ID
     this.logger.debug(`User request for wallet ==> ${userId}`);
     const wallet = await this.userService.getWalletByUserId(userId);

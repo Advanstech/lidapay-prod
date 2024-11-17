@@ -6,11 +6,13 @@ const swagger_1 = require("@nestjs/swagger");
 const common_1 = require("@nestjs/common");
 const helmet_1 = require("helmet");
 const constants_1 = require("./constants");
+const http_exception_filter_1 = require("./filters/http-exception.filter");
 async function bootstrap() {
     const logger = new common_1.Logger(bootstrap.name);
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors();
     app.use((0, helmet_1.default)());
+    app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
     app.useGlobalPipes(new common_1.ValidationPipe());
     const description = `
     A secure and scalable API designed to power the Lidapay ecosystem, providing a seamless experience for users across various platforms.

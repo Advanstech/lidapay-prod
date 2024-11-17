@@ -34,28 +34,25 @@ let InternetService = class InternetService {
             retailer: retailer ?? 'PRYMO',
             fee: constants_1.FEE_CHARGES || 0,
             originalAmount: amount || '',
-            amount: amount + constants_1.FEE_CHARGES || 0,
+            amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
             recipientNumber: recipientNumber || '',
-            transMessage: ``,
-            currentBalance: '',
-            recipient: recipientNumber || '',
             data_code: dataCode || '',
             network: network || 0,
             operator: validation_util_1.ValidationUtil.getOperatorName(network || 0),
             trxn: generator_util_1.GeneratorUtil.generateTransactionId() || '',
             transId: '',
-            transStatus: 'pending',
-            serviceStatus: 'inprogress',
-            serviceCode: '',
-            serviceTransId: '',
-            serviceMessage: '',
-            serviceName: '',
+            status: {
+                transaction: 'pending',
+                service: 'inprogress',
+                payment: 'pending',
+            },
+            commentary: 'Internet data bundle transaction pending',
             currency: currency || 'GHS',
             balance_before: '',
             balance_after: ''
         };
         const tibUrl = this.DataUrl +
-            `/TopUpApi/dataBundle?retailer=${constants_1.ONE4ALL_RETAILER}&recipient=${tibParams.recipient}&data_code=${tibParams.data_code}&network=${tibParams.network}&trxn=${tibParams.trxn}`;
+            `/TopUpApi/dataBundle?retailer=${constants_1.ONE4ALL_RETAILER}&recipient=${tibParams.recipientNumber}&data_code=${tibParams.data_code}&network=${tibParams.network}&trxn=${tibParams.trxn}`;
         tibParams.transId = tibParams.trxn;
         this.transService.create(tibParams);
         const configs = {
@@ -70,61 +67,83 @@ let InternetService = class InternetService {
             .get(configs.url, { httpsAgent: configs.agent, headers: configs.headers })
             .pipe((0, operators_1.map)((tibRes) => {
             this.logger.verbose(`INTERNET DATA BUNDLE server response => ${tibRes.data}`);
-            if (tibRes.data['status-code'] === '02') {
-                this.logger.warn(`insufficient balance`);
-                tibParams.serviceCode = tibRes.data['status-code'];
-                tibParams.serviceMessage = tibRes.data.message;
-                tibParams.serviceTransId = tibRes.data.trxn;
-                tibParams.transStatus = tibRes.data.status;
-                tibParams.serviceStatus = tibRes.data.status;
-                tibParams.commentary = 'insufficient balance, topup failed';
-                this.transService.updateByTrxn(tibParams.trxn, tibParams);
-            }
-            else if (tibRes.data['status-code'] === '09') {
-                this.logger.warn(`recharge requested but awaiting status`);
-                tibParams.serviceCode = tibRes.data['status-code'];
-                tibParams.serviceMessage = tibRes.data.message;
-                tibParams.serviceTransId = tibRes.data.trxn;
-                tibParams.transStatus = tibRes.data.status;
-                tibParams.serviceStatus = tibRes.data.status;
-                tibParams.commentary = 'recharge requested but awaiting status';
-                this.transService.updateByTrxn(tibParams.trxn, tibParams);
-            }
-            else if (tibRes.data['status-code'] === '06') {
-                this.logger.log(`other error message`);
-                tibParams.serviceCode = tibRes.data['status-code'];
-                tibParams.serviceMessage = tibRes.data.message;
-                tibParams.serviceTransId = tibRes.data.trxn;
-                tibParams.transStatus = tibRes.data.status;
-                tibParams.serviceStatus = tibRes.data.status;
-                tibParams.commentary = 'Other error message';
-                this.transService.updateByTrxn(tibParams.trxn, tibParams);
-            }
-            else if (tibRes.data['status-code'] === '00') {
-                this.logger.verbose(`Data bundle reload successful`);
-                tibParams.serviceCode = tibRes.data['status-code'];
-                tibParams.serviceMessage = tibRes.data.message;
-                tibParams.serviceTransId = tibRes.data.trxn;
-                tibParams.transStatus = tibRes.data.status;
-                tibParams.serviceStatus = tibRes.data.status;
-                tibParams.balance_before = tibRes.data.balance_before;
-                tibParams.balance_after = tibRes.data.balance_after;
-                tibParams.commentary = `data bundle reload successful for ${tibParams.recipientNumber}`;
-                this.transService.updateByTrxn(tibParams.trxn, tibParams);
+            switch (tibRes.data['status-code']) {
+                case '00':
+                    this.logger.verbose(`Data bundle reload successful`);
+                    tibParams.serviceCode = tibRes.data['status-code'];
+                    tibParams.serviceMessage = tibRes.data.message;
+                    tibParams.serviceTransId = tibRes.data.trxn;
+                    tibParams.balance_before = tibRes.data.balance_before;
+                    tibParams.balance_after = tibRes.data.balance_after;
+                    tibParams.commentary = `Data bundle reload successful for ${tibParams.recipientNumber}`;
+                    this.transService.updateByTrxn(tibParams.trxn, {
+                        ...tibParams,
+                        status: {
+                            transaction: 'completed',
+                            service: 'completed',
+                            payment: 'completed',
+                        },
+                        commentary: tibParams.commentary,
+                    });
+                    break;
+                case '02':
+                    this.logger.warn(`Insufficient balance`);
+                    this.handleTransactionFailure(tibParams, tibRes.data);
+                    break;
+                case '09':
+                    this.logger.warn(`Recharge requested but awaiting status`);
+                    this.handleTransactionPending(tibParams, tibRes.data);
+                    break;
+                case '06':
+                    this.logger.log(`Other error message`);
+                    this.handleTransactionFailure(tibParams, tibRes.data);
+                    break;
+                default:
+                    this.logger.error(`Unexpected status code: ${tibRes.data['status-code']}`);
+                    this.handleTransactionFailure(tibParams, tibRes.data);
+                    break;
             }
             return tibRes.data;
         }), (0, operators_1.catchError)((tibError) => {
             this.logger.error(`ERROR INTERNET DATA BUNDLE => ${JSON.stringify(tibError.data)}`);
-            tibParams.serviceCode = tibError.response.data['status-code'];
-            tibParams.serviceMessage = tibError.response.data.message;
-            tibParams.serviceTransId = tibError.response.data.trxn;
-            tibParams.transStatus = tibError.response.data.status;
-            tibParams.serviceStatus = tibError.response.data.status;
-            tibParams.commentary = 'Internet data bundle recharge failed';
-            this.transService.updateByTrxn(tibParams.trxn, tibParams);
+            this.handleTransactionFailure(tibParams, tibError.response.data);
             const tibErrorMessage = tibError.response.data;
             throw new common_1.NotFoundException(tibErrorMessage);
         }));
+    }
+    handleTransactionFailure(tibParams, responseData) {
+        tibParams.serviceCode = responseData['status-code'];
+        tibParams.serviceMessage = responseData.message;
+        tibParams.serviceTransId = responseData.trxn;
+        tibParams.transStatus = responseData.status;
+        tibParams.serviceStatus = responseData.status;
+        tibParams.commentary = 'Transaction failed';
+        this.transService.updateByTrxn(tibParams.trxn, {
+            ...tibParams,
+            status: {
+                transaction: 'failed',
+                service: 'failed',
+                payment: 'failed',
+            },
+            commentary: tibParams.commentary,
+        });
+    }
+    handleTransactionPending(tibParams, responseData) {
+        tibParams.serviceCode = responseData['status-code'];
+        tibParams.serviceMessage = responseData.message;
+        tibParams.serviceTransId = responseData.trxn;
+        tibParams.transStatus = responseData.status;
+        tibParams.serviceStatus = responseData.status;
+        tibParams.commentary = 'Recharge requested but awaiting status';
+        this.transService.updateByTrxn(tibParams.trxn, {
+            ...tibParams,
+            status: {
+                transaction: 'pending',
+                service: 'pending',
+                payment: 'pending',
+            },
+            commentary: tibParams.commentary,
+        });
     }
     dataBundleList(transDto) {
         const dblParams = { network: 0 || transDto.network };
@@ -140,7 +159,7 @@ let InternetService = class InternetService {
         return this.httpService
             .get(configs.url, { httpsAgent: configs.agent, headers: configs.headers })
             .pipe((0, operators_1.map)((dblRes) => {
-            this.logger.verbose(`DATA BUNDLE lIST server response => ${dblRes.data}`);
+            this.logger.verbose(`DATA BUNDLE LIST server response => ${dblRes.data}`);
             return dblRes.data;
         }), (0, operators_1.catchError)((dblError) => {
             this.logger.error(`ERROR DATA BUNDLE LIST => ${JSON.stringify(dblError.response.data)}`);

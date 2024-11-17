@@ -9,35 +9,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransactionStatus = void 0;
+exports.TransactionStatusSchema = exports.TransactionStatus = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 let TransactionStatus = class TransactionStatus {
 };
 exports.TransactionStatus = TransactionStatus;
 __decorate([
-    (0, mongoose_1.Prop)({
-        required: true,
-        enum: ['pending', 'completed', 'failed', 'success', 'approved']
-    }),
+    (0, mongoose_1.Prop)({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved'] }),
     __metadata("design:type", String)
 ], TransactionStatus.prototype, "transaction", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({
-        required: true,
-        enum: [
-            'pending',
-            'inprogress',
-            'refunded',
-            'reversed',
-            'cancelled',
-            'completed',
-            'failed',
-            'success',
-            'approved',
-            'declined',
-            'error'
-        ]
-    }),
+    (0, mongoose_1.Prop)({ required: true, enum: ['pending', 'inprogress', 'refunded', 'reversed', 'cancelled', 'completed', 'failed', 'success', 'approved', 'declined', 'error'] }),
     __metadata("design:type", String)
 ], TransactionStatus.prototype, "service", void 0);
 __decorate([
@@ -47,4 +29,5 @@ __decorate([
 exports.TransactionStatus = TransactionStatus = __decorate([
     (0, mongoose_1.Schema)()
 ], TransactionStatus);
+exports.TransactionStatusSchema = mongoose_1.SchemaFactory.createForClass(TransactionStatus);
 //# sourceMappingURL=transaction-status.schema.js.map

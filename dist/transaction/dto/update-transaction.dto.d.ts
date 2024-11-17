@@ -1,5 +1,10 @@
+interface TransactionStatus {
+    service: string;
+    payment: string;
+    transaction: string;
+}
 export declare class UpdateTransactionDto {
-    readonly status?: string;
+    status?: TransactionStatus;
     transMessage?: string;
     transStatus?: string;
     balance_before?: number;
@@ -29,4 +34,17 @@ export declare class UpdateTransactionDto {
     lastChecked?: Date;
     metadata?: Record<string, any>;
     queryLastChecked?: Date;
+    payment?: {
+        serviceCode: string;
+        transactionId: string;
+        serviceMessage?: string;
+        commentary?: string;
+        operatorTransactionId?: string;
+        status?: string;
+        currency?: string;
+    };
+    commentary?: string;
+    deliveredAmount?: number;
+    requestedAmount?: number;
 }
+export {};

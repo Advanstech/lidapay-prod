@@ -10,5 +10,7 @@ export declare class InternetService {
     private DataUrl;
     constructor(httpService: HttpService, transService: TransactionService);
     topupInternetData(transDto: InternetDto): Observable<AxiosResponse<InternetDto>>;
+    private handleTransactionFailure;
+    private handleTransactionPending;
     dataBundleList(transDto: InternetDto): Observable<AxiosResponse<InternetDto>>;
 }

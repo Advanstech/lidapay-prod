@@ -12,9 +12,8 @@ export declare class AirtimeService {
     private ONE4ALL_RETAILER;
     private ONE4ALL_APIKEY;
     private ONE4ALL_APISECRET;
-    private ONE4ALL_BASEURL;
     constructor(httpService: HttpService, transService: TransactionService);
-    private getOperatorName;
     transactionStatus(transDto: TransStatusDto): Observable<AxiosResponse<TransStatusDto>>;
-    topupAirtimeService(transDto: TopupDto): Observable<AxiosResponse<TopupDto>>;
+    topupAirtimeService(transDto: TopupDto): Promise<Observable<AxiosResponse<TopupDto>>>;
+    private getOperatorName;
 }

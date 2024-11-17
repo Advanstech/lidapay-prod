@@ -1,11 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
 
+// Define a new interface for the status
+interface TransactionStatus {
+    service: string;
+    payment: string;
+    transaction: string;
+}
+
 export class UpdateTransactionDto {
-    @ApiProperty({ description: 'The status of the transaction', required: false, enum: ['pending', 'completed', 'failed', 'successful'] })
+    @ApiProperty({ description: 'The status of the transaction', required: false })
     @IsOptional()
-    @IsEnum(['pending', 'completed', 'failed', 'successful'])
-    readonly status?: string;
+    status?: TransactionStatus;
 
     @ApiProperty({ description: 'The transaction message' })
     @IsOptional()
@@ -126,4 +132,26 @@ export class UpdateTransactionDto {
     @IsOptional()
     metadata?: Record<string, any>; // Changed from object to Record<string, any>
     queryLastChecked?: Date;
+
+    @ApiProperty({ description: 'Payment details for the transaction', required: false })
+    @IsOptional()
+    payment?: {
+        serviceCode: string;
+        transactionId: string;
+        serviceMessage?: string;
+        commentary?: string;
+        operatorTransactionId?: string; // Add this line
+        status?: string;
+        currency?: string;
+    };
+
+    @IsOptional()
+    @IsString()
+    commentary?: string;
+
+    @IsOptional()
+    deliveredAmount?: number;
+  
+    @IsOptional()
+    requestedAmount?: number;
 }

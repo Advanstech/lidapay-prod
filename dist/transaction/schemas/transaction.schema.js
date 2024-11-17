@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionSchema = exports.Transaction = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
+const payment_details_schema_1 = require("./sub-schemas/payment-details.schema");
+const monetary_details_schema_1 = require("./sub-schemas/monetary-details.schema");
+const transaction_status_schema_1 = require("./sub-schemas/transaction-status.schema");
 let Transaction = class Transaction {
 };
 exports.Transaction = Transaction;
@@ -31,69 +34,17 @@ __decorate([
     __metadata("design:type", String)
 ], Transaction.prototype, "lastName", void 0);
 __decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "retailer", void 0);
-__decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Transaction.prototype, "transType", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: Number }),
-    __metadata("design:type", Number)
-], Transaction.prototype, "amount", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
-    __metadata("design:type", String)
-], Transaction.prototype, "currency", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
-    __metadata("design:type", String)
-], Transaction.prototype, "currencyName", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved'] }),
-    __metadata("design:type", String)
-], Transaction.prototype, "transStatus", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({
-        required: true, enum: [
-            'pending',
-            'inprogress',
-            'refunded',
-            'reversed', 'cancelled',
-            'completed', 'failed',
-            'success',
-            'approved',
-            'declined',
-            'error',
-        ]
-    }),
-    __metadata("design:type", String)
-], Transaction.prototype, "serviceStatus", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
-    __metadata("design:type", String)
-], Transaction.prototype, "serviceCode", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
-    __metadata("design:type", String)
-], Transaction.prototype, "serviceTransId", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
-    __metadata("design:type", String)
-], Transaction.prototype, "serviceMessage", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "referrerClientId", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: false }),
+    (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Transaction.prototype, "transId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: false }),
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
-], Transaction.prototype, "operator", void 0);
+], Transaction.prototype, "trxn", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
@@ -101,35 +52,7 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
-], Transaction.prototype, "dataPackage", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "dataCode", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "momoTransType", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
-], Transaction.prototype, "transFee", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
-], Transaction.prototype, "discountApplied", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
-], Transaction.prototype, "pointsEarned", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
-], Transaction.prototype, "pointsRedeemed", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "transactionMessage", void 0);
+], Transaction.prototype, "operator", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
@@ -137,67 +60,31 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
-], Transaction.prototype, "trxn", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", Number)
-], Transaction.prototype, "fee", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "originalAmount", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "commentary", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "balance_before", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "balance_after", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "currentBalance", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentCurrency", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentCommentary", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentStatus", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentServiceCode", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentTransactionId", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentServiceMessage", void 0);
-__decorate([
-    (0, mongoose_1.Prop)(),
-    __metadata("design:type", String)
-], Transaction.prototype, "paymentType", void 0);
+], Transaction.prototype, "retailer", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], Transaction.prototype, "expressToken", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ type: monetary_details_schema_1.MonetaryDetailsSchema }),
+    __metadata("design:type", monetary_details_schema_1.MonetaryDetails)
+], Transaction.prototype, "monetary", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: transaction_status_schema_1.TransactionStatusSchema }),
+    __metadata("design:type", transaction_status_schema_1.TransactionStatus)
+], Transaction.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: payment_details_schema_1.PaymentDetailsSchema }),
+    __metadata("design:type", payment_details_schema_1.PaymentDetails)
+], Transaction.prototype, "payment", void 0);
+__decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", Array)
 ], Transaction.prototype, "metadata", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Transaction.prototype, "commentary", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ default: Date.now }),
     __metadata("design:type", Date)
@@ -210,4 +97,8 @@ exports.Transaction = Transaction = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Transaction);
 exports.TransactionSchema = mongoose_1.SchemaFactory.createForClass(Transaction);
+exports.TransactionSchema.index({ userId: 1, transType: 1 });
+exports.TransactionSchema.index({ transId: 1 }, { unique: true });
+exports.TransactionSchema.index({ trxn: 1 }, { sparse: true });
+exports.TransactionSchema.index({ timestamp: -1 });
 //# sourceMappingURL=transaction.schema.js.map

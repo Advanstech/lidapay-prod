@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-
+import { PaymentDetails, PaymentDetailsSchema } from './sub-schemas/payment-details.schema';
+import { MonetaryDetails, MonetaryDetailsSchema } from './sub-schemas/monetary-details.schema';
+import { TransactionStatus, TransactionStatusSchema } from './sub-schemas/transaction-status.schema';
 
 export type TransactionDocument = Transaction & Document;
 
@@ -8,106 +10,49 @@ export type TransactionDocument = Transaction & Document;
 export class Transaction {
   @Prop({ required: true })
   userId: string;
+
   @Prop({ required: false })
   userName: string;
+
   @Prop()
   firstName?: string;
+
   @Prop()
   lastName?: string;
-  @Prop()
-  retailer?: string;
+
   @Prop({ required: true })
   transType: string;
 
-  @Prop({ required: true, type: Number }) // Specify the type here
-  amount: number; // Change 'any' to 'number'
-
-  @Prop({ required: false })
-  currency: string;
-  @Prop({ required: false })
-  currencyName?: string;
-
-  @Prop({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved'] })
-  transStatus: string;
-  @Prop({
-    required: true, enum: [
-      'pending',
-      'inprogress',
-      'refunded',
-      'reversed', 'cancelled',
-      'completed', 'failed',
-      'success',
-      'approved',
-      'declined',
-      'error',
-    ]
-  })
-  serviceStatus: string;
-  @Prop({ required: false })
-  serviceCode: string;
-  @Prop({ required: false })
-  serviceTransId: string;
-  @Prop({ required: false })
-  serviceMessage?: string;
+  @Prop({ required: true })
+  transId: string;
 
   @Prop()
-  referrerClientId?: string;
-  @Prop({ required: false })
-  transId?: string;
-  @Prop({ required: false })
-  operator: string;
-  @Prop()
-  recipientNumber: string;
-  @Prop()
-  dataPackage?: string; // For internet data transactions
-  @Prop()
-  dataCode?: string; // For internet data transactions
-  @Prop()
-  momoTransType?: string; // For mobile money transactions (e.g., 'send', 'receive', 'withdraw')
-  @Prop()
-  transFee?: number;
-  @Prop()
-  discountApplied?: number;
-  @Prop()
-  pointsEarned?: number;
-  @Prop()
-  pointsRedeemed?: number;
-  @Prop()
-  transactionMessage?: string;
-  @Prop()
-  network?: string; // 0, 1, 2, 3, 4, 5, 6
-  @Prop()
-  trxn?: string; // Added from airtime top-up context
-  @Prop()
-  fee?: number; // Added from airtime top-up context
-  @Prop()
-  originalAmount?: string; // Added from airtime top-up context
-  @Prop()
-  commentary?: string; // Added from airtime top-up context
+  trxn?: string;
 
   @Prop()
-  balance_before?: string; // Added from airtime top-up context
-  @Prop()
-  balance_after?: string; // Added from airtime top-up context
-  @Prop()
-  currentBalance?: string; // Added from airtime top-up context
+  recipientNumber?: string;
 
   @Prop()
-  paymentCurrency?: string; // Added from payswitch context 
+  operator?: string;
+
   @Prop()
-  paymentCommentary?: string; // Added from payswitch context 
+  network?: string;
+
   @Prop()
-  paymentStatus?: string; // Added from payswitch context  
-  @Prop()
-  paymentServiceCode?: string; // Added from payswitch context  
-  @Prop()
-  paymentTransactionId?: string; // Added from payswitch context  
-  @Prop()
-  paymentServiceMessage?: string; // Added from payswitch context  
-  @Prop()
-  paymentType?: string; // Added from payswitch context  
+  retailer?: string;
+
   @Prop()
   expressToken?: string;
+
+  @Prop({ type: MonetaryDetailsSchema }) // Use the schema reference
+  monetary: MonetaryDetails;
+
+  @Prop({ type: TransactionStatusSchema }) // Use the schema reference
+  status: TransactionStatus;
+
+  @Prop({ type: PaymentDetailsSchema }) // Use the schema reference
+  payment: PaymentDetails;
+
   @Prop()
   metadata: Array<{
     initiatedAt: Date,
@@ -116,9 +61,21 @@ export class Transaction {
     accountNumber: string,
     lastQueryAt: Date
   }>;
+
+  @Prop()
+  commentary?: string;
+
   @Prop({ default: Date.now })
-  timestamp?: Date;
+  timestamp: Date;
+
   @Prop()
   queryLastChecked?: Date;
 }
+
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
+
+// Add indexes
+TransactionSchema.index({ userId: 1, transType: 1 });
+TransactionSchema.index({ transId: 1 }, { unique: true });
+TransactionSchema.index({ trxn: 1 }, { sparse: true });
+TransactionSchema.index({ timestamp: -1 });

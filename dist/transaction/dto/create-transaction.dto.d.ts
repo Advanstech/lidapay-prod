@@ -1,52 +1,66 @@
-export declare class CreateTransactionDto {
-    userId: string;
-    userName: string;
-    firstName?: string;
-    lastName?: string;
-    transType: string;
+export declare class MonetaryDetailsDto {
     amount: number;
-    currency?: string;
-    currencyName?: string;
-    transStatus: string;
-    serviceStatus: string;
-    referrerClientId?: string;
-    operator: string;
-    recipientNumber: string;
-    recipientEmail?: string;
-    dataPackage?: string;
-    momoTransType?: string;
-    reloadlyCountryCode?: string;
-    transFee?: number;
-    discountApplied?: number;
-    pointsEarned?: number;
-    pointsRedeemed?: number;
-    transactionMessage?: string;
-    timestamp?: Date;
-    network?: string;
-    trxn?: string;
     fee?: number;
     originalAmount?: string;
-    commentary?: string;
+    currency?: string;
     balance_before?: string;
     balance_after?: string;
     currentBalance?: string;
-    details?: Record<string, any>;
-    serviceCode: string;
-    transMessage: string;
-    serviceTransId: string;
-    phoneNumber?: string;
-    serviceName?: string;
-    merchantReference?: string;
-    transId?: string;
-    dataCode?: string;
-    paymentType?: string;
-    paymentCurrency?: string;
-    paymentCommentary?: string;
-    paymentStatus?: string;
-    paymentServiceCode?: string;
-    paymentTransactionId?: string;
+    deliveredAmount?: any;
+    requestedAmount?: any;
+    discount: any;
+}
+export declare class TransactionStatusDto {
+    transaction: string;
+    service: string;
+    payment?: string;
+}
+export declare class PaymentDetailsDto {
+    currency?: string;
+    commentary?: string;
+    status?: string;
+    serviceCode?: string;
     transactionId?: string;
-    paymentId?: string;
+    serviceMessage?: string;
+    type?: string;
+    operatorTransactionId?: string;
+}
+export declare class CreateTransactionDto {
+    userId: string;
+    userName?: string;
+    transType: string;
+    transId: string;
+    recipientNumber?: string;
+    operator?: string;
+    network?: string;
+    retailer?: string;
     expressToken?: string;
-    metadata?: Record<string, any>;
+    monetary: MonetaryDetailsDto;
+    status: TransactionStatusDto;
+    payment?: PaymentDetailsDto;
+    metadata?: Array<{
+        initiatedAt: Date;
+        provider: string;
+        username: string;
+        accountNumber: string;
+        lastQueryAt: Date;
+        token?: string;
+        result?: number;
+        'result-text'?: string;
+    }>;
+    commentary?: string;
+    trxn?: string;
+    paymentCommentary?: string;
+    deliveredAmount?: number;
+    requestedAmount?: number;
+    operatorTransactionId?: string;
+    discount?: number;
+    balanceInfo?: {
+        oldBalance: number;
+        newBalance: number;
+        cost: number;
+        currencyCode: string;
+        currencyName: string;
+        updatedAt: Date;
+    };
 }

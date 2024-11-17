@@ -216,7 +216,7 @@ let UserController = UserController_1 = class UserController {
         }
         return wallet;
     }
-    async getWallet(req) {
+    async getWalletUserId(req) {
         const userId = req.user.sub;
         this.logger.debug(`User request for wallet ==> ${userId}`);
         const wallet = await this.userService.getWalletByUserId(userId);
@@ -1057,7 +1057,7 @@ __decorate([
 ], UserController.prototype, "getWalletById", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('wallet'),
+    (0, common_1.Get)('wallet/user'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get user wallet' }),
     (0, swagger_1.ApiResponse)({
@@ -1069,7 +1069,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], UserController.prototype, "getWallet", null);
+], UserController.prototype, "getWalletUserId", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)('wallet'),

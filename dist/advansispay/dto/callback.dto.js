@@ -34,4 +34,19 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], PaymentCallbackDto.prototype, "order-id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Transaction amount',
+        example: '100.00'
+    }),
+    __metadata("design:type", String)
+], PaymentCallbackDto.prototype, "amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Currency code',
+        example: 'GHS',
+        default: 'GHS'
+    }),
+    __metadata("design:type", String)
+], PaymentCallbackDto.prototype, "currency", void 0);
 //# sourceMappingURL=callback.dto.js.map

@@ -9,17 +9,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MonetaryDetails = void 0;
+exports.MonetaryDetailsSchema = exports.MonetaryDetails = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 let MonetaryDetails = class MonetaryDetails {
 };
 exports.MonetaryDetails = MonetaryDetails;
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: Number }),
+    (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", Number)
 ], MonetaryDetails.prototype, "amount", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: Number }),
+    (0, mongoose_1.Prop)({ default: 0 }),
     __metadata("design:type", Number)
 ], MonetaryDetails.prototype, "fee", void 0);
 __decorate([
@@ -42,7 +42,20 @@ __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], MonetaryDetails.prototype, "currentBalance", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Number)
+], MonetaryDetails.prototype, "deliveredAmount", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Number)
+], MonetaryDetails.prototype, "requestedAmount", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", Number)
+], MonetaryDetails.prototype, "discount", void 0);
 exports.MonetaryDetails = MonetaryDetails = __decorate([
     (0, mongoose_1.Schema)()
 ], MonetaryDetails);
+exports.MonetaryDetailsSchema = mongoose_1.SchemaFactory.createForClass(MonetaryDetails);
 //# sourceMappingURL=monetary-details.schema.js.map

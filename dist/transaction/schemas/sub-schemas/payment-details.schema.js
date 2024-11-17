@@ -9,11 +9,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PaymentDetails = void 0;
+exports.PaymentDetailsSchema = exports.PaymentDetails = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 let PaymentDetails = class PaymentDetails {
 };
 exports.PaymentDetails = PaymentDetails;
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], PaymentDetails.prototype, "type", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
@@ -41,8 +45,9 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
-], PaymentDetails.prototype, "type", void 0);
+], PaymentDetails.prototype, "operatorTransactionId", void 0);
 exports.PaymentDetails = PaymentDetails = __decorate([
     (0, mongoose_1.Schema)()
 ], PaymentDetails);
+exports.PaymentDetailsSchema = mongoose_1.SchemaFactory.createForClass(PaymentDetails);
 //# sourceMappingURL=payment-details.schema.js.map

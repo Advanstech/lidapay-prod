@@ -77,8 +77,10 @@ export class AdvansispayController {
         userId: { type: 'string', example: '1234567890abcdef' },
         accountNumber: { type: 'string', example: '1234' },
         orderImgUrl: { type: 'string', example: 'https://www.ghanaweb.com' },
+        transType: { type: 'string', example: 'MOMO' },
+        payTransRef: { type: 'string', example: 'PAY-REF-12345' },
       },
-      required: ['firstName', 'lastName', 'email', 'phoneNumber', 'username', 'amount', 'orderDesc', 'userId', 'accountNumber', 'orderImgUrl'],
+      required: ['firstName', 'lastName', 'email', 'phoneNumber', 'username', 'amount', 'orderDesc', 'userId', 'accountNumber', 'orderImgUrl', 'transType', 'payTransRef'],
     },
   })
   @ApiResponse({ status: 201, description: 'Payment initiated successfully.' })
@@ -173,7 +175,6 @@ export class AdvansispayController {
     }
   }
   // Handler for the POST request from ExpressPay
-
   @Post('post-status')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Receive payment status update from ExpressPay' })

@@ -26,7 +26,6 @@ const AccountSchema = new Schema<IAccount>({
         description: { type: String }
     }]
 });
-
 // Export the model and the document type
 export type AccountDocument = IAccount; // Define AccountDocument type
 export default AccountSchema;

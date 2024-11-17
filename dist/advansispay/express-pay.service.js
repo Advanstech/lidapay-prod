@@ -19,10 +19,12 @@ const constants_1 = require("../constants");
 const express_pay_error_1 = require("./express-pay.error");
 const generator_util_1 = require("../utilities/generator.util");
 const qr = require("querystring");
+const user_service_1 = require("../user/user.service");
 let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
-    constructor(httpService, transactionService) {
+    constructor(httpService, transactionService, userService) {
         this.httpService = httpService;
         this.transactionService = transactionService;
+        this.userService = userService;
         this.logger = new common_1.Logger(ExpressPayService_1.name);
         this.config = {
             merchantId: process.env.EXPRESSPAY_MERCHANT_ID || constants_1.EXPRESSPAY_MERCHANT_ID,
@@ -38,307 +40,114 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
     async paymentCallbackURL(req) {
         const orderId = req['order-id'] ? String(req['order-id']) : null;
         const token = req.token ? String(req.token) : null;
-        this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`);
+        this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`, {
+            body: req.body,
+            params: req.params,
+            query: req.query
+        });
         try {
             if (!token || !orderId) {
                 throw new common_1.HttpException('Invalid callback data', common_1.HttpStatus.BAD_REQUEST);
             }
-            this.logger.log(`Payment Callback URL orderId =>>${orderId}`);
-            const transactionExists = await this.transactionService.findByTransId(orderId);
-            if (!transactionExists) {
-                this.logger.warn(`Transaction with orderId ${orderId} not found. Cannot update status.`);
-                return { message: 'Transaction not found' };
+            const transaction = await this.transactionService.findByTransId(orderId);
+            if (!transaction) {
+                this.logger.warn(`Transaction not found: ${orderId}`);
+                return { message: 'Transaction not found', success: false };
             }
-            this.logger.log(`Payment Callback Query Transaction with Token =>>${token}`);
-            const transactionResponse = await this.queryTransaction(token);
-            if (transactionResponse.result === 3) {
-                this.logger.warn(`No transaction data available for token: ${token}. Updating status to UNKNOWN.`);
-                await this.transactionService.updateByTrxn(orderId, {
-                    paymentServiceCode: '3',
-                    paymentStatus: 'UNKNOWN',
-                    paymentServiceMessage: `UNKNOWN error`,
-                    lastChecked: new Date(),
-                    metadata: req.body,
-                    paymentCommentary: `Payment status is unknown for order ID: ${orderId}. Please check the transaction details.`,
-                });
-                return { message: 'Transaction status updated to UNKNOWN' };
-            }
-            else if (transactionResponse.result === 2) {
-                this.logger.error(`Transaction declined for token: ${token}. Result text: ${transactionResponse.resultText}`);
-                await this.transactionService.updateByTrxn(orderId, {
-                    paymentServiceCode: '2',
-                    paymentStatus: 'DECLINED',
-                    paymentServiceMessage: `Payment with order-ID: ${orderId} DECLINED`,
-                    lastChecked: new Date(),
-                    metadata: req.body,
-                    paymentCommentary: `Payment declined for order-ID: ${orderId}, token: ${token}. Reason: ${transactionResponse.resultText}`,
-                });
-            }
-            else if (transactionResponse.result === 1) {
-                await this.transactionService.updateByTrxn(orderId, {
-                    paymentServiceCode: '1',
-                    paymentStatus: 'APPROVED',
-                    paymentServiceMessage: `SUCCESS`,
-                    lastChecked: new Date(),
-                    metadata: req.body,
-                    paymentCommentary: `Transaction payment completed successfully with token: ${token}`,
-                });
-                this.logger.log(`Transaction status updated for order: ${orderId}, new status: COMPLETED`);
-                return { message: 'Callback processed successfully' };
-            }
-            else if (transactionResponse.result === 4) {
-                this.logger.log(`Transaction pending for token: ${token}. Waiting for post-url callback.`);
-                await this.transactionService.updateByTrxn(orderId, {
-                    paymentServiceCode: '4',
-                    paymentStatus: 'PENDING',
-                    paymentServiceMessage: `Payment processing in progress`,
-                    lastChecked: new Date(),
-                    metadata: req.body,
-                    paymentCommentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url.`,
-                });
-                return { message: 'Transaction is pending, waiting for final status' };
-            }
-            else {
-                this.logger.warn(`Unexpected transaction result: ${transactionResponse.result}`);
-            }
+            const queryResponse = await this.queryTransaction(token);
+            const updateData = this.mapCallbackStatusUpdate(queryResponse, orderId, req.body);
+            this.updateTransactionStatus(updateData, queryResponse, orderId);
+            updateData.metadata = this.buildMetadata(queryResponse, orderId, token, req.body);
+            await this.transactionService.updateByTrxn(orderId, updateData);
+            return {
+                success: true,
+                message: `Transaction ${updateData.status.service.toLowerCase()}`,
+                status: updateData.status.service,
+                orderId,
+                token
+            };
         }
         catch (error) {
-            this.logger.error('Error processing payment callback', {
-                error: error.message,
-                orderId,
-                stack: error.stack,
-            });
-            throw new express_pay_error_1.ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
+            this.handleErrorDuringCallback(error, orderId, token, req.body);
         }
     }
     async handlePostPaymentStatus(postData) {
-        const orderId = postData['order-id'];
+        const orderId = postData['order-id'] || postData.orderId || null;
         const token = postData.token;
         const result = postData.result !== undefined ? Number(postData.result) : null;
         const resultText = postData['result-text'] || '';
         const transactionId = postData['transaction-id'] || '';
-        this.logger.log(`Received post payment status for order: ${orderId}, token: ${token}, result: ${result}, resultText: ${resultText}`);
+        const amount = postData.amount;
+        const currency = postData.currency || 'GHS';
+        this.logger.log('Received post payment status', {
+            orderId,
+            token,
+            result,
+            resultText,
+            transactionId
+        });
         try {
             if (!token || !orderId) {
                 this.logger.error('Invalid post data', { orderId, token, result });
                 throw new common_1.HttpException('Invalid post data', common_1.HttpStatus.BAD_REQUEST);
             }
-            let paymentStatus;
-            switch (result) {
-                case 1:
-                    paymentStatus = 'APPROVED';
-                    break;
-                case 2:
-                    paymentStatus = 'DECLINED';
-                    break;
-                case 3:
-                    paymentStatus = 'ERROR';
-                    break;
-                case 4:
-                    paymentStatus = 'PENDING';
-                    break;
-                default:
-                    paymentStatus = 'UNKNOWN';
-            }
-            await this.transactionService.updateByTrxn(orderId, {
-                paymentServiceCode: String(result),
-                paymentStatus: paymentStatus,
-                paymentServiceMessage: resultText,
-                paymentTransactionId: transactionId,
-                lastChecked: new Date(),
-                metadata: postData,
-                paymentCommentary: `Post-URL update: ${resultText} (Result: ${result})`,
+            const updateData = this.buildPostPaymentUpdateData(postData, orderId, token);
+            await this.transactionService.updateByTransId(orderId, updateData);
+            this.logger.log(`Transaction status updated`, {
+                orderId,
+                status: updateData.status.service,
+                result
             });
-            this.logger.log(`Transaction status updated for order: ${orderId}, new status: ${paymentStatus}`);
-            return { message: 'Post payment status processed successfully' };
+            return {
+                success: true,
+                message: 'Post payment status processed successfully',
+                status: updateData.status.service,
+                orderId,
+                token
+            };
         }
         catch (error) {
-            this.logger.error('Error processing post payment status', {
-                error: error.message,
-                orderId,
-                stack: error.stack,
-            });
-            if (orderId) {
-                try {
-                    await this.transactionService.updateByTrxn(orderId, {
-                        paymentServiceCode: '500',
-                        paymentStatus: 'ERROR',
-                        paymentServiceMessage: 'Error processing post payment status',
-                        lastChecked: new Date(),
-                        metadata: {
-                            ...postData,
-                            error: error.message,
-                            errorTimestamp: new Date(),
-                        },
-                        paymentCommentary: `Failed to process post-URL update: ${error.message}`,
-                    });
-                }
-                catch (updateError) {
-                    this.logger.error('Failed to update transaction with error status', {
-                        error: updateError.message,
-                        orderId,
-                        originalError: error.message,
-                    });
-                }
+            if (error instanceof common_1.NotFoundException) {
+                this.logger.warn(`Transaction not found: ${orderId}`);
+                return {
+                    success: false,
+                    message: `Transaction with ID ${orderId} not found`,
+                    orderId,
+                    token
+                };
             }
-            throw new express_pay_error_1.ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
+            this.handleErrorDuringPostStatus(error, orderId, token, postData);
         }
     }
     async initiatePayment(paymentData) {
         const localTransId = generator_util_1.GeneratorUtil.generateOrderId() || 'TNX-';
-        this.logger.log(`Initiating payment for orderId as localTransId:: ${localTransId}`);
-        const ipParamSave = {
-            userId: paymentData.userId,
-            userName: paymentData.userName,
-            firstName: paymentData.firstName || '',
-            lastName: paymentData.lastName || '',
-            email: paymentData.email,
-            transId: localTransId,
-            paymentType: 'DEBIT',
-            retailer: 'EXPRESSPAY',
-            fee: constants_1.FEE_CHARGES || 0,
-            originalAmount: paymentData.amount,
-            amount: (Number(paymentData.amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
-            customerMsisdn: paymentData.phoneNumber,
-            walletOperator: '',
-            paymentCurrency: 'GHS',
-            paymentCommentary: '',
-            paymentStatus: 'pending',
-            paymentServiceCode: '',
-            paymentTransactionId: '',
-            paymentServiceMessage: '',
-            payTransRef: paymentData.payTransRef || '',
-            expressToken: '',
-            serviceStatus: 'pending',
-            transStatus: 'pending',
-            transType: paymentData.transType || 'MOMO',
-            recipientNumber: paymentData.phoneNumber,
-            timestamp: new Date(),
-            queryLastChecked: new Date()
-        };
+        const accountNumber = await this.getUserAccountNumber(paymentData.userId);
+        this.logger.log(`Initiating payment for orderId: ${localTransId}`);
+        this.logger.log(`User Account Number: ${accountNumber}`);
+        const initialTransaction = this.buildInitialTransaction(paymentData, localTransId);
         try {
-            const ipFormData = {
-                'merchant-id': this.config.liveMerchantId,
-                'api-key': this.config.liveApiKey,
-                firstname: paymentData.firstName,
-                lastname: paymentData.lastName,
-                email: paymentData.email,
-                phonenumber: paymentData.phoneNumber,
-                username: paymentData.username || paymentData.phoneNumber,
-                accountnumber: paymentData.accountNumber || '',
-                currency: 'GHS',
-                amount: paymentData.amount.toFixed(2),
-                'order-id': localTransId,
-                'order-desc': paymentData.orderDesc || '',
-                'redirect-url': this.config.redirectUrl,
-                'post-url': this.config.postUrl,
-                'order-img-url': paymentData.orderImgUrl || '',
-            };
-            console.log('initiate payment payload  =>>');
+            const ipFormData = await this.buildIpFormData(localTransId, paymentData, accountNumber);
+            console.debug(`initiate payment ipFormData: ${JSON.stringify(ipFormData)}`);
             this.logger.debug('Sending payment request to ExpressPay', {
-                'order-id': ipFormData,
+                'order-id': localTransId,
                 amount: ipFormData.amount,
             });
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.config.baseUrl}/api/submit.php`, qr.stringify(ipFormData), {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             }));
             const { status, token, message } = response.data;
             if (status !== 1) {
-                this.logger.error('Payment initiation failed', {
-                    status,
-                    orderId: ipFormData['order-id'],
-                    message,
-                });
-                const failedTransaction = {
-                    ...ipParamSave,
-                    transStatus: 'failed',
-                    serviceStatus: 'FAILED',
-                    paymentStatus: 'FAILED',
-                    paymentServiceCode: status.toString(),
-                    paymentTransactionId: '',
-                    paymentServiceMessage: message || 'Payment initiation failed',
-                    paymentCommentary: `Transaction failed: ${message}`,
-                    expressToken: '',
-                    metadata: [{
-                            result: status,
-                            'result-text': message,
-                            'order-id': localTransId,
-                            token: '',
-                            currency: 'GHS',
-                            amount: paymentData.amount.toFixed(2),
-                            'transaction-id': '',
-                            'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
-                            lastQueryAt: new Date().toISOString()
-                        }],
-                    timestamp: new Date(),
-                    queryLastChecked: new Date()
-                };
-                await this.transactionService.create(failedTransaction);
-                throw new express_pay_error_1.ExpressPayError('PAYMENT_INITIATION_FAILED', {
-                    status,
-                    message,
-                });
+                await this.handleFailedTransaction(initialTransaction, status, message);
             }
-            this.logger.log(`Payment initiated successfully. Token: ${token}`);
-            ipParamSave.expressToken = token;
-            ipParamSave.metadata = [{
-                    result: 1,
-                    'result-text': 'Pending',
-                    'order-id': localTransId,
-                    token: token,
-                    currency: 'GHS',
-                    amount: paymentData.amount.toFixed(2),
-                    'transaction-id': '',
-                    'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
-                    lastQueryAt: new Date().toISOString()
-                }];
-            await this.transactionService.create(ipParamSave);
+            await this.handleSuccessfulTransaction(initialTransaction, token);
             return {
                 checkoutUrl: `${this.config.baseUrl}/api/checkout.php?token=${token}`,
                 token,
-                'order-id': ipParamSave.transId,
+                'order-id': localTransId
             };
         }
         catch (error) {
-            this.logger.error('Payment initiation error', {
-                error: error.message,
-                'order-id': localTransId,
-                stack: error.stack,
-            });
-            if (!(error instanceof express_pay_error_1.ExpressPayError)) {
-                const errorTransaction = {
-                    ...ipParamSave,
-                    transId: localTransId,
-                    transStatus: 'failed',
-                    serviceStatus: 'FAILED',
-                    paymentStatus: 'FAILED',
-                    paymentServiceCode: '500',
-                    paymentTransactionId: '',
-                    paymentServiceMessage: 'SYSTEM_ERROR',
-                    paymentCommentary: `System error occurred: ${error.message}`,
-                    expressToken: '',
-                    metadata: [{
-                            result: 0,
-                            'result-text': error.message,
-                            'order-id': localTransId,
-                            token: '',
-                            currency: 'GHS',
-                            amount: paymentData.amount.toFixed(2),
-                            'transaction-id': '',
-                            'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
-                            lastQueryAt: new Date().toISOString()
-                        }],
-                    timestamp: new Date(),
-                    queryLastChecked: new Date()
-                };
-                await this.transactionService.create(errorTransaction);
-            }
-            if (error instanceof express_pay_error_1.ExpressPayError) {
-                throw error;
-            }
-            throw new express_pay_error_1.ExpressPayError('SYSTEM_ERROR', error.message);
+            await this.handleErrorDuringPaymentInitiation(error, initialTransaction);
         }
     }
     async queryTransaction(token) {
@@ -354,37 +163,24 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
             }));
-            const { result, orderId, amount, 'transaction-id': transactionId, 'result-text': resultText, } = response.data;
+            const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
             this.logger.debug('Query Transaction response', {
                 token,
                 result,
                 orderId,
                 resultText,
+                transactionId
             });
-            const statusMap = {
-                1: 'COMPLETED',
-                2: 'DECLINED',
-                3: 'ERROR',
-                4: 'PENDING',
-            };
-            const status = statusMap[result];
-            await this.transactionService.updateByExpressToken(token, {
-                serviceStatus: status,
-                paymentTransactionId: transactionId,
-                queryLastChecked: new Date(),
-                metadata: {
-                    ...response.data,
-                    lastQueryAt: new Date(),
-                },
-            });
+            const updateData = this.buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed);
+            await this.transactionService.updateByExpressToken(token, updateData);
             return {
-                status,
+                status: updateData.status.service,
                 orderId,
                 transactionId,
                 amount,
                 resultText,
                 originalResponse: response.data,
-                result,
+                result
             };
         }
         catch (error) {
@@ -396,11 +192,468 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             throw new express_pay_error_1.ExpressPayError('QUERY_FAILED', error.message);
         }
     }
+    updateTransactionStatus(updateData, queryResponse, orderId) {
+        switch (queryResponse.result) {
+            case 1:
+                this.logger.log(`Payment successful for order: ${orderId}`);
+                updateData.status = {
+                    service: 'COMPLETED',
+                    payment: 'APPROVED',
+                    transaction: 'completed'
+                };
+                updateData.payment = {
+                    serviceCode: '1',
+                    transactionId: queryResponse.transactionId,
+                    serviceMessage: 'SUCCESS',
+                    commentary: `Payment completed successfully for order-ID: ${orderId}`
+                };
+                break;
+            case 2:
+                this.logger.warn(`Payment declined for order: ${orderId}`);
+                updateData.status = {
+                    service: 'DECLINED',
+                    payment: 'DECLINED',
+                    transaction: 'failed'
+                };
+                updateData.payment = {
+                    serviceCode: '2',
+                    transactionId: queryResponse.transactionId,
+                    serviceMessage: 'DECLINED',
+                    commentary: `Payment declined for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+                };
+                break;
+            case 3:
+                this.logger.error(`Payment error for order: ${orderId}`);
+                updateData.status = {
+                    service: 'ERROR',
+                    payment: 'ERROR',
+                    transaction: 'failed'
+                };
+                updateData.payment = {
+                    serviceCode: '3',
+                    transactionId: queryResponse.transactionId,
+                    serviceMessage: 'ERROR',
+                    commentary: `Payment error for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+                };
+                break;
+            case 4:
+                this.logger.log(`Payment pending for order: ${orderId}`);
+                updateData.status = {
+                    service: 'PENDING',
+                    payment: 'PENDING',
+                    transaction: 'pending'
+                };
+                updateData.payment = {
+                    serviceCode: '4',
+                    transactionId: queryResponse.transactionId,
+                    serviceMessage: 'PENDING',
+                    commentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`
+                };
+                break;
+            default:
+                this.logger.warn(`Unexpected status for order: ${orderId}`);
+                updateData.status = {
+                    service: 'UNKNOWN',
+                    payment: 'UNKNOWN',
+                    transaction: 'failed'
+                };
+                updateData.payment = {
+                    serviceCode: '0',
+                    transactionId: queryResponse.transactionId,
+                    serviceMessage: 'UNKNOWN',
+                    commentary: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+                };
+        }
+    }
+    buildMetadata(queryResponse, orderId, token, callbackData) {
+        return [{
+                result: queryResponse.result,
+                'result-text': queryResponse.resultText,
+                'order-id': orderId,
+                token,
+                'transaction-id': queryResponse.transactionId,
+                amount: queryResponse.amount,
+                currency: callbackData.currency || 'GHS',
+                'date-processed': new Date().toISOString(),
+                lastQueryAt: new Date().toISOString(),
+                callbackData
+            }];
+    }
+    async handleErrorDuringCallback(error, orderId, token, callbackData) {
+        this.logger.error('Payment callback processing failed', {
+            error: error.message,
+            orderId,
+            token,
+            stack: error.stack
+        });
+        if (orderId) {
+            try {
+                const errorUpdate = {
+                    status: {
+                        service: 'ERROR',
+                        payment: 'ERROR',
+                        transaction: 'failed'
+                    },
+                    payment: {
+                        serviceCode: '500',
+                        transactionId: '',
+                        serviceMessage: 'Callback processing failed',
+                        commentary: `Error processing callback: ${error.message}`
+                    },
+                    metadata: [{
+                            result: 0,
+                            'result-text': error.message,
+                            'order-id': orderId,
+                            token,
+                            lastQueryAt: new Date().toISOString(),
+                            error: true,
+                            errorDetails: error.message
+                        }],
+                    queryLastChecked: new Date()
+                };
+                await this.transactionService.updateByTrxn(orderId, errorUpdate);
+            }
+            catch (updateError) {
+                this.logger.error('Failed to update transaction with error status', {
+                    error: updateError.message,
+                    orderId,
+                    originalError: error.message
+                });
+            }
+        }
+        throw new express_pay_error_1.ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
+    }
+    buildPostPaymentUpdateData(postData, orderId, token) {
+        const result = postData.result !== undefined ? Number(postData.result) : null;
+        const resultText = postData['result-text'] || '';
+        const transactionId = postData['transaction-id'] || '';
+        return {
+            status: {
+                service: this.mapServiceStatus(result),
+                payment: this.mapServiceStatus(result),
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+            },
+            payment: {
+                serviceCode: String(result),
+                transactionId: transactionId,
+                serviceMessage: resultText,
+                commentary: this.generatePostUrlCommentary(result, orderId, resultText)
+            },
+            queryLastChecked: new Date(),
+            metadata: [{
+                    result,
+                    'result-text': resultText,
+                    'order-id': orderId,
+                    token,
+                    'transaction-id': transactionId,
+                    amount: postData.amount,
+                    currency: postData.currency || 'GHS',
+                    'date-processed': new Date().toISOString(),
+                    lastQueryAt: new Date().toISOString(),
+                    postUrlData: postData
+                }]
+        };
+    }
+    async handleErrorDuringPostStatus(error, orderId, token, postData) {
+        this.logger.error('Post payment status processing failed', {
+            error: error.message,
+            orderId,
+            token,
+            stack: error.stack
+        });
+        if (orderId) {
+            try {
+                const errorUpdate = {
+                    status: {
+                        service: 'ERROR',
+                        payment: 'ERROR',
+                        transaction: 'failed'
+                    },
+                    payment: {
+                        serviceCode: '500',
+                        transactionId: '',
+                        serviceMessage: 'Post-URL processing failed',
+                        commentary: `Error processing post-URL update: ${error.message}`
+                    },
+                    metadata: [{
+                            result: 0,
+                            'result-text': error.message,
+                            'order-id': orderId,
+                            token,
+                            'transaction-id': postData['transaction-id'],
+                            lastQueryAt: new Date().toISOString(),
+                            error: true,
+                            errorDetails: error.message,
+                            originalPostData: postData
+                        }],
+                    queryLastChecked: new Date()
+                };
+                await this.transactionService.updateByTransId(orderId, errorUpdate);
+            }
+            catch (updateError) {
+                this.logger.error('Failed to update transaction with error status', {
+                    error: updateError.message,
+                    orderId,
+                    originalError: error.message
+                });
+            }
+        }
+        throw new express_pay_error_1.ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
+    }
+    buildInitialTransaction(paymentData, localTransId) {
+        return {
+            userId: paymentData.userId,
+            userName: paymentData.userName,
+            firstName: paymentData.firstName || '',
+            lastName: paymentData.lastName || '',
+            email: paymentData.email,
+            transId: localTransId,
+            recipientNumber: paymentData.phoneNumber,
+            retailer: 'EXPRESSPAY',
+            expressToken: '',
+            transType: paymentData.transType || 'MOMO',
+            customerMsisdn: paymentData.phoneNumber,
+            walletOperator: '',
+            payTransRef: paymentData.payTransRef || '',
+            status: {
+                transaction: 'pending',
+                service: 'pending',
+                payment: 'pending'
+            },
+            monetary: {
+                amount: Number(paymentData.amount) + Number(constants_1.FEE_CHARGES),
+                fee: constants_1.FEE_CHARGES || 0,
+                originalAmount: paymentData.amount.toString(),
+                currency: 'GHS'
+            },
+            payment: {
+                type: 'DEBIT',
+                currency: 'GHS',
+                serviceCode: '',
+                transactionId: '',
+                serviceMessage: '',
+                commentary: ''
+            },
+            metadata: [{
+                    result: 0,
+                    'result-text': 'Initiated',
+                    'order-id': localTransId,
+                    token: '',
+                    currency: 'GHS',
+                    amount: paymentData.amount.toFixed(2),
+                    'transaction-id': '',
+                    'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
+                    lastQueryAt: new Date().toISOString()
+                }],
+            timestamp: new Date(),
+            queryLastChecked: new Date()
+        };
+    }
+    async getUserAccountNumber(userId) {
+        const user = await this.userService.findOneById(userId);
+        if (user && user.account) {
+            const account = await this.userService.getAccountById(user.account.toString());
+            return account ? account.accountId : null;
+        }
+        return null;
+    }
+    async buildIpFormData(localTransId, paymentData, accountNumber) {
+        return {
+            'merchant-id': this.config.liveMerchantId,
+            'api-key': this.config.liveApiKey,
+            firstname: paymentData.firstName,
+            lastname: paymentData.lastName,
+            email: paymentData.email,
+            phonenumber: paymentData.phoneNumber,
+            username: paymentData.username || paymentData.phoneNumber,
+            accountnumber: accountNumber,
+            currency: 'GHS',
+            amount: paymentData.amount.toFixed(2),
+            'order-id': localTransId,
+            'order-desc': paymentData.orderDesc || '',
+            'redirect-url': this.config.redirectUrl,
+            'post-url': this.config.postUrl,
+            'order-img-url': paymentData.orderImgUrl || '',
+        };
+    }
+    async handleErrorDuringPaymentInitiation(error, initialTransaction) {
+        this.logger.error('Payment initiation failed', {
+            error: error.message,
+            transaction: initialTransaction,
+            stack: error.stack
+        });
+        if (!(error instanceof express_pay_error_1.ExpressPayError)) {
+            const errorTransaction = {
+                ...initialTransaction,
+                status: {
+                    transaction: 'failed',
+                    service: 'FAILED',
+                    payment: 'FAILED'
+                },
+                payment: {
+                    ...initialTransaction.payment,
+                    serviceCode: '500',
+                    serviceMessage: 'SYSTEM_ERROR',
+                    commentary: `System error occurred: ${error.message}`
+                },
+                metadata: [{
+                        initiatedAt: new Date(),
+                        provider: 'EXPRESSPAY',
+                        username: initialTransaction.userName || initialTransaction.recipientNumber,
+                        accountNumber: initialTransaction.payTransRef || '',
+                        lastQueryAt: new Date()
+                    }],
+                queryLastChecked: new Date()
+            };
+            await this.transactionService.create(errorTransaction);
+        }
+        if (error instanceof express_pay_error_1.ExpressPayError) {
+            throw error;
+        }
+        throw new express_pay_error_1.ExpressPayError('SYSTEM_ERROR', error.message);
+    }
+    async handleFailedTransaction(initialTransaction, status, message) {
+        const failedTransaction = {
+            ...initialTransaction,
+            status: {
+                transaction: 'failed',
+                service: 'FAILED',
+                payment: 'FAILED'
+            },
+            payment: {
+                ...initialTransaction.payment,
+                serviceCode: status.toString(),
+                serviceMessage: message || 'Payment initiation failed',
+                commentary: `Transaction failed: ${message}`
+            },
+            metadata: [{
+                    initiatedAt: new Date(),
+                    provider: 'EXPRESSPAY',
+                    username: initialTransaction.userName || initialTransaction.phoneNumber,
+                    accountNumber: initialTransaction.accountNumber || '',
+                    lastQueryAt: new Date()
+                }],
+            queryLastChecked: new Date()
+        };
+        await this.transactionService.create(failedTransaction);
+        throw new express_pay_error_1.ExpressPayError('PAYMENT_INITIATION_FAILED', { status, message });
+    }
+    async handleSuccessfulTransaction(initialTransaction, token) {
+        const successTransaction = {
+            ...initialTransaction,
+            expressToken: token,
+            metadata: [{
+                    initiatedAt: new Date(),
+                    provider: 'EXPRESSPAY',
+                    username: initialTransaction.userName || initialTransaction.phoneNumber,
+                    accountNumber: initialTransaction.accountNumber || '',
+                    token: token,
+                    result: 1,
+                    'result-text': 'Pending',
+                    lastQueryAt: new Date()
+                }]
+        };
+        await this.transactionService.create(successTransaction);
+    }
+    buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed) {
+        return {
+            status: {
+                service: this.mapServiceStatus(result),
+                payment: this.mapServiceStatus(result),
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+            },
+            payment: {
+                serviceCode: result.toString(),
+                transactionId: transactionId,
+                serviceMessage: resultText,
+                commentary: this.generateCommentary(this.mapServiceStatus(result), orderId, resultText)
+            },
+            queryLastChecked: new Date(),
+            metadata: [{
+                    result,
+                    'result-text': resultText,
+                    'order-id': orderId,
+                    token: '',
+                    'transaction-id': transactionId,
+                    currency,
+                    amount,
+                    'date-processed': dateProcessed,
+                    lastQueryAt: new Date().toISOString()
+                }]
+        };
+    }
+    mapServiceStatus(result) {
+        const statusMap = {
+            1: 'COMPLETED',
+            2: 'DECLINED',
+            3: 'ERROR',
+            4: 'PENDING'
+        };
+        return statusMap[result] || 'UNKNOWN';
+    }
+    mapTransactionStatus(serviceStatus) {
+        const statusMap = {
+            'COMPLETED': 'completed',
+            'DECLINED': 'failed',
+            'ERROR': 'failed',
+            'PENDING': 'pending',
+            'UNKNOWN': 'failed'
+        };
+        return statusMap[serviceStatus] || 'failed';
+    }
+    generateCommentary(status, orderId, resultText) {
+        const commentaryMap = {
+            'COMPLETED': `Payment completed successfully for order-ID: ${orderId}`,
+            'DECLINED': `Payment declined for order-ID: ${orderId}. Reason: ${resultText}`,
+            'ERROR': `Payment error for order-ID: ${orderId}. Reason: ${resultText}`,
+            'PENDING': `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
+            'UNKNOWN': `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+        };
+        return commentaryMap[status] || `Unexpected status for order-ID: ${orderId}`;
+    }
+    generatePostUrlCommentary(result, orderId, resultText) {
+        const commentaryMap = {
+            1: `Payment confirmed via post-URL for order-ID: ${orderId}`,
+            2: `Payment declined via post-URL for order-ID: ${orderId}. Reason: ${resultText}`,
+            3: `Payment error reported via post-URL for order-ID: ${orderId}. Details: ${resultText}`,
+            4: `Payment still pending via post-URL for order-ID: ${orderId}`,
+        };
+        return commentaryMap[result] || `Unexpected post-URL status (${result}) for order-ID: ${orderId}. Details: ${resultText}`;
+    }
+    mapCallbackStatusUpdate(queryResponse, orderId, callbackData) {
+        return {
+            status: {
+                service: this.mapServiceStatus(queryResponse.result),
+                payment: this.mapServiceStatus(queryResponse.result),
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(queryResponse.result))
+            },
+            payment: {
+                serviceCode: queryResponse.result.toString(),
+                transactionId: queryResponse['transaction-id'] || '',
+                serviceMessage: queryResponse['result-text'] || '',
+                commentary: this.generateCommentary(this.mapServiceStatus(queryResponse.result), orderId, queryResponse['result-text'])
+            },
+            queryLastChecked: new Date(),
+            metadata: [{
+                    result: queryResponse.result,
+                    'result-text': queryResponse['result-text'],
+                    'order-id': orderId,
+                    token: '',
+                    'transaction-id': queryResponse['transaction-id'] || '',
+                    amount: queryResponse.amount,
+                    currency: callbackData.currency || 'GHS',
+                    'date-processed': new Date().toISOString(),
+                    lastQueryAt: new Date().toISOString(),
+                    postUrlData: callbackData
+                }]
+        };
+    }
 };
 exports.ExpressPayService = ExpressPayService;
 exports.ExpressPayService = ExpressPayService = ExpressPayService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [axios_1.HttpService,
-        transaction_service_1.TransactionService])
+        transaction_service_1.TransactionService,
+        user_service_1.UserService])
 ], ExpressPayService);
 //# sourceMappingURL=express-pay.service.js.map

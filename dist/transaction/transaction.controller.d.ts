@@ -12,20 +12,22 @@ export declare class TransactionController {
         totalPages: number;
     }>;
     findOne(id: string): Promise<Transaction>;
-    update(id: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction>;
-    updateByTrxn(trxn: string, updateTransactionDto: UpdateTransactionDto): Promise<import("mongoose").Document<unknown, {}, import("./schemas/transaction.schema").TransactionDocument> & Transaction & import("mongoose").Document<unknown, any, any> & Required<{
-        _id: unknown;
-    }> & {
-        __v?: number;
+    updateByTrxn(trxn: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction>;
+    updateByTransId(transId: string, trxn: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction>;
+    deleteByTransIdTrxn(trxn: string): Promise<{
+        message: string;
     }>;
+    findByUserId(userId: string, page?: number, limit?: number): Promise<{
+        transactions: Transaction[];
+        total: number;
+        totalPages: number;
+    }>;
+    getTransactionStats(userId: string): Promise<any>;
+    findByDateRange(startDate: string, endDate: string): Promise<Transaction[]>;
     remove(id: string): Promise<{
         message: string;
         deletedTransaction: Transaction;
     }>;
-    getTransactionsByTransactionId(transactionId: string): Promise<Transaction>;
-    findByType(type: string): Promise<Transaction[]>;
-    findByStatus(status: string): Promise<Transaction[]>;
-    findByDateRange(startDate: string, endDate: string): Promise<Transaction[]>;
-    getTransactionStats(userId: string): Promise<any>;
-    findByUserId(userId: string, page?: number, limit?: number): Promise<any>;
+    findByTransId(transId: string): Promise<Transaction>;
+    findByTrxn(trxn: string): Promise<Transaction>;
 }

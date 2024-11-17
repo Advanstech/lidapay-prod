@@ -1,31 +1,15 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema()
 export class TransactionStatus {
-  @Prop({ 
-    required: true, 
-    enum: ['pending', 'completed', 'failed', 'success', 'approved'] 
-  })
+  @Prop({ required: true, enum: ['pending', 'completed', 'failed', 'success', 'approved'] })
   transaction: string;
 
-  @Prop({ 
-    required: true, 
-    enum: [
-      'pending',
-      'inprogress',
-      'refunded',
-      'reversed',
-      'cancelled',
-      'completed',
-      'failed',
-      'success',
-      'approved',
-      'declined',
-      'error'
-    ] 
-  })
+  @Prop({ required: true, enum: ['pending', 'inprogress', 'refunded', 'reversed', 'cancelled', 'completed', 'failed', 'success', 'approved', 'declined', 'error'] })
   service: string;
 
   @Prop()
   payment?: string;
-} 
+}
+
+export const TransactionStatusSchema = SchemaFactory.createForClass(TransactionStatus);

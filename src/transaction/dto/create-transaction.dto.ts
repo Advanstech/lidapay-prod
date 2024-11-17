@@ -1,135 +1,185 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsEnum, IsArray } from 'class-validator';
 
-export class CreateTransactionDto {
-  @ApiProperty({ example: 'user123', description: 'The ID of the user initiating the transaction' })
-  userId: string;
+// monetary-details dto
+export class MonetaryDetailsDto {
+  @IsNumber()
+  @IsNotEmpty()
+  amount: number; // Ensure this is a number
 
-  @ApiProperty({ example: 'user123', description: 'The ID of the user initiating the transaction' })
-  userName: string;
-  firstName?: string;
-  lastName?: string;
-
-  @ApiProperty({ example: 'AIRTIME', description: 'The type of transaction' })
-  transType: string;
-  @ApiProperty({ example: 100, description: 'The amount of the transaction' })
-  amount: number;
-  @ApiProperty({ example: 'USD', description: 'The currency of the transaction' })
-  currency?: string;
-  currencyName?: string;
-  @ApiProperty({ example: 'pending', description: 'The status of the transaction', enum: ['pending', 'completed', 'failed', 'successfull'] })
-  transStatus: string;
-  @ApiProperty({ example: 'completed', description: 'The service status of the transaction', enum: ['refunded', 'reversed', 'cancelled', 'completed', 'failed'] })
-  serviceStatus: string;
-  @ApiProperty({ example: 'MERCH123', description: 'The referrer client ID' })
-  referrerClientId?: string;
-
-  @ApiProperty({ example: 'MTN', description: 'The operator for the transaction', enum: ['Unknown', 'AirtelTigo', 'EXPRESSO', 'GLO', 'MTN', 'TiGO', 'Telecel', 'Busy', 'Surfline'] })
-  operator: string;
-
-  @ApiProperty({ example: '+233123456789', description: 'The recipient phone number' })
-  recipientNumber: string;
-
-  @ApiProperty({ example: 'recipient@example.com', description: 'The recipient email address' })
-  recipientEmail?: string;
-
-  @ApiProperty({ example: '5GB', description: 'The data package for internet transactions' })
-  dataPackage?: string;
-
-  @ApiProperty({ example: 'send', description: 'The type of mobile money transaction' })
-  momoTransType?: string;
-
-  @ApiProperty({ example: 'GH', description: 'The country code for Reloadly transactions' })
-  reloadlyCountryCode?: string;
-
-  @ApiProperty({ example: 1.5, description: 'The transaction fee' })
-  transFee?: number;
-
-  @ApiProperty({ example: 0.5, description: 'The discount applied to the transaction' })
-  discountApplied?: number;
-
-  @ApiProperty({ example: 10, description: 'The points earned from the transaction' })
-  pointsEarned?: number;
-
-  @ApiProperty({ example: 5, description: 'The points redeemed for the transaction' })
-  pointsRedeemed?: number;
-
-  @ApiProperty({ example: 'Transaction successful', description: 'The transaction message' })
-  transactionMessage?: string;
-
-  @ApiProperty({ example: '2023-05-01T12:00:00Z', description: 'The timestamp of the transaction' })
-  timestamp?: Date;
-
-  @ApiProperty({ example: 'MTN', description: 'The network for the transaction' })
-  network?: string;
-
-  @ApiProperty({ example: 'TRX123456', description: 'The transaction reference' })
-  trxn?: string;
-
-  @ApiProperty({ example: 1.0, description: 'The fee for the transaction' })
+  @IsNumber()
+  @IsOptional()
   fee?: number;
 
-  @ApiProperty({ example: '100', description: 'The original amount of the transaction' })
+  @IsString()
+  @IsOptional()
   originalAmount?: string;
 
-  @ApiProperty({ example: 'Airtime topup', description: 'Commentary on the transaction' })
-  commentary?: string;
+  @IsString()
+  @IsOptional()
+  currency?: string = 'GHS'; // Default currency
 
-  @ApiProperty({ example: '1000', description: 'The balance before the transaction' })
+  @IsString()
+  @IsOptional()
   balance_before?: string;
 
-  @ApiProperty({ example: '900', description: 'The balance after the transaction' })
+  @IsString()
+  @IsOptional()
   balance_after?: string;
 
-  @ApiProperty({ example: '900', description: 'The current balance after the transaction' })
+  @IsString()
+  @IsOptional()
   currentBalance?: string;
 
-  @ApiProperty({ example: { phoneNumber: '1234567890' }, description: 'Additional details specific to the transaction type' })
-  details?: Record<string, any>;
+  deliveredAmount?: any;
+  requestedAmount?: any; // New field
+  discount: any; // New field
+}
+// transaction status dto
+export class TransactionStatusDto {
+  @IsEnum(['pending', 'completed', 'failed', 'success', 'approved'])
+  transaction: string;
 
-  @ApiProperty({ example: 'serviceCode', description: 'The service code for the transaction' })
-  serviceCode: string;
+  @IsEnum([
+    'pending',
+    'inprogress',
+    'refunded',
+    'reversed',
+    'cancelled',
+    'completed',
+    'failed',
+    'success',
+    'approved',
+    'declined',
+    'error'
+  ])
+  service: string;
 
-  @ApiProperty({ example: 'transMessage', description: 'The transaction message' })
-  transMessage: string;
+  @IsString()
+  @IsOptional()
+  payment?: string;
+}
+// payment-details dto
+export class PaymentDetailsDto {
+  @IsString()
+  @IsOptional()
+  currency?: string;
 
-  @ApiProperty({ example: 'serviceTransId', description: 'The service transaction ID' })
-  serviceTransId: string;
+  @IsString()
+  @IsOptional()
+  commentary?: string;
 
-  @ApiProperty({ example: 'phoneNumber', description: 'The phone number for the transaction' })
-  phoneNumber?: string;
+  @IsString()
+  @IsOptional()
+  status?: string;
 
-  @ApiProperty({ example: 'serviceName', description: 'The service name for the transaction' })
-  serviceName?: string;
+  @IsString()
+  @IsOptional()
+  serviceCode?: string;
 
-  @ApiProperty({ example: 'merchantReference', description: 'The merchant reference for the transaction' })
-  merchantReference?: string;
+  @IsString()
+  @IsOptional()
+  transactionId?: string;
 
-  @ApiProperty({ example: 'transId', description: 'The transaction ID' })
-  transId?: string;
+  @IsString()
+  @IsOptional()
+  serviceMessage?: string;
 
-  @ApiProperty({ example: 'dataCode', description: 'The data code for internet transactions' })
-  dataCode?: string;
+  @IsString()
+  @IsOptional()
+  type?: string;
 
-  @ApiProperty({ example: 'paymentType', description: 'The payment type for the transaction' })
-  paymentType?: string;
+  operatorTransactionId?: string; // Add this line
 
-  @ApiProperty({ example: 'paymentCurrency', description: 'The payment currency for the transaction' })
-  paymentCurrency?: string;
+}
+// create trans dto
+export class CreateTransactionDto {
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
 
-  @ApiProperty({ example: 'paymentCommentary', description: 'The payment commentary for the transaction' })
+  @IsString()
+  @IsOptional()
+  userName?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  transType: string;
+
+  @IsString()
+  @IsNotEmpty()
+  transId: string;
+
+  @IsString()
+  @IsOptional()
+  recipientNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  operator?: string;
+
+  @IsString()
+  @IsOptional()
+  network?: string;
+
+  @IsString()
+  @IsOptional()
+  retailer?: string;
+
+  @IsString()
+  @IsOptional()
+  expressToken?: string;
+
+  @IsNotEmpty()
+  monetary: MonetaryDetailsDto; // Ensure monetary details are provided
+
+  @IsNotEmpty()
+  status: TransactionStatusDto; // Ensure status is provided
+
+  @IsOptional()
+  payment?: PaymentDetailsDto; // Payment details are optional
+
+  @IsArray()
+  @IsOptional()
+  metadata?: Array<{
+    initiatedAt: Date;
+    provider: string;
+    username: string;
+    accountNumber: string;
+    lastQueryAt: Date;
+    token?: string;
+    result?: number;
+    'result-text'?: string;
+  }>;
+
+  @IsString()
+  @IsOptional()
+  commentary?: string;
+
+  @IsOptional()
+  trxn?: string;
+
+  @IsOptional()
   paymentCommentary?: string;
 
-  @ApiProperty({ example: 'paymentStatus', description: 'The payment status for the transaction' })
-  paymentStatus?: string;
+  @IsOptional()
+  deliveredAmount?: number;
 
-  @ApiProperty({ example: 'paymentServiceCode', description: 'The payment service code for the transaction' })
-  paymentServiceCode?: string;
+  @IsOptional()
+  requestedAmount?: number;
 
-  @ApiProperty({ example: 'paymentTransactionId', description: 'The payment transaction ID for the transaction' })
-  paymentTransactionId?: string;
+  @IsOptional()
+  operatorTransactionId?: string;
 
-  transactionId?: string; // Add this line to include transactionId
-  paymentId?: string;
-  expressToken?: string;
-  metadata?: Record<string, any>;
+  @IsOptional()
+  discount?: number;
+
+  @IsOptional()
+  balanceInfo?: {
+    oldBalance: number;
+    newBalance: number;
+    cost: number;
+    currencyCode: string;
+    currencyName: string;
+    updatedAt: Date;
+  };
 }

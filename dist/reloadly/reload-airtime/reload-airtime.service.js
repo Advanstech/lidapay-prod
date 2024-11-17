@@ -51,11 +51,15 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
     async makeTopUp(airDto) {
         let rAccessToken = await this.reloadlyAccessToken();
         this.logger.debug(`Reloadly Token::: ${rAccessToken}`);
-        const { operatorId, amount, recipientEmail, recipientNumber, senderNumber, recipientCountryCode, currency, userId, userName, retailer, network, operatorName, } = airDto;
+        const { operatorId, amount, recipientEmail, recipientNumber, senderNumber, recipientCountryCode, currency, userId, userName, retailer, network, operatorName, senderCountryCode, } = airDto;
+        if (isNaN(amount) || amount <= 0) {
+            this.logger.error(`Invalid amount provided: ${amount}`);
+            throw new common_1.BadRequestException('Invalid amount provided');
+        }
         const mtPayload = {
             operatorId,
             operatorName,
-            amount,
+            amount: Number(amount),
             useLocalAmount: false,
             customIdentifier: generator_util_1.GeneratorUtil.generateTransactionId(),
             recipientEmail,
@@ -64,39 +68,54 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
                 number: recipientNumber,
             },
             senderPhone: {
-                countryCode: airDto.senderCountryCode,
+                countryCode: senderCountryCode,
                 number: senderNumber,
             },
         };
+        this.logger.debug(`make topup payload: ${JSON.stringify(mtPayload)}`);
         const mtPayloadSave = {
             userId: userId,
             userName: userName,
-            transType: 'RELOADLY AIRTIME TOPUP',
+            transType: 'GLOBAL AIRTIME',
             retailer: 'RELOADLY',
-            network: mtPayload.operatorId,
-            operator: mtPayload.operatorName || '',
-            trxn: mtPayload.customIdentifier || '',
+            network: operatorId,
+            operator: operatorName || '',
             transId: mtPayload.customIdentifier,
-            fee: constants_1.FEE_CHARGES || 0,
-            originalAmount: amount || '',
-            amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
-            recipientNumber: recipientNumber || '',
-            transMessage: `${userName} global topup airtime ${amount} GHS for ${mtPayload.operatorName} to ${recipientNumber}`,
-            transStatus: 'pending',
-            transCode: '',
+            trxn: mtPayload.customIdentifier,
+            monetary: {
+                amount: Number(amount) + Number(constants_1.FEE_CHARGES),
+                fee: Number(constants_1.FEE_CHARGES) || 0,
+                discount: 0,
+                originalAmount: String(Number(amount) || 0),
+                currency: currency || 'GHS',
+                balance_before: '0',
+                balance_after: '0',
+                currentBalance: '0',
+            },
+            status: {
+                transaction: 'pending',
+                service: 'inprogress',
+                payment: '',
+            },
+            payment: {
+                type: 'airtime',
+                currency: currency || 'GHS',
+                commentary: `${userName} global topup airtime ${amount} GHS for ${operatorName} to ${recipientNumber}`,
+                status: 'pending',
+                serviceCode: '',
+                transactionId: '',
+                serviceMessage: '',
+            },
+            metadata: [{
+                    initiatedAt: new Date(),
+                    provider: 'Reloadly',
+                    username: userName,
+                    accountNumber: recipientNumber,
+                    lastQueryAt: new Date(),
+                }],
             commentary: 'Global airtime topup transaction pending',
-            balance_before: '',
-            balance_after: '',
-            currentBalance: '',
-            currency: currency || 'GHS',
-            serviceName: 'RELOADLY AIRTIME TOPUP',
-            serviceStatus: 'inprogress',
-            serviceCode: '',
-            serviceTransId: '',
-            serviceMessage: '',
-            timestamp: ''
         };
-        this.transService.create(mtPayloadSave);
+        await this.transService.create(mtPayloadSave);
         const mtURL = `https://topups-sandbox.reloadly.com/topups`;
         const config = {
             url: mtURL,
@@ -111,44 +130,50 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         return this.httpService
             .post(config.url, config.body, { headers: config.headers })
             .pipe((0, operators_1.map)((mtRes) => {
-            this.logger.debug(`MAKE TOPUP RESPONSE ++++ ${JSON.stringify(mtRes.data)}`);
-            if (mtRes.data.status === 'SUCCESSFUL') {
-                this.logger.log(`topup successful`);
-                mtPayloadSave.serviceMessage = mtRes.data.message;
-                mtPayloadSave.serviceTransId = mtRes.data.transactionId;
-                mtPayloadSave.transStatus = mtRes.data.status;
-                mtPayloadSave.serviceStatus = mtRes.data.status;
-                mtPayloadSave.balance_before = mtRes.data.balanceInfo.oldBalance;
-                mtPayloadSave.balance_after = mtRes.data.balanceInfo.newBalance;
-                mtPayloadSave.currentBalance = mtRes.data.balanceInfo.newBalance;
-                mtPayloadSave.operator = mtRes.data.operatorName;
-                mtPayloadSave.network = mtRes.data.operatorId;
-                mtPayloadSave.currency = mtRes.data.currencyCode;
-                mtPayloadSave.commentary = 'Airtime topup transaction successful';
-                this.transService.updateByTrxn(mtPayloadSave.trxn, mtPayloadSave);
+            if (!mtRes.data || !mtRes.data.status) {
+                throw new Error('Invalid response structure from Reloadly API');
             }
+            mtPayloadSave.status.transaction = mtRes.data.status;
+            mtPayloadSave.payment.transactionId = mtRes.data.transactionId;
+            mtPayloadSave.payment.operatorTransactionId = mtRes.data.operatorTransactionId;
+            mtPayloadSave.payment.serviceMessage = mtRes.data.message;
+            mtPayloadSave.monetary = {
+                amount: mtRes.data.requestedAmount,
+                fee: mtRes.data.fee || 0,
+                discount: mtRes.data.discount || 0,
+                originalAmount: mtRes.data.requestedAmount.toString(),
+                currency: mtRes.data.requestedAmountCurrencyCode || 'GHS',
+                balance_before: mtRes.data.balanceInfo.oldBalance.toString(),
+                balance_after: mtRes.data.balanceInfo.newBalance.toString(),
+                currentBalance: mtRes.data.balanceInfo.currencyCode,
+                deliveredAmount: mtRes.data.deliveredAmount,
+                requestedAmount: mtRes.data.requestedAmount
+            };
+            this.transService.updateByTransId(mtPayloadSave.transId, mtPayloadSave);
             return mtRes.data;
         }), (0, operators_1.catchError)((mtError) => {
-            this.logger.error(`ERROR RELOADLY MAKE TOPUP RESPONSE --- ${JSON.stringify(mtError.response?.data)}`);
-            const mtErrorMessage = mtError.response?.data || {};
-            mtPayloadSave.serviceMessage = mtErrorMessage.message || 'Unknown error';
-            mtPayloadSave.transStatus = 'FAILED';
-            mtPayloadSave.serviceStatus = 'FAILED';
-            mtPayloadSave.serviceCode = mtErrorMessage.errorCode || 'Unknown code';
-            mtPayloadSave.timestamp = mtErrorMessage.timeStamp || new Date().toISOString();
-            mtPayloadSave.commentary = `Airtime reload failed=> ${mtErrorMessage.message || 'Unknown error'}`;
+            this.logger.error(`MAKE ASYNC TOP-UP ERROR --- ${JSON.stringify(mtError.response?.data)}`);
+            const matErrorMessage = mtError.response?.data?.message || 'Unknown error';
+            mtPayloadSave.payment.serviceMessage = matErrorMessage;
+            mtPayloadSave.status.transaction = 'FAILED';
+            mtPayloadSave.status.service = 'FAILED';
+            mtPayloadSave.payment.serviceCode = mtError.response?.data?.errorCode || 'Unknown code';
+            mtPayloadSave.commentary = `Airtime reload failed: ${matErrorMessage}`;
             this.transService.updateByTrxn(mtPayloadSave.trxn, mtPayloadSave);
-            throw new common_1.NotFoundException(mtErrorMessage);
+            throw new common_1.NotFoundException(`Asynchronous top-up failed: ${matErrorMessage}`);
         }));
     }
     async makeAsynchronousTopUp(matDto) {
         let rAccessToken = await this.reloadlyAccessToken();
         this.logger.debug(`Reloadly Token ==> ${rAccessToken}`);
-        const { operatorId, operatorName, amount, recipientEmail, recipientNumber, senderNumber, recipientCountryCode, customIdentifier, currency, userId, userName, } = matDto;
+        const { operatorId, operatorName, amount, recipientEmail, recipientNumber, senderNumber, recipientCountryCode, customIdentifier, currency, userId, userName, senderCountryCode } = matDto;
+        if (isNaN(amount) || amount <= 0) {
+            this.logger.error(`Invalid amount provided: ${amount}`);
+            throw new common_1.BadRequestException('Invalid amount provided');
+        }
         const matPayload = {
             operatorId,
-            operatorName,
-            amount,
+            amount: Number(amount),
             useLocalAmount: false,
             customIdentifier: generator_util_1.GeneratorUtil.generateTransactionId() || customIdentifier,
             recipientEmail,
@@ -157,35 +182,55 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
                 number: recipientNumber,
             },
             senderPhone: {
-                countryCode: matDto.senderCountryCode,
+                countryCode: senderCountryCode,
                 number: senderNumber,
             },
+            currency: currency || 'GHS',
         };
+        console.debug(`reloadly asynchronous topup payload ===> ${JSON.stringify(matPayload)}`);
         const matPayloadSave = {
-            userId: userId,
-            userName: userName,
+            userId,
+            userName,
             transType: 'RELOADLY',
             retailer: 'RELOADLY',
-            network: matPayload.operatorId,
-            operator: matPayload.operatorName,
-            trxn: matPayload.customIdentifier || '',
+            network: operatorId,
+            operator: operatorName,
+            trxn: matPayload.customIdentifier,
             transId: matPayload.customIdentifier,
-            fee: constants_1.FEE_CHARGES || 0,
-            originalAmount: amount || '',
-            amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
-            recipientNumber: recipientNumber || '',
-            transMessage: `${userName} global topup airtime ${amount} GHS for ${matPayload.operatorName} to ${recipientNumber}`,
-            transStatus: 'pending',
-            transCode: '',
+            monetary: {
+                amount: Number(amount) + Number(constants_1.FEE_CHARGES),
+                fee: Number(constants_1.FEE_CHARGES) || 0,
+                discount: 0,
+                originalAmount: String(Number(amount) || 0),
+                currency: currency || 'GHS',
+                balance_before: String(0),
+                balance_after: String(0),
+                currentBalance: String(0),
+            },
+            status: {
+                transaction: 'pending',
+                service: 'inprogress',
+                payment: '',
+            },
+            payment: {
+                type: 'airtime',
+                currency: currency || 'GHS',
+                commentary: `${userName} global topup airtime ${amount} GHS for ${operatorName} to ${recipientNumber}`,
+                status: 'pending',
+                serviceCode: '',
+                transactionId: '',
+                serviceMessage: '',
+            },
+            metadata: [{
+                    initiatedAt: new Date(),
+                    provider: 'Reloadly',
+                    username: userName,
+                    accountNumber: recipientNumber,
+                    lastQueryAt: new Date(),
+                }],
             commentary: 'Global airtime topup transaction pending',
-            currency: currency || 'GHS',
-            serviceName: 'RELOADLY AIRTIME TOPUP',
-            serviceStatus: 'inprogress',
-            serviceCode: '',
-            serviceTransId: '',
-            serviceMessage: '',
         };
-        this.transService.create(matPayloadSave);
+        await this.transService.create(matPayloadSave);
         const matURL = `https://topups-sandbox.reloadly.com/topups-async`;
         const config = {
             url: matURL,
@@ -200,30 +245,25 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         return this.httpService
             .post(config.url, config.body, { headers: config.headers })
             .pipe((0, operators_1.map)((matRes) => {
-            this.logger.debug(`MAKE ASYNC TOP-UP RESPONSE ++++ ${JSON.stringify(matRes.data)}`);
-            if (matRes.data) {
-                this.logger.log(`topup successful`);
-                matPayloadSave.serviceMessage = matRes.data.message;
-                matPayloadSave.serviceTransId = matRes.data.transactionId;
-                matPayloadSave.transStatus = matRes.data.status;
-                matPayloadSave.serviceStatus = matRes.data.status;
-                matPayloadSave.balance_before = matRes.data.balanceInfo.oldBalance;
-                matPayloadSave.balance_after = matRes.data.balanceInfo.newBalance;
-                matPayloadSave.commentary = 'Airtime topup transaction successful';
-                this.transService.updateByTrxn(matPayloadSave.trxn, matPayloadSave);
+            if (!matRes.data || !matRes.data.status) {
+                throw new Error('Invalid response structure from Reloadly API');
             }
+            matPayloadSave.status.transaction = matRes.data.status;
+            matPayloadSave.payment.transactionId = matRes.data.transactionId;
+            matPayloadSave.payment.serviceMessage = matRes.data.message;
+            this.transService.updateByTransId(matPayloadSave.transId, matPayloadSave);
             return matRes.data;
         }), (0, operators_1.catchError)((matError) => {
-            this.logger.error(`MAKE ASYNC TOP-UP ERROR --- ${JSON.stringify(matError.response?.data)}`);
-            const matErrorMessage = matError.response?.data || {};
-            matPayloadSave.serviceMessage = matErrorMessage.message || 'Unknown error';
-            matPayloadSave.transStatus = 'FAILED';
-            matPayloadSave.serviceStatus = 'FAILED';
-            matPayloadSave.serviceCode = matErrorMessage.errorCode || 'Unknown code';
-            matPayloadSave.timestamp = matErrorMessage.timeStamp || new Date().toISOString();
-            matPayloadSave.commentary = `Airtime reload failed: ${matErrorMessage.message || 'Unknown error'}`;
+            this.logger.error(`MAKE ASYNC TOP-UP ERROR --- ${JSON.stringify(matError)}`);
+            const matErrorMessage = matError.response?.data?.message || 'Unknown error';
+            matPayloadSave.payment.serviceMessage = matErrorMessage;
+            matPayloadSave.status.transaction = 'FAILED';
+            matPayloadSave.status.service = 'FAILED';
+            matPayloadSave.payment.serviceCode = matError.response?.data?.errorCode || 'Unknown code';
+            matPayloadSave.commentary = `Airtime reload failed: ${matErrorMessage}`;
+            console.debug('matPayload save: ', matPayloadSave.trxn);
             this.transService.updateByTrxn(matPayloadSave.trxn, matPayloadSave);
-            throw new common_1.NotFoundException(matErrorMessage);
+            throw new common_1.NotFoundException(`Asynchronous top-up failed: ${matErrorMessage}`);
         }));
     }
     async getTopupStatus(trxnId) {
@@ -252,7 +292,24 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         }
     }
     async numberLookup(accessToken, msisdn) {
-        return '';
+        const url = `${this.reloadLyBaseURL}/airtime/number-lookup?msisdn=${msisdn}`;
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/com.reloadly.topups-v1+json',
+                Authorization: `Bearer ${accessToken}`,
+            },
+        };
+        this.logger.debug(`Number lookup request URL: ${url}`);
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(url, config));
+            this.logger.debug(`Number lookup response: ${JSON.stringify(response.data)}`);
+            return response.data;
+        }
+        catch (error) {
+            this.logger.error(`Failed to lookup number ${msisdn}: ${error.message}`);
+            throw new common_1.NotFoundException(`Failed to lookup number: ${error.message}`);
+        }
     }
     async reloadlyAccessToken() {
         const tokenPayload = {
@@ -263,9 +320,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         };
         const tokenUrl = `${this.accessTokenURL}/oauth/token`;
         try {
-            const response = await this.httpService
-                .post(tokenUrl, tokenPayload)
-                .toPromise();
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(tokenUrl, tokenPayload));
             const accessToken = response.data.access_token;
             return accessToken;
         }

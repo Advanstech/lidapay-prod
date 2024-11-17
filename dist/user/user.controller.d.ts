@@ -84,7 +84,7 @@ export declare class UserController {
     }>;
     createOrUpdateWallet(req: any, walletData: Wallet): Promise<Wallet>;
     getWalletById(walletId: string): Promise<Wallet>;
-    getWallet(req: any): Promise<Wallet>;
+    getWalletUserId(req: any): Promise<Wallet>;
     deleteWallet(req: any): Promise<{
         message: string;
     }>;

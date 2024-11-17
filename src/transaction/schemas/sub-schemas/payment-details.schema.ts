@@ -1,25 +1,23 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema()
 export class PaymentDetails {
   @Prop()
-  currency?: string;
-
+  type: string;
+  @Prop()
+  currency: string;
   @Prop()
   commentary?: string;
-
   @Prop()
-  status?: string;
-
+  status: string;
   @Prop()
   serviceCode?: string;
-
   @Prop()
-  transactionId?: string;
-
+  transactionId: string;
   @Prop()
   serviceMessage?: string;
-
   @Prop()
-  type?: string;
-} 
+  operatorTransactionId?: string; 
+}
+
+export const PaymentDetailsSchema = SchemaFactory.createForClass(PaymentDetails);

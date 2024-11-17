@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { SERVER_PORT } from './constants'; // Ensure this constant is properly defined and imported
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 async function bootstrap() {
   const logger = new Logger(bootstrap.name);
@@ -11,6 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.use(helmet());
+  app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe());
 
   const description = `

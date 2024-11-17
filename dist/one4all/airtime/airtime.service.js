@@ -27,21 +27,6 @@ let AirtimeService = AirtimeService_1 = class AirtimeService {
         this.ONE4ALL_RETAILER = process.env.ONE4ALL_RETAILER || constants_1.ONE4ALL_RETAILER;
         this.ONE4ALL_APIKEY = process.env.ONE4ALL_APIKEY || constants_1.ONE4ALL_APIKEY;
         this.ONE4ALL_APISECRET = process.env.ONE4ALL_APISECRET || constants_1.ONE4ALL_APISECRET;
-        this.ONE4ALL_BASEURL = process.env.ONE4ALL_BASEURL || constants_1.ONE4ALL_BASEURL;
-    }
-    getOperatorName(networkCode) {
-        const operators = {
-            0: 'Unknown (auto detect network)',
-            1: 'AirtelTigo',
-            2: 'EXPRESSO',
-            3: 'GLO',
-            4: 'MTN',
-            5: 'TiGO',
-            6: 'Telecel',
-            8: 'Busy',
-            9: 'Surfline'
-        };
-        return operators[networkCode] || 'Unknown';
     }
     transactionStatus(transDto) {
         const { transReference } = transDto;
@@ -68,7 +53,7 @@ let AirtimeService = AirtimeService_1 = class AirtimeService {
             throw new common_1.NotFoundException(tsErrorMessage);
         }));
     }
-    topupAirtimeService(transDto) {
+    async topupAirtimeService(transDto) {
         const { retailer, recipientNumber, amount, network, userId, userName, currency } = transDto;
         const taParams = {
             userId: userId,
@@ -79,29 +64,32 @@ let AirtimeService = AirtimeService_1 = class AirtimeService {
             operator: this.getOperatorName(network || 0),
             trxn: generator_util_1.GeneratorUtil.generateTransactionId() || '',
             transId: '',
-            fee: constants_1.FEE_CHARGES || 0,
-            originalAmount: amount || '',
-            amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
+            monetary: {
+                amount: (Number(amount) + Number(constants_1.FEE_CHARGES)).toString() || '',
+                fee: constants_1.FEE_CHARGES || 0,
+                originalAmount: amount || '',
+                currency: currency || 'GHS',
+                balance_before: '',
+                balance_after: '',
+                currentBalance: '',
+            },
+            status: {
+                transaction: 'pending',
+                service: 'pending',
+                payment: 'pending',
+            },
             recipientNumber: recipientNumber || '',
             transMessage: `${userName} topup airtime ${amount} GHS for ${this.getOperatorName(network)} to ${recipientNumber}`,
-            transStatus: 'pending',
-            transCode: '',
             commentary: 'Airtime topup transaction pending',
-            balance_before: '',
-            balance_after: '',
-            currentBalance: '',
-            currency: currency || 'GHS',
-            serviceName: 'ONE4ALL AIRTIME TOPUP',
-            serviceStatus: 'inprogress',
-            serviceCode: '',
-            serviceTransId: '',
-            serviceMessage: '',
         };
-        this.logger.log(`AIRTIME TOPUP params == ${JSON.stringify(taParams)}`);
-        taParams.transId = taParams.trxn;
-        this.transService.create(taParams);
+        await this.transService.create(taParams);
+        const savedTransaction = await this.transService.findByTrxn(taParams.trxn);
+        if (!savedTransaction) {
+            this.logger.error('Failed to save transaction.');
+            throw new common_1.NotFoundException('Transaction could not be created.');
+        }
         const configs = {
-            url: this.AirBaseUrl + `/TopUpApi/airtime?retailer=${constants_1.ONE4ALL_RETAILER}&recipient=${taParams.recipientNumber}&amount=${taParams.amount}&network=${taParams.network}&trxn=${taParams.trxn}`,
+            url: this.AirBaseUrl + `/TopUpApi/airtime?retailer=${constants_1.ONE4ALL_RETAILER}&recipient=${taParams.recipientNumber}&amount=${taParams.monetary.amount}&network=${taParams.network}&trxn=${taParams.trxn}`,
             headers: { ApiKey: constants_1.ONE4ALL_APIKEY, ApiSecret: constants_1.ONE4ALL_APISECRET },
             agent: new https.Agent({
                 rejectUnauthorized: false,
@@ -115,62 +103,78 @@ let AirtimeService = AirtimeService_1 = class AirtimeService {
         })
             .pipe((0, operators_1.map)((taRes) => {
             this.logger.verbose(`AIRTIME TOPUP response ++++ ${JSON.stringify(taRes.data)}`);
-            if (taRes.data['status-code'] === '02') {
-                this.logger.warn(`insufficient balance`);
-                taParams.serviceCode = taRes.data['status-code'];
-                taParams.serviceMessage = taRes.data.message;
-                taParams.serviceTransId = taRes.data.trxn;
-                taParams.transStatus = taRes.data.status;
-                taParams.serviceStatus = taRes.data.status;
-                taParams.commentary = 'Insufficient balance, topup failed';
-                this.transService.updateByTrxn(taParams.trxn, taParams);
-            }
-            else if (taRes.data['status-code'] === '09') {
-                this.logger.warn(`recharge requested but awaiting status`);
-                taParams.serviceCode = taRes.data['status-code'];
-                taParams.serviceMessage = taRes.data.message;
-                taParams.serviceTransId = taRes.data.trxn;
-                taParams.transStatus = taRes.data.status;
-                taParams.serviceStatus = taRes.data.status;
-                taParams.commentary = 'recharge requested but awaiting status';
-                this.transService.updateByTrxn(taParams.trxn, taParams);
-            }
-            else if (taRes.data['status-code'] === '06') {
-                this.logger.log(`other error message`);
-                taParams.serviceCode = taRes.data['status-code'];
-                taParams.serviceMessage = taRes.data.message;
-                taParams.serviceTransId = taRes.data.trxn;
-                taParams.transStatus = taRes.data.status;
-                taParams.serviceStatus = taRes.data.status;
-                taParams.commentary = 'Other error message';
-                this.transService.updateByTrxn(taParams.trxn, taParams);
-            }
-            else if (taRes.data['status-code'] == '00') {
+            if (taRes.data['status-code'] === '00') {
                 this.logger.verbose(`airtime topup successful`);
-                taParams.serviceCode = taRes.data['status-code'];
-                taParams.serviceMessage = taRes.data.message;
-                taParams.serviceTransId = taRes.data.trxn;
-                taParams.transStatus = taRes.data.status;
-                taParams.serviceStatus = taRes.data.status;
-                taParams.balance_before = taRes.data.balance_before;
-                taParams.balance_after = taRes.data.balance_after;
-                taParams.operator = taRes.data.network;
-                taParams.commentary = `Airtime topup successful delivered to ${taParams.recipientNumber}`;
-                this.transService.updateByTrxn(taParams.trxn, taParams);
+                this.transService.updateByTrxn(taParams.trxn, {
+                    ...taParams,
+                    status: {
+                        transaction: 'completed',
+                        service: 'completed',
+                        payment: 'completed',
+                    },
+                    commentary: `Airtime topup successful delivered to ${taParams.recipientNumber}`,
+                });
+            }
+            else {
+                this.logger.warn(`Transaction status code: ${taRes.data['status-code']}`);
+                this.transService.updateByTrxn(taParams.trxn, {
+                    ...taParams,
+                    status: {
+                        transaction: 'failed',
+                        service: 'failed',
+                        payment: 'failed',
+                    },
+                    commentary: 'Airtime topup failed',
+                });
             }
             return taRes.data;
-        }), (0, operators_1.catchError)((taError) => {
-            this.logger.error(`AIRTIME TOP-UP ERROR response --- ${JSON.stringify(taError.response.data)}`);
-            taParams.serviceCode = taError.response.data['status-code'];
-            taParams.serviceMessage = taError.response.data.message;
-            taParams.serviceTransId = taError.response.data.trxn;
-            taParams.transStatus = taError.response.data.status;
-            taParams.serviceStatus = taError.response.data.status;
-            taParams.commentary = 'Airtime topup failed';
-            this.transService.updateByTrxn(taParams.trxn, taParams);
-            const taErrorMessage = taError.response.data;
-            throw new common_1.NotFoundException(taErrorMessage);
+        }), (0, operators_1.catchError)(async (taError) => {
+            if (taError.response) {
+                this.logger.error(`AIRTIME TOP-UP ERROR response --- ${JSON.stringify(taError.response.data)}`);
+            }
+            else {
+                this.logger.error(`AIRTIME TOP-UP ERROR response --- No response data available`);
+            }
+            const taErrorMessage = taError.response?.data?.message || 'Unknown error occurred';
+            try {
+                const updateResult = await this.transService.updateByTrxn(String(taParams.trxn), {
+                    ...taParams,
+                    status: {
+                        transaction: 'failed',
+                        service: 'failed',
+                        payment: 'failed',
+                    },
+                    commentary: taErrorMessage,
+                });
+                if (!updateResult) {
+                    this.logger.warn(`Transaction with ID ${taParams.trxn} not found for update.`);
+                }
+            }
+            catch (updateError) {
+                this.logger.error(`Failed to update transaction: ${updateError.message}`);
+            }
+            this.logger.error(`Error message: ${taErrorMessage}`);
+            return {
+                status: 'FAIL',
+                message: taErrorMessage,
+                error: taError.response?.data || {},
+                transactionId: taParams.trxn,
+            };
         }));
+    }
+    getOperatorName(networkCode) {
+        const operators = {
+            0: 'Unknown (auto detect network)',
+            1: 'AirtelTigo',
+            2: 'EXPRESSO',
+            3: 'GLO',
+            4: 'MTN',
+            5: 'TiGO',
+            6: 'Telecel',
+            8: 'Busy',
+            9: 'Surfline'
+        };
+        return operators[networkCode] || 'Unknown';
     }
 };
 exports.AirtimeService = AirtimeService;
