@@ -129,25 +129,24 @@ export class TransactionService {
     }
   }
   /**
-   * Updates a transaction by express token
+   * Updates a transaction by token or express token
    */
-  async updateByExpressToken(expressToken: string, updateDto: UpdateTransactionDto): Promise<Transaction> {
+  async updateByTokenOrExpressToken(identifier: string, updateData: UpdateTransactionDto): Promise<Transaction> {
     try {
-      const transformedUpdate = this.transformUpdateDto(updateDto);
-
       const updatedTransaction = await this.transactionModel.findOneAndUpdate(
-        { expressToken },
-        { $set: transformedUpdate },
+        { $or: [{ expressToken: identifier }, { token: identifier }] },
+        { $set: updateData },
         { new: true }
       );
 
       if (!updatedTransaction) {
-        throw new NotFoundException(`Transaction with express token ${expressToken} not found`);
+        throw new NotFoundException(`Transaction with identifier ${identifier} not found`);
       }
 
+      this.logger.debug(`Updated transaction with identifier: ${identifier}`);
       return updatedTransaction;
     } catch (error) {
-      this.logger.error(`Failed to update transaction with express token ${expressToken}: ${error.message}`);
+      this.logger.error(`Failed to update transaction with identifier ${identifier}: ${error.message}`);
       throw error;
     }
   }

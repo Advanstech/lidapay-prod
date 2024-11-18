@@ -113,7 +113,6 @@ export class ExpressPayService {
         }
 
         const updateData: UpdateTransactionDto = this.buildPostPaymentUpdateData(postData, orderId, token);
-
         // Attempt to update the transaction
         await this.transactionService.updateByTransId(orderId, updateData);
 
@@ -172,7 +171,7 @@ export class ExpressPayService {
           },
         ),
       );
-
+      this.logger.verbose(`Initiate payment URL: ${this.config.baseUrl}/api/submit.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
       const { status, token, message } = response.data;
 
       if (status !== 1) {
@@ -192,71 +191,128 @@ export class ExpressPayService {
       await this.handleErrorDuringPaymentInitiation(error, initialTransaction);
     }
   }
-  // Query Transaction Status
   async queryTransaction(token: string) {
     this.logger.log(`Querying transaction status for token: ${token}`);
 
     try {
-      const formData = {
-        'merchant-id': this.config.merchantId,
-        'api-key': this.config.apiKey,
-        token,
-      };
+        const formData = {
+            'merchant-id': this.config.liveMerchantId,
+            'api-key': this.config.liveApiKey,
+            token,
+        };
 
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.config.baseUrl}/api/query.php`,
-          qr.stringify(formData),
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-          },
-        ),
-      );
+        const response = await firstValueFrom(
+            this.httpService.post(
+                `${this.config.baseUrl}/api/query.php`,
+                qr.stringify(formData),
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                },
+            ),
+        );
 
-      const {
-        result,
-        'result-text': resultText,
-        'order-id': orderId,
-        'transaction-id': transactionId,
-        currency,
-        amount,
-        'date-processed': dateProcessed
-      } = response.data;
+        this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
 
-      this.logger.debug('Query Transaction response', {
-        token,
-        result,
-        orderId,
-        resultText,
-        transactionId
-      });
+        // Destructure the response data
+        const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
 
-      const updateData: UpdateTransactionDto = this.buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed);
+        // Log the full response for debugging
+        this.logger.debug('API Response:', response.data);
 
-      await this.transactionService.updateByExpressToken(token, updateData);
+        // Check if the result indicates success
+        if (result === 1) {
+            this.logger.debug('Transaction found, updating database', {
+                token,
+                orderId,
+                transactionId,
+                amount,
+                resultText,
+            });
 
-      return {
-        status: updateData.status.service,
-        orderId,
-        transactionId,
-        amount,
-        resultText,
-        originalResponse: response.data,
-        result
-      };
+            // Build the update data using the new method
+            const updateData: UpdateTransactionDto = this.buildQueryTransactionUpdateData(
+                result,
+                resultText,
+                orderId,
+                transactionId,
+                currency,
+                amount,
+                dateProcessed,
+                token // Pass the token to include in metadata
+            );
+
+            // Use the expressToken from the response to update the transaction
+            const expressToken = response.data.token; // Assuming the token is in the original response
+
+            // Update the transaction in the database
+            await this.transactionService.updateByTokenOrExpressToken(expressToken, updateData);
+
+            return {
+                status: updateData.status.service,
+                orderId,
+                transactionId,
+                amount,
+                resultText,
+                originalResponse: response.data,
+                result,
+            };
+        } else {
+            this.logger.warn(`Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`);
+            throw new NotFoundException(`Transaction not found for token: ${token}`);
+        }
 
     } catch (error) {
-      this.logger.error('Transaction query error', {
-        error: error.message,
-        token,
-        stack: error.stack,
-      });
+        this.logger.error('Transaction query error', {
+            error: error.message,
+            token,
+            stack: error.stack,
+        });
 
-      throw new ExpressPayError('QUERY_FAILED', error.message);
+        // Persist the error in the transaction record
+        if (token) {
+            try {
+                const errorUpdate: UpdateTransactionDto = {
+                    status: {
+                        service: 'ERROR',
+                        payment: 'ERROR',
+                        transaction: 'failed',
+                    },
+                    payment: {
+                        serviceCode: '500',
+                        transactionId: '',
+                        serviceMessage: 'Query transaction failed',
+                        commentary: `Error querying transaction: ${error.message}`,
+                    },
+                    metadata: [{
+                        result: 0,
+                        'result-text': error.message,
+                        'order-id': token, // Assuming token is the order ID
+                        token,
+                        'transaction-id': '',
+                        amount: '0',
+                        currency: 'GHS',
+                        'date-processed': new Date().toISOString(),
+                        lastQueryAt: new Date().toISOString(),
+                    }],
+                    queryLastChecked: new Date(),
+                };
+
+                await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
+            } catch (updateError) {
+                this.logger.error('Failed to update transaction with error status', {
+                    error: updateError.message,
+                    token,
+                    originalError: error.message,
+                });
+            }
+        }
+
+        throw new ExpressPayError('QUERY_FAILED', error.message);
     }
-  }
+  }  // Query Transaction Status
+
   // Helper Methods
   private updateTransactionStatus(updateData: UpdateTransactionDto, queryResponse: any, orderId: string) {
     switch (queryResponse.result) {
@@ -646,7 +702,21 @@ export class ExpressPayService {
     await this.transactionService.create(successTransaction);
   }
 
-  private buildQueryTransactionUpdateData(result: number, resultText: string, orderId: string, transactionId: string, currency: string, amount: number, dateProcessed: string): UpdateTransactionDto {
+  private buildQueryTransactionUpdateData(
+    result: number,
+    resultText: string,
+    orderId: string,
+    transactionId: string,
+    currency: string,
+    amount: number,
+    dateProcessed: string,
+    token: string // Added token as a parameter
+  ): UpdateTransactionDto {
+    // Validate parameters
+    if (!orderId || !transactionId || !currency || !dateProcessed) {
+        throw new Error('Invalid parameters provided to buildQueryTransactionUpdateData');
+    }
+
     return {
       status: {
         service: this.mapServiceStatus(result),
@@ -664,7 +734,7 @@ export class ExpressPayService {
         result,
         'result-text': resultText,
         'order-id': orderId,
-        token: '',
+        token, // Use the token passed as a parameter
         'transaction-id': transactionId,
         currency,
         amount,
@@ -719,7 +789,6 @@ export class ExpressPayService {
 
   // New method to map callback status update
   private mapCallbackStatusUpdate(queryResponse: any, orderId: string, callbackData: any): UpdateTransactionDto {
-    // Implement the mapping logic here
     return {
       status: {
         service: this.mapServiceStatus(queryResponse.result),

@@ -135,6 +135,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.config.baseUrl}/api/submit.php`, qr.stringify(ipFormData), {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             }));
+            this.logger.verbose(`Initiate payment URL: ${this.config.baseUrl}/api/submit.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
             const { status, token, message } = response.data;
             if (status !== 1) {
                 await this.handleFailedTransaction(initialTransaction, status, message);
@@ -154,8 +155,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         this.logger.log(`Querying transaction status for token: ${token}`);
         try {
             const formData = {
-                'merchant-id': this.config.merchantId,
-                'api-key': this.config.apiKey,
+                'merchant-id': this.config.liveMerchantId,
+                'api-key': this.config.liveApiKey,
                 token,
             };
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.config.baseUrl}/api/query.php`, qr.stringify(formData), {
@@ -163,25 +164,34 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
             }));
+            this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
             const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
-            this.logger.debug('Query Transaction response', {
-                token,
-                result,
-                orderId,
-                resultText,
-                transactionId
-            });
-            const updateData = this.buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed);
-            await this.transactionService.updateByExpressToken(token, updateData);
-            return {
-                status: updateData.status.service,
-                orderId,
-                transactionId,
-                amount,
-                resultText,
-                originalResponse: response.data,
-                result
-            };
+            this.logger.debug('API Response:', response.data);
+            if (result === 1) {
+                this.logger.debug('Transaction found, updating database', {
+                    token,
+                    orderId,
+                    transactionId,
+                    amount,
+                    resultText,
+                });
+                const updateData = this.buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed, token);
+                const expressToken = response.data.token;
+                await this.transactionService.updateByTokenOrExpressToken(expressToken, updateData);
+                return {
+                    status: updateData.status.service,
+                    orderId,
+                    transactionId,
+                    amount,
+                    resultText,
+                    originalResponse: response.data,
+                    result,
+                };
+            }
+            else {
+                this.logger.warn(`Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`);
+                throw new common_1.NotFoundException(`Transaction not found for token: ${token}`);
+            }
         }
         catch (error) {
             this.logger.error('Transaction query error', {
@@ -189,6 +199,43 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 token,
                 stack: error.stack,
             });
+            if (token) {
+                try {
+                    const errorUpdate = {
+                        status: {
+                            service: 'ERROR',
+                            payment: 'ERROR',
+                            transaction: 'failed',
+                        },
+                        payment: {
+                            serviceCode: '500',
+                            transactionId: '',
+                            serviceMessage: 'Query transaction failed',
+                            commentary: `Error querying transaction: ${error.message}`,
+                        },
+                        metadata: [{
+                                result: 0,
+                                'result-text': error.message,
+                                'order-id': token,
+                                token,
+                                'transaction-id': '',
+                                amount: '0',
+                                currency: 'GHS',
+                                'date-processed': new Date().toISOString(),
+                                lastQueryAt: new Date().toISOString(),
+                            }],
+                        queryLastChecked: new Date(),
+                    };
+                    await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
+                }
+                catch (updateError) {
+                    this.logger.error('Failed to update transaction with error status', {
+                        error: updateError.message,
+                        token,
+                        originalError: error.message,
+                    });
+                }
+            }
             throw new express_pay_error_1.ExpressPayError('QUERY_FAILED', error.message);
         }
     }
@@ -555,7 +602,10 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
         await this.transactionService.create(successTransaction);
     }
-    buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed) {
+    buildQueryTransactionUpdateData(result, resultText, orderId, transactionId, currency, amount, dateProcessed, token) {
+        if (!orderId || !transactionId || !currency || !dateProcessed) {
+            throw new Error('Invalid parameters provided to buildQueryTransactionUpdateData');
+        }
         return {
             status: {
                 service: this.mapServiceStatus(result),
@@ -573,7 +623,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     result,
                     'result-text': resultText,
                     'order-id': orderId,
-                    token: '',
+                    token,
                     'transaction-id': transactionId,
                     currency,
                     amount,

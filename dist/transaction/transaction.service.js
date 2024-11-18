@@ -98,17 +98,17 @@ let TransactionService = TransactionService_1 = class TransactionService {
             throw error;
         }
     }
-    async updateByExpressToken(expressToken, updateDto) {
+    async updateByTokenOrExpressToken(identifier, updateData) {
         try {
-            const transformedUpdate = this.transformUpdateDto(updateDto);
-            const updatedTransaction = await this.transactionModel.findOneAndUpdate({ expressToken }, { $set: transformedUpdate }, { new: true });
+            const updatedTransaction = await this.transactionModel.findOneAndUpdate({ $or: [{ expressToken: identifier }, { token: identifier }] }, { $set: updateData }, { new: true });
             if (!updatedTransaction) {
-                throw new common_1.NotFoundException(`Transaction with express token ${expressToken} not found`);
+                throw new common_1.NotFoundException(`Transaction with identifier ${identifier} not found`);
             }
+            this.logger.debug(`Updated transaction with identifier: ${identifier}`);
             return updatedTransaction;
         }
         catch (error) {
-            this.logger.error(`Failed to update transaction with express token ${expressToken}: ${error.message}`);
+            this.logger.error(`Failed to update transaction with identifier ${identifier}: ${error.message}`);
             throw error;
         }
     }

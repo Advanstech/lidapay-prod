@@ -14,7 +14,7 @@ export declare class TransactionService {
     }>;
     updateByTransId(transId: string, updateData: UpdateTransactionDto): Promise<Transaction>;
     updateByTrxn(trxn: string, updateDto: UpdateTransactionDto): Promise<Transaction>;
-    updateByExpressToken(expressToken: string, updateDto: UpdateTransactionDto): Promise<Transaction>;
+    updateByTokenOrExpressToken(identifier: string, updateData: UpdateTransactionDto): Promise<Transaction>;
     findById(id: string): Promise<Transaction>;
     findByTransId(transId: string): Promise<Transaction | null>;
     findByUserId(userId: string, page: number, limit: number): Promise<{

@@ -129,7 +129,6 @@ __decorate([
                 amount: { type: 'number', example: 10 },
                 orderDesc: { type: 'string', example: 'Kofi airtime payment to 233205678901 on 29102024' },
                 userId: { type: 'string', example: '1234567890abcdef' },
-                accountNumber: { type: 'string', example: '1234' },
                 orderImgUrl: { type: 'string', example: 'https://www.ghanaweb.com' },
                 transType: { type: 'string', example: 'MOMO' },
                 payTransRef: { type: 'string', example: 'PAY-REF-12345' },
