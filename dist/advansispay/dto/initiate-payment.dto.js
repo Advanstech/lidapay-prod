@@ -33,9 +33,7 @@ __decorate([
 ], InitiatePaymentDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^0[0-9]{9}|^233[0-9]{9}$/, {
-        message: 'Phone number must be in format: 0XXXXXXXXX or 233XXXXXXXXX',
-    }),
+    (0, class_validator_1.Matches)(/^[\+\d]{10,15}$/),
     __metadata("design:type", String)
 ], InitiatePaymentDto.prototype, "phoneNumber", void 0);
 __decorate([

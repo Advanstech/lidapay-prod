@@ -17,9 +17,7 @@ export class InitiatePaymentDto {
     email: string;
 
     @IsString()
-    @Matches(/^0[0-9]{9}|^233[0-9]{9}$/, {
-        message: 'Phone number must be in format: 0XXXXXXXXX or 233XXXXXXXXX',
-    })
+    @Matches(/^[\+\d]{10,15}$/)
     phoneNumber: string;
 
     @IsOptional()
