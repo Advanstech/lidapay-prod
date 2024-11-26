@@ -31,7 +31,7 @@ export class AdvansispayController {
   constructor(
     private readonly mobileMoneyService: MobileMoneyService,
     private readonly expressPayService: ExpressPayService,
-  ) {}
+  ) { }
   // Redirect URL
   @Get('redirect-url')
   @ApiOperation({ summary: 'Handle payment callback' })
@@ -53,20 +53,34 @@ export class AdvansispayController {
     @Res() res: Response,
     @Query() qr: PaymentCallbackDto,
   ): Promise<any> {
-    const { 'order-id': orderId, token } = qr; // Extracting orderId and token
-    this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
-    
-    // Call the paymentCallbackURL service method to update transactions
-    const result = await this.expressPayService.paymentCallbackURL(qr); // Pass the entire qr object
+    try {
+      const { 'order-id': orderId, token } = qr; // Extracting orderId and token
+      this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
 
-    // Check if the result contains a redirect URL
-    if (result.redirectUrl) {
-      // Redirect to the Lidapay app using the deep link
-      return res.redirect(result.redirectUrl); // Redirect to the app
+      // Call the paymentCallbackURL service method to update transactions
+      const result = await this.expressPayService.paymentCallbackURL(qr); // Pass the entire qr object
+
+      // Check if the result contains a redirect URL
+      if (result.redirectUrl) {
+        // Implement additional logging
+        this.logger.log(`Redirecting to: ${result.redirectUrl}`);
+        // Redirect to the deep link
+        return res.redirect(result.redirectUrl);
+      }
+      // Fallback error handling
+      return res.status(HttpStatus.BAD_REQUEST).json({
+        message: 'Unable to process callback',
+        orderId,
+        token
+      });
+    } catch (error) {
+      this.logger.error(`Callback processing error: ${error.message}`);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        message: 'Internal server error during callback',
+        error: error.message
+      });
     }
 
-    // Fallback response if no redirect URL is provided
-    res.status(HttpStatus.OK).json({ orderId, token }); // Example usage
   }
   //  Initiate Payment as Step 1
   @Post('initiate-payment')

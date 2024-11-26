@@ -28,13 +28,27 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
         this.logger = new common_1.Logger(AdvansispayController_1.name);
     }
     async primaryCallback(res, qr) {
-        const { 'order-id': orderId, token } = qr;
-        this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
-        const result = await this.expressPayService.paymentCallbackURL(qr);
-        if (result.redirectUrl) {
-            return res.redirect(result.redirectUrl);
+        try {
+            const { 'order-id': orderId, token } = qr;
+            this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
+            const result = await this.expressPayService.paymentCallbackURL(qr);
+            if (result.redirectUrl) {
+                this.logger.log(`Redirecting to: ${result.redirectUrl}`);
+                return res.redirect(result.redirectUrl);
+            }
+            return res.status(common_1.HttpStatus.BAD_REQUEST).json({
+                message: 'Unable to process callback',
+                orderId,
+                token
+            });
         }
-        res.status(common_1.HttpStatus.OK).json({ orderId, token });
+        catch (error) {
+            this.logger.error(`Callback processing error: ${error.message}`);
+            return res.status(common_1.HttpStatus.INTERNAL_SERVER_ERROR).json({
+                message: 'Internal server error during callback',
+                error: error.message
+            });
+        }
     }
     async initiatePayment(paymentData) {
         try {

@@ -25,6 +25,7 @@ import { ReloadAirtimeModule } from './reloadly/reload-airtime/reload-airtime.mo
 import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
 import { AdvansispayModule } from './advansispay/advansispay.module';
 import { ExpressPayService } from './advansispay/express-pay.service';
+import { DigitalAssetLinksController } from './digital-asset-links.controller';
 
 @Module({
   imports: [
@@ -52,7 +53,7 @@ import { ExpressPayService } from './advansispay/express-pay.service';
     AffiliateModule,
     AdvansispayModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, DigitalAssetLinksController],
   providers: [
     AppService,
     EmailService,

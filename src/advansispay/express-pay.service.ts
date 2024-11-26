@@ -23,7 +23,7 @@ import { PaymentCallbackDto } from './dto/callback.dto';
 import { UpdateTransactionDto } from 'src/transaction/dto/update-transaction.dto';
 import { UserService } from 'src/user/user.service';
 import Account from '../user/schemas/account.schema'; // Adjust the path as needed
-import { PaymentCallbackResult} from './interface/payment-callback-result.interface'
+import { PaymentCallbackResult } from './interface/payment-callback-result.interface'
 
 @Injectable()
 export class ExpressPayService {
@@ -61,13 +61,15 @@ export class ExpressPayService {
       if (!token || !orderId) {
         throw new HttpException('Invalid callback data', HttpStatus.BAD_REQUEST);
       }
-
       const transaction = await this.transactionService.findByTransId(orderId);
       if (!transaction) {
         this.logger.warn(`Transaction not found: ${orderId}`);
-        return { message: 'Transaction not found', success: false };
+        return {
+          success: false,
+          message: 'Transaction not found',
+          redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`
+        };
       }
-
       const queryResponse = await this.queryTransaction(token);
       const updateData: UpdateTransactionDto = this.mapCallbackStatusUpdate(queryResponse, orderId, req.body);
       // Update transaction status based on query response
@@ -78,17 +80,31 @@ export class ExpressPayService {
       await this.transactionService.updateByTrxn(orderId, updateData);
 
       // Redirect to the Lidapay app using deep linking
-      const redirectUrl = `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=${updateData.status.service}`;
-      
-      // Instead of returning a JSON response, we will redirect to the app
-      return {
-        success: true,
-        redirectUrl // This will be used by the client to redirect
-      };
+      // Enhanced redirect URL with more status information
+      const redirectUrl = `lidapay://redirect-url?
+      orderId=${orderId}
+      &token=${token}
+      &status=${updateData.status.service}
+      &timestamp=${Date.now()}`;
+
+      return { success: true, redirectUrl };
 
     } catch (error) {
+      // Redirect with error status
+      const redirectUrl = `lidapay://redirect-url?
+       orderId=${orderId}
+       &token=${token}
+       &status=error
+       &errorMessage=${encodeURIComponent(error.message)}`;
+
+      // Log the error and update the transaction status
       this.handleErrorDuringCallback(error, orderId, token, req.body);
-      return { success: false, message: error.message }; // Ensure a return value in case of error
+
+      return {
+        success: false,
+        message: error.message,
+        redirectUrl
+      }; // Ensure a return value in case of error
     }
   }
   // Post Payment Status Handler
@@ -102,50 +118,50 @@ export class ExpressPayService {
     const currency = postData.currency || 'GHS';
 
     this.logger.log('Received post payment status', {
-        orderId,
-        token,
-        result,
-        resultText,
-        transactionId
+      orderId,
+      token,
+      result,
+      resultText,
+      transactionId
     });
 
     try {
-        if (!token || !orderId) {
-            this.logger.error('Invalid post data', { orderId, token, result });
-            throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
-        }
+      if (!token || !orderId) {
+        this.logger.error('Invalid post data', { orderId, token, result });
+        throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
+      }
 
-        const updateData: UpdateTransactionDto = this.buildPostPaymentUpdateData(postData, orderId, token);
-        // Attempt to update the transaction
-        await this.transactionService.updateByTransId(orderId, updateData);
+      const updateData: UpdateTransactionDto = this.buildPostPaymentUpdateData(postData, orderId, token);
+      // Attempt to update the transaction
+      await this.transactionService.updateByTransId(orderId, updateData);
 
-        this.logger.log(`Transaction status updated`, {
-            orderId,
-            status: updateData.status.service,
-            result
-        });
+      this.logger.log(`Transaction status updated`, {
+        orderId,
+        status: updateData.status.service,
+        result
+      });
 
-        return {
-            success: true,
-            message: 'Post payment status processed successfully',
-            status: updateData.status.service,
-            orderId,
-            token
-        };
+      return {
+        success: true,
+        message: 'Post payment status processed successfully',
+        status: updateData.status.service,
+        orderId,
+        token
+      };
 
     } catch (error) {
-        // Handle specific error for transaction not found
-        if (error instanceof NotFoundException) {
-            this.logger.warn(`Transaction not found: ${orderId}`);
-            return {
-                success: false,
-                message: `Transaction with ID ${orderId} not found`,
-                orderId,
-                token
-            };
-        }
-        // Handle other errors
-        this.handleErrorDuringPostStatus(error, orderId, token, postData);
+      // Handle specific error for transaction not found
+      if (error instanceof NotFoundException) {
+        this.logger.warn(`Transaction not found: ${orderId}`);
+        return {
+          success: false,
+          message: `Transaction with ID ${orderId} not found`,
+          orderId,
+          token
+        };
+      }
+      // Handle other errors
+      this.handleErrorDuringPostStatus(error, orderId, token, postData);
     }
   }
   // Payment Initiation
@@ -198,121 +214,121 @@ export class ExpressPayService {
     this.logger.log(`Querying transaction status for token: ${token}`);
 
     try {
-        const formData = {
-            'merchant-id': this.config.liveMerchantId,
-            'api-key': this.config.liveApiKey,
-            token,
-        };
+      const formData = {
+        'merchant-id': this.config.liveMerchantId,
+        'api-key': this.config.liveApiKey,
+        token,
+      };
 
-        const response = await firstValueFrom(
-            this.httpService.post(
-                `${this.config.baseUrl}/api/query.php`,
-                qr.stringify(formData),
-                {
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                },
-            ),
-        );
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.config.baseUrl}/api/query.php`,
+          qr.stringify(formData),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
+        ),
+      );
 
-        this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
+      this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
 
-        // Destructure the response data
-        const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
+      // Destructure the response data
+      const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
 
-        // Log the full response for debugging
-        this.logger.debug('API Response:', response.data);
+      // Log the full response for debugging
+      this.logger.debug('API Response:', response.data);
 
-        // Check if the result indicates success
-        if (result === 1) {
-            this.logger.debug('Transaction found, updating database', {
-                token,
-                orderId,
-                transactionId,
-                amount,
-                resultText,
-            });
-
-            // Build the update data using the new method
-            const updateData: UpdateTransactionDto = this.buildQueryTransactionUpdateData(
-                result,
-                resultText,
-                orderId,
-                transactionId,
-                currency,
-                amount,
-                dateProcessed,
-                token // Pass the token to include in metadata
-            );
-
-            // Use the expressToken from the response to update the transaction
-            const expressToken = response.data.token; // Assuming the token is in the original response
-
-            // Update the transaction in the database
-            await this.transactionService.updateByTokenOrExpressToken(expressToken, updateData);
-
-            return {
-                status: updateData.status.service,
-                orderId,
-                transactionId,
-                amount,
-                resultText,
-                originalResponse: response.data,
-                result,
-            };
-        } else {
-            this.logger.warn(`Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`);
-            throw new NotFoundException(`Transaction not found for token: ${token}`);
-        }
-
-    } catch (error) {
-        this.logger.error('Transaction query error', {
-            error: error.message,
-            token,
-            stack: error.stack,
+      // Check if the result indicates success
+      if (result === 1) {
+        this.logger.debug('Transaction found, updating database', {
+          token,
+          orderId,
+          transactionId,
+          amount,
+          resultText,
         });
 
-        // Persist the error in the transaction record
-        if (token) {
-            try {
-                const errorUpdate: UpdateTransactionDto = {
-                    status: {
-                        service: 'ERROR',
-                        payment: 'ERROR',
-                        transaction: 'failed',
-                    },
-                    payment: {
-                        serviceCode: '500',
-                        transactionId: '',
-                        serviceMessage: 'Query transaction failed',
-                        commentary: `Error querying transaction: ${error.message}`,
-                    },
-                    metadata: [{
-                        result: 0,
-                        'result-text': error.message,
-                        'order-id': token, // Assuming token is the order ID
-                        token,
-                        'transaction-id': '',
-                        amount: '0',
-                        currency: 'GHS',
-                        'date-processed': new Date().toISOString(),
-                        lastQueryAt: new Date().toISOString(),
-                    }],
-                    queryLastChecked: new Date(),
-                };
+        // Build the update data using the new method
+        const updateData: UpdateTransactionDto = this.buildQueryTransactionUpdateData(
+          result,
+          resultText,
+          orderId,
+          transactionId,
+          currency,
+          amount,
+          dateProcessed,
+          token // Pass the token to include in metadata
+        );
 
-                await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
-            } catch (updateError) {
-                this.logger.error('Failed to update transaction with error status', {
-                    error: updateError.message,
-                    token,
-                    originalError: error.message,
-                });
-            }
+        // Use the expressToken from the response to update the transaction
+        const expressToken = response.data.token; // Assuming the token is in the original response
+
+        // Update the transaction in the database
+        await this.transactionService.updateByTokenOrExpressToken(expressToken, updateData);
+
+        return {
+          status: updateData.status.service,
+          orderId,
+          transactionId,
+          amount,
+          resultText,
+          originalResponse: response.data,
+          result,
+        };
+      } else {
+        this.logger.warn(`Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`);
+        throw new NotFoundException(`Transaction not found for token: ${token}`);
+      }
+
+    } catch (error) {
+      this.logger.error('Transaction query error', {
+        error: error.message,
+        token,
+        stack: error.stack,
+      });
+
+      // Persist the error in the transaction record
+      if (token) {
+        try {
+          const errorUpdate: UpdateTransactionDto = {
+            status: {
+              service: 'ERROR',
+              payment: 'ERROR',
+              transaction: 'failed',
+            },
+            payment: {
+              serviceCode: '500',
+              transactionId: '',
+              serviceMessage: 'Query transaction failed',
+              commentary: `Error querying transaction: ${error.message}`,
+            },
+            metadata: [{
+              result: 0,
+              'result-text': error.message,
+              'order-id': token, // Assuming token is the order ID
+              token,
+              'transaction-id': '',
+              amount: '0',
+              currency: 'GHS',
+              'date-processed': new Date().toISOString(),
+              lastQueryAt: new Date().toISOString(),
+            }],
+            queryLastChecked: new Date(),
+          };
+
+          await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
+        } catch (updateError) {
+          this.logger.error('Failed to update transaction with error status', {
+            error: updateError.message,
+            token,
+            originalError: error.message,
+          });
         }
+      }
 
-        throw new ExpressPayError('QUERY_FAILED', error.message);
+      throw new ExpressPayError('QUERY_FAILED', error.message);
     }
   }  // Query Transaction Status
 
@@ -592,29 +608,29 @@ export class ExpressPayService {
   private async getUserAccountNumber(userId: string): Promise<string | null> {
     const user = await this.userService.findOneById(userId);
     if (user && user.account) {
-        const account = await this.userService.getAccountById(user.account.toString()); // Use the userService to get the account
-        return account ? account.accountId : null; // Return the accountId
+      const account = await this.userService.getAccountById(user.account.toString()); // Use the userService to get the account
+      return account ? account.accountId : null; // Return the accountId
     }
     return null;
   }
   // Build initiatePayment Form data
   private async buildIpFormData(localTransId: string, paymentData: InitiatePaymentDto, accountNumber: string) {
     return {
-        'merchant-id': this.config.liveMerchantId,
-        'api-key': this.config.liveApiKey,
-        firstname: paymentData.firstName,
-        lastname: paymentData.lastName,
-        email: paymentData.email,
-        phonenumber: paymentData.phoneNumber,
-        username: paymentData.username || paymentData.phoneNumber,
-        accountnumber: accountNumber, // Now guaranteed to be valid
-        currency: 'GHS',
-        amount: paymentData.amount.toFixed(2),
-        'order-id': localTransId,
-        'order-desc': paymentData.orderDesc || '',
-        'redirect-url': this.config.redirectUrl,
-        'post-url': this.config.postUrl,
-        'order-img-url': paymentData.orderImgUrl || '',
+      'merchant-id': this.config.liveMerchantId,
+      'api-key': this.config.liveApiKey,
+      firstname: paymentData.firstName,
+      lastname: paymentData.lastName,
+      email: paymentData.email,
+      phonenumber: paymentData.phoneNumber,
+      username: paymentData.username || paymentData.phoneNumber,
+      accountnumber: accountNumber, // Now guaranteed to be valid
+      currency: 'GHS',
+      amount: paymentData.amount.toFixed(2),
+      'order-id': localTransId,
+      'order-desc': paymentData.orderDesc || '',
+      'redirect-url': this.config.redirectUrl,
+      'post-url': this.config.postUrl,
+      'order-img-url': paymentData.orderImgUrl || '',
     };
   }
   // Private error handling method
@@ -717,7 +733,7 @@ export class ExpressPayService {
   ): UpdateTransactionDto {
     // Validate parameters
     if (!orderId || !transactionId || !currency || !dateProcessed) {
-        throw new Error('Invalid parameters provided to buildQueryTransactionUpdateData');
+      throw new Error('Invalid parameters provided to buildQueryTransactionUpdateData');
     }
 
     return {

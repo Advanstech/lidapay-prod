@@ -52,22 +52,36 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             const transaction = await this.transactionService.findByTransId(orderId);
             if (!transaction) {
                 this.logger.warn(`Transaction not found: ${orderId}`);
-                return { message: 'Transaction not found', success: false };
+                return {
+                    success: false,
+                    message: 'Transaction not found',
+                    redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`
+                };
             }
             const queryResponse = await this.queryTransaction(token);
             const updateData = this.mapCallbackStatusUpdate(queryResponse, orderId, req.body);
             this.updateTransactionStatus(updateData, queryResponse, orderId);
             updateData.metadata = this.buildMetadata(queryResponse, orderId, token, req.body);
             await this.transactionService.updateByTrxn(orderId, updateData);
-            const redirectUrl = `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=${updateData.status.service}`;
-            return {
-                success: true,
-                redirectUrl
-            };
+            const redirectUrl = `lidapay://redirect-url?
+      orderId=${orderId}
+      &token=${token}
+      &status=${updateData.status.service}
+      &timestamp=${Date.now()}`;
+            return { success: true, redirectUrl };
         }
         catch (error) {
+            const redirectUrl = `lidapay://redirect-url?
+       orderId=${orderId}
+       &token=${token}
+       &status=error
+       &errorMessage=${encodeURIComponent(error.message)}`;
             this.handleErrorDuringCallback(error, orderId, token, req.body);
-            return { success: false, message: error.message };
+            return {
+                success: false,
+                message: error.message,
+                redirectUrl
+            };
         }
     }
     async handlePostPaymentStatus(postData) {

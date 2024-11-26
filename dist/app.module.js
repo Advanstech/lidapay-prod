@@ -34,6 +34,7 @@ const reload_airtime_module_1 = require("./reloadly/reload-airtime/reload-airtim
 const mobilemoney_module_1 = require("./one4all/mobilemoney/mobilemoney.module");
 const advansispay_module_1 = require("./advansispay/advansispay.module");
 const express_pay_service_1 = require("./advansispay/express-pay.service");
+const digital_asset_links_controller_1 = require("./digital-asset-links.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -64,7 +65,7 @@ exports.AppModule = AppModule = __decorate([
             affiliate_module_1.AffiliateModule,
             advansispay_module_1.AdvansispayModule
         ],
-        controllers: [app_controller_1.AppController],
+        controllers: [app_controller_1.AppController, digital_asset_links_controller_1.DigitalAssetLinksController],
         providers: [
             app_service_1.AppService,
             email_service_1.EmailService,
