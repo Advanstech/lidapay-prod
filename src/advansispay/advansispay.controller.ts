@@ -55,8 +55,17 @@ export class AdvansispayController {
   ): Promise<any> {
     const { 'order-id': orderId, token } = qr; // Extracting orderId and token
     this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
+    
     // Call the paymentCallbackURL service method to update transactions
-    await this.expressPayService.paymentCallbackURL(qr); // Pass the entire qr object
+    const result = await this.expressPayService.paymentCallbackURL(qr); // Pass the entire qr object
+
+    // Check if the result contains a redirect URL
+    if (result.redirectUrl) {
+      // Redirect to the Lidapay app using the deep link
+      return res.redirect(result.redirectUrl); // Redirect to the app
+    }
+
+    // Fallback response if no redirect URL is provided
     res.status(HttpStatus.OK).json({ orderId, token }); // Example usage
   }
   //  Initiate Payment as Step 1

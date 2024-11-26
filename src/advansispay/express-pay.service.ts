@@ -23,6 +23,7 @@ import { PaymentCallbackDto } from './dto/callback.dto';
 import { UpdateTransactionDto } from 'src/transaction/dto/update-transaction.dto';
 import { UserService } from 'src/user/user.service';
 import Account from '../user/schemas/account.schema'; // Adjust the path as needed
+import { PaymentCallbackResult} from './interface/payment-callback-result.interface'
 
 @Injectable()
 export class ExpressPayService {
@@ -46,7 +47,7 @@ export class ExpressPayService {
     };
   }
   // Payment Callback URL handler
-  async paymentCallbackURL(req: any) {
+  async paymentCallbackURL(req: any): Promise<PaymentCallbackResult> {
     const orderId = req['order-id'] ? String(req['order-id']) : null;
     const token = req.token ? String(req.token) : null;
 
@@ -76,16 +77,18 @@ export class ExpressPayService {
       // Update transaction
       await this.transactionService.updateByTrxn(orderId, updateData);
 
+      // Redirect to the Lidapay app using deep linking
+      const redirectUrl = `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=${updateData.status.service}`;
+      
+      // Instead of returning a JSON response, we will redirect to the app
       return {
         success: true,
-        message: `Transaction ${updateData.status.service.toLowerCase()}`,
-        status: updateData.status.service,
-        orderId,
-        token
+        redirectUrl // This will be used by the client to redirect
       };
 
     } catch (error) {
       this.handleErrorDuringCallback(error, orderId, token, req.body);
+      return { success: false, message: error.message }; // Ensure a return value in case of error
     }
   }
   // Post Payment Status Handler
@@ -486,7 +489,7 @@ export class ExpressPayService {
       }]
     };
   }
-
+  // handle error post status
   private async handleErrorDuringPostStatus(error: any, orderId: string, token: string, postData: PaymentCallbackDto) {
     this.logger.error('Post payment status processing failed', {
       error: error.message,

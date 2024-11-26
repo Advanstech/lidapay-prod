@@ -30,7 +30,10 @@ let AdvansispayController = AdvansispayController_1 = class AdvansispayControlle
     async primaryCallback(res, qr) {
         const { 'order-id': orderId, token } = qr;
         this.logger.log(`callback response =>> ${JSON.stringify(qr)}`);
-        await this.expressPayService.paymentCallbackURL(qr);
+        const result = await this.expressPayService.paymentCallbackURL(qr);
+        if (result.redirectUrl) {
+            return res.redirect(result.redirectUrl);
+        }
         res.status(common_1.HttpStatus.OK).json({ orderId, token });
     }
     async initiatePayment(paymentData) {

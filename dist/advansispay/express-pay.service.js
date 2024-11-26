@@ -59,16 +59,15 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             this.updateTransactionStatus(updateData, queryResponse, orderId);
             updateData.metadata = this.buildMetadata(queryResponse, orderId, token, req.body);
             await this.transactionService.updateByTrxn(orderId, updateData);
+            const redirectUrl = `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=${updateData.status.service}`;
             return {
                 success: true,
-                message: `Transaction ${updateData.status.service.toLowerCase()}`,
-                status: updateData.status.service,
-                orderId,
-                token
+                redirectUrl
             };
         }
         catch (error) {
             this.handleErrorDuringCallback(error, orderId, token, req.body);
+            return { success: false, message: error.message };
         }
     }
     async handlePostPaymentStatus(postData) {

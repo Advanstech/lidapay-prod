@@ -3,6 +3,7 @@ import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { TransactionService } from 'src/transaction/transaction.service';
 import { PaymentCallbackDto } from './dto/callback.dto';
 import { UserService } from 'src/user/user.service';
+import { PaymentCallbackResult } from './interface/payment-callback-result.interface';
 export declare class ExpressPayService {
     private readonly httpService;
     private readonly transactionService;
@@ -10,19 +11,7 @@ export declare class ExpressPayService {
     private readonly logger;
     private readonly config;
     constructor(httpService: HttpService, transactionService: TransactionService, userService: UserService);
-    paymentCallbackURL(req: any): Promise<{
-        message: string;
-        success: boolean;
-        status?: undefined;
-        orderId?: undefined;
-        token?: undefined;
-    } | {
-        success: boolean;
-        message: string;
-        status: string;
-        orderId: string;
-        token: string;
-    }>;
+    paymentCallbackURL(req: any): Promise<PaymentCallbackResult>;
     handlePostPaymentStatus(postData: PaymentCallbackDto): Promise<{
         success: boolean;
         message: string;

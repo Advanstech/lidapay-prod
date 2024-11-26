@@ -50,6 +50,8 @@ export class InitiatePaymentDto {
     })
     orderImgUrl?: string;
 
+    redirectUrl: string;
+
     userId?: string;
     userName: string;
     transId: string;
