@@ -25,7 +25,6 @@ async function bootstrap() {
 
     Lead Developer: Hanson Peprah
     Send email to support.it@advansistechnologies.com
-    
   `;
     const config = new swagger_1.DocumentBuilder()
         .setTitle('Lidapay API')

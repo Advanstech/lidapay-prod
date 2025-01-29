@@ -13,11 +13,11 @@ export interface IAccount extends Document {
 declare const AccountSchema: Schema<IAccount, import("mongoose").Model<IAccount, any, any, any, Document<unknown, any, IAccount> & IAccount & Required<{
     _id: unknown;
 }> & {
-    __v?: number;
+    __v: number;
 }, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, IAccount, Document<unknown, {}, import("mongoose").FlatRecord<IAccount>> & import("mongoose").FlatRecord<IAccount> & Required<{
     _id: unknown;
 }> & {
-    __v?: number;
+    __v: number;
 }>;
 export type AccountDocument = IAccount;
 export default AccountSchema;

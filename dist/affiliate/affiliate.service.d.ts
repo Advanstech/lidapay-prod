@@ -18,7 +18,7 @@ export declare class AffiliateService {
     getTopPerformingAffiliates(limit?: number): Promise<(import("mongoose").Document<unknown, {}, Affiliate> & Affiliate & Required<{
         _id: unknown;
     }> & {
-        __v?: number;
+        __v: number;
     })[]>;
     getAverageCommissionPerAffiliate(): Promise<any>;
     updateAffiliateCommissions(): Promise<void>;

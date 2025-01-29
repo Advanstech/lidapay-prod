@@ -26,7 +26,6 @@ async function bootstrap() {
 
     Lead Developer: Hanson Peprah
     Send email to support.it@advansistechnologies.com
-    
   `;
 
   const config = new DocumentBuilder()
@@ -35,7 +34,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Lidapay')
     .addBearerAuth()
-    .build();
+    .build()
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-doc', app, document, {

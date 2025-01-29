@@ -78,7 +78,6 @@ export class ExpressPayService {
       updateData.metadata = this.buildMetadata(queryResponse, orderId, token, req.body);
       // Update transaction
       await this.transactionService.updateByTrxn(orderId, updateData);
-
       // Redirect to the Lidapay app using deep linking
       // Enhanced redirect URL with more status information
       const redirectUrl = `lidapay://redirect-url?

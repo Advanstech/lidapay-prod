@@ -9,9 +9,9 @@ export declare class Referral extends Document {
 export declare const ReferralSchema: import("mongoose").Schema<Referral, import("mongoose").Model<Referral, any, any, any, Document<unknown, any, Referral> & Referral & Required<{
     _id: unknown;
 }> & {
-    __v?: number;
+    __v: number;
 }, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Referral, Document<unknown, {}, import("mongoose").FlatRecord<Referral>> & import("mongoose").FlatRecord<Referral> & Required<{
     _id: unknown;
 }> & {
-    __v?: number;
+    __v: number;
 }>;
