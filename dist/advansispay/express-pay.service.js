@@ -43,7 +43,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`, {
             body: req.body,
             params: req.params,
-            query: req.query
+            query: req.query,
         });
         try {
             if (!token || !orderId) {
@@ -55,7 +55,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 return {
                     success: false,
                     message: 'Transaction not found',
-                    redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`
+                    redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`,
                 };
             }
             const queryResponse = await this.queryTransaction(token);
@@ -80,7 +80,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             return {
                 success: false,
                 message: error.message,
-                redirectUrl
+                redirectUrl,
             };
         }
     }
@@ -90,14 +90,12 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         const result = postData.result !== undefined ? Number(postData.result) : null;
         const resultText = postData['result-text'] || '';
         const transactionId = postData['transaction-id'] || '';
-        const amount = postData.amount;
-        const currency = postData.currency || 'GHS';
         this.logger.log('Received post payment status', {
             orderId,
             token,
             result,
             resultText,
-            transactionId
+            transactionId,
         });
         try {
             if (!token || !orderId) {
@@ -109,14 +107,14 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             this.logger.log(`Transaction status updated`, {
                 orderId,
                 status: updateData.status.service,
-                result
+                result,
             });
             return {
                 success: true,
                 message: 'Post payment status processed successfully',
                 status: updateData.status.service,
                 orderId,
-                token
+                token,
             };
         }
         catch (error) {
@@ -126,10 +124,10 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     success: false,
                     message: `Transaction with ID ${orderId} not found`,
                     orderId,
-                    token
+                    token,
                 };
             }
-            this.handleErrorDuringPostStatus(error, orderId, token, postData);
+            await this.handleErrorDuringPostStatus(error, orderId, token, postData);
         }
     }
     async initiatePayment(paymentData) {
@@ -157,7 +155,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             return {
                 checkoutUrl: `${this.config.baseUrl}/api/checkout.php?token=${token}`,
                 token,
-                'order-id': localTransId
+                'order-id': localTransId,
             };
         }
         catch (error) {
@@ -178,7 +176,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 },
             }));
             this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
-            const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
+            const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed, } = response.data;
             this.logger.debug('API Response:', response.data);
             if (result === 1) {
                 this.logger.debug('Transaction found, updating database', {
@@ -226,7 +224,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                             serviceMessage: 'Query transaction failed',
                             commentary: `Error querying transaction: ${error.message}`,
                         },
-                        metadata: [{
+                        metadata: [
+                            {
                                 result: 0,
                                 'result-text': error.message,
                                 'order-id': token,
@@ -236,7 +235,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                                 currency: 'GHS',
                                 'date-processed': new Date().toISOString(),
                                 lastQueryAt: new Date().toISOString(),
-                            }],
+                            },
+                        ],
                         queryLastChecked: new Date(),
                     };
                     await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
@@ -259,13 +259,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 updateData.status = {
                     service: 'COMPLETED',
                     payment: 'APPROVED',
-                    transaction: 'completed'
+                    transaction: 'completed',
                 };
                 updateData.payment = {
                     serviceCode: '1',
                     transactionId: queryResponse.transactionId,
                     serviceMessage: 'SUCCESS',
-                    commentary: `Payment completed successfully for order-ID: ${orderId}`
+                    commentary: `Payment completed successfully for order-ID: ${orderId}`,
                 };
                 break;
             case 2:
@@ -273,13 +273,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 updateData.status = {
                     service: 'DECLINED',
                     payment: 'DECLINED',
-                    transaction: 'failed'
+                    transaction: 'failed',
                 };
                 updateData.payment = {
                     serviceCode: '2',
                     transactionId: queryResponse.transactionId,
                     serviceMessage: 'DECLINED',
-                    commentary: `Payment declined for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+                    commentary: `Payment declined for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`,
                 };
                 break;
             case 3:
@@ -287,13 +287,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 updateData.status = {
                     service: 'ERROR',
                     payment: 'ERROR',
-                    transaction: 'failed'
+                    transaction: 'failed',
                 };
                 updateData.payment = {
                     serviceCode: '3',
                     transactionId: queryResponse.transactionId,
                     serviceMessage: 'ERROR',
-                    commentary: `Payment error for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+                    commentary: `Payment error for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`,
                 };
                 break;
             case 4:
@@ -301,13 +301,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 updateData.status = {
                     service: 'PENDING',
                     payment: 'PENDING',
-                    transaction: 'pending'
+                    transaction: 'pending',
                 };
                 updateData.payment = {
                     serviceCode: '4',
                     transactionId: queryResponse.transactionId,
                     serviceMessage: 'PENDING',
-                    commentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`
+                    commentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
                 };
                 break;
             default:
@@ -315,18 +315,19 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 updateData.status = {
                     service: 'UNKNOWN',
                     payment: 'UNKNOWN',
-                    transaction: 'failed'
+                    transaction: 'failed',
                 };
                 updateData.payment = {
                     serviceCode: '0',
                     transactionId: queryResponse.transactionId,
                     serviceMessage: 'UNKNOWN',
-                    commentary: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+                    commentary: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`,
                 };
         }
     }
     buildMetadata(queryResponse, orderId, token, callbackData) {
-        return [{
+        return [
+            {
                 result: queryResponse.result,
                 'result-text': queryResponse.resultText,
                 'order-id': orderId,
@@ -336,15 +337,16 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 currency: callbackData.currency || 'GHS',
                 'date-processed': new Date().toISOString(),
                 lastQueryAt: new Date().toISOString(),
-                callbackData
-            }];
+                callbackData,
+            },
+        ];
     }
     async handleErrorDuringCallback(error, orderId, token, callbackData) {
         this.logger.error('Payment callback processing failed', {
             error: error.message,
             orderId,
             token,
-            stack: error.stack
+            stack: error.stack,
         });
         if (orderId) {
             try {
@@ -352,24 +354,26 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     status: {
                         service: 'ERROR',
                         payment: 'ERROR',
-                        transaction: 'failed'
+                        transaction: 'failed',
                     },
                     payment: {
                         serviceCode: '500',
                         transactionId: '',
                         serviceMessage: 'Callback processing failed',
-                        commentary: `Error processing callback: ${error.message}`
+                        commentary: `Error processing callback: ${error.message}`,
                     },
-                    metadata: [{
+                    metadata: [
+                        {
                             result: 0,
                             'result-text': error.message,
                             'order-id': orderId,
                             token,
                             lastQueryAt: new Date().toISOString(),
                             error: true,
-                            errorDetails: error.message
-                        }],
-                    queryLastChecked: new Date()
+                            errorDetails: error.message,
+                        },
+                    ],
+                    queryLastChecked: new Date(),
                 };
                 await this.transactionService.updateByTrxn(orderId, errorUpdate);
             }
@@ -377,7 +381,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 this.logger.error('Failed to update transaction with error status', {
                     error: updateError.message,
                     orderId,
-                    originalError: error.message
+                    originalError: error.message,
                 });
             }
         }
@@ -391,16 +395,17 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             status: {
                 service: this.mapServiceStatus(result),
                 payment: this.mapServiceStatus(result),
-                transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(result)),
             },
             payment: {
                 serviceCode: String(result),
                 transactionId: transactionId,
                 serviceMessage: resultText,
-                commentary: this.generatePostUrlCommentary(result, orderId, resultText)
+                commentary: this.generatePostUrlCommentary(result, orderId, resultText),
             },
             queryLastChecked: new Date(),
-            metadata: [{
+            metadata: [
+                {
                     result,
                     'result-text': resultText,
                     'order-id': orderId,
@@ -410,8 +415,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     currency: postData.currency || 'GHS',
                     'date-processed': new Date().toISOString(),
                     lastQueryAt: new Date().toISOString(),
-                    postUrlData: postData
-                }]
+                    postUrlData: postData,
+                },
+            ],
         };
     }
     async handleErrorDuringPostStatus(error, orderId, token, postData) {
@@ -419,7 +425,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             error: error.message,
             orderId,
             token,
-            stack: error.stack
+            stack: error.stack,
         });
         if (orderId) {
             try {
@@ -427,15 +433,16 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     status: {
                         service: 'ERROR',
                         payment: 'ERROR',
-                        transaction: 'failed'
+                        transaction: 'failed',
                     },
                     payment: {
                         serviceCode: '500',
                         transactionId: '',
                         serviceMessage: 'Post-URL processing failed',
-                        commentary: `Error processing post-URL update: ${error.message}`
+                        commentary: `Error processing post-URL update: ${error.message}`,
                     },
-                    metadata: [{
+                    metadata: [
+                        {
                             result: 0,
                             'result-text': error.message,
                             'order-id': orderId,
@@ -444,9 +451,10 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                             lastQueryAt: new Date().toISOString(),
                             error: true,
                             errorDetails: error.message,
-                            originalPostData: postData
-                        }],
-                    queryLastChecked: new Date()
+                            originalPostData: postData,
+                        },
+                    ],
+                    queryLastChecked: new Date(),
                 };
                 await this.transactionService.updateByTransId(orderId, errorUpdate);
             }
@@ -454,7 +462,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 this.logger.error('Failed to update transaction with error status', {
                     error: updateError.message,
                     orderId,
-                    originalError: error.message
+                    originalError: error.message,
                 });
             }
         }
@@ -478,13 +486,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             status: {
                 transaction: 'pending',
                 service: 'pending',
-                payment: 'pending'
+                payment: 'pending',
             },
             monetary: {
                 amount: Number(paymentData.amount) + Number(constants_1.FEE_CHARGES),
                 fee: constants_1.FEE_CHARGES || 0,
                 originalAmount: paymentData.amount.toString(),
-                currency: 'GHS'
+                currency: 'GHS',
             },
             payment: {
                 type: 'DEBIT',
@@ -492,9 +500,10 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 serviceCode: '',
                 transactionId: '',
                 serviceMessage: '',
-                commentary: ''
+                commentary: '',
             },
-            metadata: [{
+            metadata: [
+                {
                     result: 0,
                     'result-text': 'Initiated',
                     'order-id': localTransId,
@@ -502,11 +511,15 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     currency: 'GHS',
                     amount: paymentData.amount.toFixed(2),
                     'transaction-id': '',
-                    'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
-                    lastQueryAt: new Date().toISOString()
-                }],
+                    'date-processed': new Date()
+                        .toISOString()
+                        .replace('T', ' ')
+                        .slice(0, 19),
+                    lastQueryAt: new Date().toISOString(),
+                },
+            ],
             timestamp: new Date(),
-            queryLastChecked: new Date()
+            queryLastChecked: new Date(),
         };
     }
     async getUserAccountNumber(userId) {
@@ -540,7 +553,7 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         this.logger.error('Payment initiation failed', {
             error: error.message,
             transaction: initialTransaction,
-            stack: error.stack
+            stack: error.stack,
         });
         if (!(error instanceof express_pay_error_1.ExpressPayError)) {
             const errorTransaction = {
@@ -548,22 +561,24 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                 status: {
                     transaction: 'failed',
                     service: 'FAILED',
-                    payment: 'FAILED'
+                    payment: 'FAILED',
                 },
                 payment: {
                     ...initialTransaction.payment,
                     serviceCode: '500',
                     serviceMessage: 'SYSTEM_ERROR',
-                    commentary: `System error occurred: ${error.message}`
+                    commentary: `System error occurred: ${error.message}`,
                 },
-                metadata: [{
+                metadata: [
+                    {
                         initiatedAt: new Date(),
                         provider: 'EXPRESSPAY',
                         username: initialTransaction.userName || initialTransaction.recipientNumber,
                         accountNumber: initialTransaction.payTransRef || '',
-                        lastQueryAt: new Date()
-                    }],
-                queryLastChecked: new Date()
+                        lastQueryAt: new Date(),
+                    },
+                ],
+                queryLastChecked: new Date(),
             };
             await this.transactionService.create(errorTransaction);
         }
@@ -578,22 +593,24 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             status: {
                 transaction: 'failed',
                 service: 'FAILED',
-                payment: 'FAILED'
+                payment: 'FAILED',
             },
             payment: {
                 ...initialTransaction.payment,
                 serviceCode: status.toString(),
                 serviceMessage: message || 'Payment initiation failed',
-                commentary: `Transaction failed: ${message}`
+                commentary: `Transaction failed: ${message}`,
             },
-            metadata: [{
+            metadata: [
+                {
                     initiatedAt: new Date(),
                     provider: 'EXPRESSPAY',
                     username: initialTransaction.userName || initialTransaction.phoneNumber,
                     accountNumber: initialTransaction.accountNumber || '',
-                    lastQueryAt: new Date()
-                }],
-            queryLastChecked: new Date()
+                    lastQueryAt: new Date(),
+                },
+            ],
+            queryLastChecked: new Date(),
         };
         await this.transactionService.create(failedTransaction);
         throw new express_pay_error_1.ExpressPayError('PAYMENT_INITIATION_FAILED', { status, message });
@@ -602,7 +619,8 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         const successTransaction = {
             ...initialTransaction,
             expressToken: token,
-            metadata: [{
+            metadata: [
+                {
                     initiatedAt: new Date(),
                     provider: 'EXPRESSPAY',
                     username: initialTransaction.userName || initialTransaction.phoneNumber,
@@ -610,8 +628,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     token: token,
                     result: 1,
                     'result-text': 'Pending',
-                    lastQueryAt: new Date()
-                }]
+                    lastQueryAt: new Date(),
+                },
+            ],
         };
         await this.transactionService.create(successTransaction);
     }
@@ -623,16 +642,17 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             status: {
                 service: this.mapServiceStatus(result),
                 payment: this.mapServiceStatus(result),
-                transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(result)),
             },
             payment: {
                 serviceCode: result.toString(),
                 transactionId: transactionId,
                 serviceMessage: resultText,
-                commentary: this.generateCommentary(this.mapServiceStatus(result), orderId, resultText)
+                commentary: this.generateCommentary(this.mapServiceStatus(result), orderId, resultText),
             },
             queryLastChecked: new Date(),
-            metadata: [{
+            metadata: [
+                {
                     result,
                     'result-text': resultText,
                     'order-id': orderId,
@@ -641,8 +661,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     currency,
                     amount,
                     'date-processed': dateProcessed,
-                    lastQueryAt: new Date().toISOString()
-                }]
+                    lastQueryAt: new Date().toISOString(),
+                },
+            ],
         };
     }
     mapServiceStatus(result) {
@@ -650,29 +671,29 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             1: 'COMPLETED',
             2: 'DECLINED',
             3: 'ERROR',
-            4: 'PENDING'
+            4: 'PENDING',
         };
         return statusMap[result] || 'UNKNOWN';
     }
     mapTransactionStatus(serviceStatus) {
         const statusMap = {
-            'COMPLETED': 'completed',
-            'DECLINED': 'failed',
-            'ERROR': 'failed',
-            'PENDING': 'pending',
-            'UNKNOWN': 'failed'
+            COMPLETED: 'completed',
+            DECLINED: 'failed',
+            ERROR: 'failed',
+            PENDING: 'pending',
+            UNKNOWN: 'failed',
         };
         return statusMap[serviceStatus] || 'failed';
     }
     generateCommentary(status, orderId, resultText) {
         const commentaryMap = {
-            'COMPLETED': `Payment completed successfully for order-ID: ${orderId}`,
-            'DECLINED': `Payment declined for order-ID: ${orderId}. Reason: ${resultText}`,
-            'ERROR': `Payment error for order-ID: ${orderId}. Reason: ${resultText}`,
-            'PENDING': `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
-            'UNKNOWN': `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+            COMPLETED: `Payment completed successfully for order-ID: ${orderId}`,
+            DECLINED: `Payment declined for order-ID: ${orderId}. Reason: ${resultText}`,
+            ERROR: `Payment error for order-ID: ${orderId}. Reason: ${resultText}`,
+            PENDING: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
+            UNKNOWN: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`,
         };
-        return commentaryMap[status] || `Unexpected status for order-ID: ${orderId}`;
+        return (commentaryMap[status] || `Unexpected status for order-ID: ${orderId}`);
     }
     generatePostUrlCommentary(result, orderId, resultText) {
         const commentaryMap = {
@@ -681,23 +702,25 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
             3: `Payment error reported via post-URL for order-ID: ${orderId}. Details: ${resultText}`,
             4: `Payment still pending via post-URL for order-ID: ${orderId}`,
         };
-        return commentaryMap[result] || `Unexpected post-URL status (${result}) for order-ID: ${orderId}. Details: ${resultText}`;
+        return (commentaryMap[result] ||
+            `Unexpected post-URL status (${result}) for order-ID: ${orderId}. Details: ${resultText}`);
     }
     mapCallbackStatusUpdate(queryResponse, orderId, callbackData) {
         return {
             status: {
                 service: this.mapServiceStatus(queryResponse.result),
                 payment: this.mapServiceStatus(queryResponse.result),
-                transaction: this.mapTransactionStatus(this.mapServiceStatus(queryResponse.result))
+                transaction: this.mapTransactionStatus(this.mapServiceStatus(queryResponse.result)),
             },
             payment: {
                 serviceCode: queryResponse.result.toString(),
                 transactionId: queryResponse['transaction-id'] || '',
                 serviceMessage: queryResponse['result-text'] || '',
-                commentary: this.generateCommentary(this.mapServiceStatus(queryResponse.result), orderId, queryResponse['result-text'])
+                commentary: this.generateCommentary(this.mapServiceStatus(queryResponse.result), orderId, queryResponse['result-text']),
             },
             queryLastChecked: new Date(),
-            metadata: [{
+            metadata: [
+                {
                     result: queryResponse.result,
                     'result-text': queryResponse['result-text'],
                     'order-id': orderId,
@@ -707,8 +730,9 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
                     currency: callbackData.currency || 'GHS',
                     'date-processed': new Date().toISOString(),
                     lastQueryAt: new Date().toISOString(),
-                    postUrlData: callbackData
-                }]
+                    postUrlData: callbackData,
+                },
+            ],
         };
     }
 };

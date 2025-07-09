@@ -31,13 +31,13 @@ import { DigitalAssetLinksController } from './digital-asset-links.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // This makes ConfigModule available globally
-    }),  
+    }),
     MongooseModule.forRoot(process.env.MONGODB_URI || MONGODB_URI),
-    AuthModule, 
+    AuthModule,
     UserModule,
     MerchantModule,
-    AffiliateModule, 
-    RewardModule, 
+    AffiliateModule,
+    RewardModule,
     TransactionModule,
     HttpModule,
     NotificationModule,
@@ -51,14 +51,9 @@ import { DigitalAssetLinksController } from './digital-asset-links.controller';
     AuthenticationModule,
     ReloadAirtimeModule,
     AffiliateModule,
-    AdvansispayModule
+    AdvansispayModule,
   ],
   controllers: [AppController, DigitalAssetLinksController],
-  providers: [
-    AppService,
-    EmailService,
-    SmsService,
-    ExpressPayService
-  ],
+  providers: [AppService, EmailService, SmsService, ExpressPayService],
 })
 export class AppModule {}

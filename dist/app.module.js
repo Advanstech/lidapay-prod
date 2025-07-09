@@ -63,15 +63,10 @@ exports.AppModule = AppModule = __decorate([
             authentication_module_1.AuthenticationModule,
             reload_airtime_module_1.ReloadAirtimeModule,
             affiliate_module_1.AffiliateModule,
-            advansispay_module_1.AdvansispayModule
+            advansispay_module_1.AdvansispayModule,
         ],
         controllers: [app_controller_1.AppController, digital_asset_links_controller_1.DigitalAssetLinksController],
-        providers: [
-            app_service_1.AppService,
-            email_service_1.EmailService,
-            sms_util_1.SmsService,
-            express_pay_service_1.ExpressPayService
-        ],
+        providers: [app_service_1.AppService, email_service_1.EmailService, sms_util_1.SmsService, express_pay_service_1.ExpressPayService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

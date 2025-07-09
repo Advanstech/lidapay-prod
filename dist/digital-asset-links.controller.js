@@ -15,15 +15,15 @@ let DigitalAssetLinksController = class DigitalAssetLinksController {
     getAssetLinks() {
         return [
             {
-                "relation": ["delegate_permission/common.handle_all_urls"],
-                "target": {
-                    "namespace": "android_app",
-                    "package_name": "com.advansistechnologies.lidapay",
-                    "sha256_cert_fingerprints": [
-                        "YOUR_SHA256_FINGERPRINT"
-                    ]
-                }
-            }
+                relation: ['delegate_permission/common.handle_all_urls'],
+                target: {
+                    namespace: 'android_app',
+                    package_name: 'com.advansistechnologies.lidapay',
+                    sha256_cert_fingerprints: [
+                        'YOUR_SHA256_FINGERPRINT',
+                    ],
+                },
+            },
         ];
     }
 };

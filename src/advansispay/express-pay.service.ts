@@ -1,5 +1,11 @@
 // express-pay.service.ts
-import { Injectable, HttpException, HttpStatus, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
@@ -22,8 +28,7 @@ import * as qr from 'querystring';
 import { PaymentCallbackDto } from './dto/callback.dto';
 import { UpdateTransactionDto } from 'src/transaction/dto/update-transaction.dto';
 import { UserService } from 'src/user/user.service';
-import Account from '../user/schemas/account.schema'; // Adjust the path as needed
-import { PaymentCallbackResult } from './interface/payment-callback-result.interface'
+import { PaymentCallbackResult } from './interface/payment-callback-result.interface';
 
 @Injectable()
 export class ExpressPayService {
@@ -33,16 +38,19 @@ export class ExpressPayService {
   constructor(
     private readonly httpService: HttpService,
     private readonly transactionService: TransactionService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
   ) {
     this.config = {
       merchantId: process.env.EXPRESSPAY_MERCHANT_ID || EXPRESSPAY_MERCHANT_ID,
-      liveMerchantId: process.env.EXPRESSPAY_LIVE_MERCHANT_ID || EXPRESSPAY_LIVE_MERCHANT_ID,
+      liveMerchantId:
+        process.env.EXPRESSPAY_LIVE_MERCHANT_ID || EXPRESSPAY_LIVE_MERCHANT_ID,
       apiKey: process.env.EXPRESSPAY_API_KEY || EXPRESSPAY_API_KEY,
-      liveApiKey: process.env.EXPRESSPAY_LIVE_API_KEY || EXPRESSPAY_LIVE_API_KEY,
+      liveApiKey:
+        process.env.EXPRESSPAY_LIVE_API_KEY || EXPRESSPAY_LIVE_API_KEY,
       baseUrl: process.env.EXPRESSPAY_BASE_URL || EXPRESSPAY_BASE_URL,
       testUrl: process.env.EXPRESSPAY_TEST_BASE_URL || EXPRESSPAY_TEST_BASE_URL,
-      redirectUrl: process.env.EXPRESSPAY_REDIRECT_URL || EXPRESSPAY_REDIRECT_URL,
+      redirectUrl:
+        process.env.EXPRESSPAY_REDIRECT_URL || EXPRESSPAY_REDIRECT_URL,
       postUrl: process.env.EXPRESSPAY_POST_URL || EXPRESSPAY_POST_URL,
     };
   }
@@ -51,15 +59,21 @@ export class ExpressPayService {
     const orderId = req['order-id'] ? String(req['order-id']) : null;
     const token = req.token ? String(req.token) : null;
 
-    this.logger.log(`Received payment callback for order: ${orderId}, token: ${token}`, {
-      body: req.body,
-      params: req.params,
-      query: req.query
-    });
+    this.logger.log(
+      `Received payment callback for order: ${orderId}, token: ${token}`,
+      {
+        body: req.body,
+        params: req.params,
+        query: req.query,
+      },
+    );
 
     try {
       if (!token || !orderId) {
-        throw new HttpException('Invalid callback data', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Invalid callback data',
+          HttpStatus.BAD_REQUEST,
+        );
       }
       const transaction = await this.transactionService.findByTransId(orderId);
       if (!transaction) {
@@ -67,15 +81,24 @@ export class ExpressPayService {
         return {
           success: false,
           message: 'Transaction not found',
-          redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`
+          redirectUrl: `lidapay://redirect-url?orderId=${orderId}&token=${token}&status=not_found`,
         };
       }
       const queryResponse = await this.queryTransaction(token);
-      const updateData: UpdateTransactionDto = this.mapCallbackStatusUpdate(queryResponse, orderId, req.body);
+      const updateData: UpdateTransactionDto = this.mapCallbackStatusUpdate(
+        queryResponse,
+        orderId,
+        req.body,
+      );
       // Update transaction status based on query response
       this.updateTransactionStatus(updateData, queryResponse, orderId);
       // Add metadata
-      updateData.metadata = this.buildMetadata(queryResponse, orderId, token, req.body);
+      updateData.metadata = this.buildMetadata(
+        queryResponse,
+        orderId,
+        token,
+        req.body,
+      );
       // Update transaction
       await this.transactionService.updateByTrxn(orderId, updateData);
       // Redirect to the Lidapay app using deep linking
@@ -87,7 +110,6 @@ export class ExpressPayService {
       &timestamp=${Date.now()}`;
 
       return { success: true, redirectUrl };
-
     } catch (error) {
       // Redirect with error status
       const redirectUrl = `lidapay://redirect-url?
@@ -102,7 +124,7 @@ export class ExpressPayService {
       return {
         success: false,
         message: error.message,
-        redirectUrl
+        redirectUrl,
       }; // Ensure a return value in case of error
     }
   }
@@ -110,18 +132,19 @@ export class ExpressPayService {
   async handlePostPaymentStatus(postData: PaymentCallbackDto) {
     const orderId = postData['order-id'] || postData.orderId || null;
     const token = postData.token;
-    const result = postData.result !== undefined ? Number(postData.result) : null;
+    const result =
+      postData.result !== undefined ? Number(postData.result) : null;
     const resultText = postData['result-text'] || '';
     const transactionId = postData['transaction-id'] || '';
-    const amount = postData.amount;
-    const currency = postData.currency || 'GHS';
+    // const amount = postData.amount;
+    // const currency = postData.currency || 'GHS';
 
     this.logger.log('Received post payment status', {
       orderId,
       token,
       result,
       resultText,
-      transactionId
+      transactionId,
     });
 
     try {
@@ -130,14 +153,18 @@ export class ExpressPayService {
         throw new HttpException('Invalid post data', HttpStatus.BAD_REQUEST);
       }
 
-      const updateData: UpdateTransactionDto = this.buildPostPaymentUpdateData(postData, orderId, token);
+      const updateData: UpdateTransactionDto = this.buildPostPaymentUpdateData(
+        postData,
+        orderId,
+        token,
+      );
       // Attempt to update the transaction
       await this.transactionService.updateByTransId(orderId, updateData);
 
       this.logger.log(`Transaction status updated`, {
         orderId,
         status: updateData.status.service,
-        result
+        result,
       });
 
       return {
@@ -145,9 +172,8 @@ export class ExpressPayService {
         message: 'Post payment status processed successfully',
         status: updateData.status.service,
         orderId,
-        token
+        token,
       };
-
     } catch (error) {
       // Handle specific error for transaction not found
       if (error instanceof NotFoundException) {
@@ -156,11 +182,11 @@ export class ExpressPayService {
           success: false,
           message: `Transaction with ID ${orderId} not found`,
           orderId,
-          token
+          token,
         };
       }
       // Handle other errors
-      this.handleErrorDuringPostStatus(error, orderId, token, postData);
+      await this.handleErrorDuringPostStatus(error, orderId, token, postData);
     }
   }
   // Payment Initiation
@@ -170,11 +196,20 @@ export class ExpressPayService {
     this.logger.log(`Initiating payment for orderId: ${localTransId}`);
     this.logger.log(`User Account Number: ${accountNumber}`);
 
-    const initialTransaction = this.buildInitialTransaction(paymentData, localTransId);
+    const initialTransaction = this.buildInitialTransaction(
+      paymentData,
+      localTransId,
+    );
 
     try {
-      const ipFormData = await this.buildIpFormData(localTransId, paymentData, accountNumber);
-      console.debug(`initiate payment ipFormData: ${JSON.stringify(ipFormData)}`);
+      const ipFormData = await this.buildIpFormData(
+        localTransId,
+        paymentData,
+        accountNumber,
+      );
+      console.debug(
+        `initiate payment ipFormData: ${JSON.stringify(ipFormData)}`,
+      );
       this.logger.debug('Sending payment request to ExpressPay', {
         'order-id': localTransId,
         amount: ipFormData.amount,
@@ -189,7 +224,9 @@ export class ExpressPayService {
           },
         ),
       );
-      this.logger.verbose(`Initiate payment URL: ${this.config.baseUrl}/api/submit.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
+      this.logger.verbose(
+        `Initiate payment URL: ${this.config.baseUrl}/api/submit.php && headers => Content-Type': 'application/x-www-form-urlencoded'`,
+      );
       const { status, token, message } = response.data;
 
       if (status !== 1) {
@@ -201,9 +238,8 @@ export class ExpressPayService {
       return {
         checkoutUrl: `${this.config.baseUrl}/api/checkout.php?token=${token}`,
         token,
-        'order-id': localTransId
+        'order-id': localTransId,
       };
-
     } catch (error) {
       // Use the private handler for error processing
       await this.handleErrorDuringPaymentInitiation(error, initialTransaction);
@@ -231,10 +267,20 @@ export class ExpressPayService {
         ),
       );
 
-      this.logger.verbose(`Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`);
+      this.logger.verbose(
+        `Query Transaction URL: ${this.config.baseUrl}/api/query.php && headers => Content-Type': 'application/x-www-form-urlencoded'`,
+      );
 
       // Destructure the response data
-      const { result, 'result-text': resultText, 'order-id': orderId, 'transaction-id': transactionId, currency, amount, 'date-processed': dateProcessed } = response.data;
+      const {
+        result,
+        'result-text': resultText,
+        'order-id': orderId,
+        'transaction-id': transactionId,
+        currency,
+        amount,
+        'date-processed': dateProcessed,
+      } = response.data;
 
       // Log the full response for debugging
       this.logger.debug('API Response:', response.data);
@@ -250,22 +296,26 @@ export class ExpressPayService {
         });
 
         // Build the update data using the new method
-        const updateData: UpdateTransactionDto = this.buildQueryTransactionUpdateData(
-          result,
-          resultText,
-          orderId,
-          transactionId,
-          currency,
-          amount,
-          dateProcessed,
-          token // Pass the token to include in metadata
-        );
+        const updateData: UpdateTransactionDto =
+          this.buildQueryTransactionUpdateData(
+            result,
+            resultText,
+            orderId,
+            transactionId,
+            currency,
+            amount,
+            dateProcessed,
+            token, // Pass the token to include in metadata
+          );
 
         // Use the expressToken from the response to update the transaction
         const expressToken = response.data.token; // Assuming the token is in the original response
 
         // Update the transaction in the database
-        await this.transactionService.updateByTokenOrExpressToken(expressToken, updateData);
+        await this.transactionService.updateByTokenOrExpressToken(
+          expressToken,
+          updateData,
+        );
 
         return {
           status: updateData.status.service,
@@ -277,10 +327,13 @@ export class ExpressPayService {
           result,
         };
       } else {
-        this.logger.warn(`Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`);
-        throw new NotFoundException(`Transaction not found for token: ${token}`);
+        this.logger.warn(
+          `Transaction not found for token: ${token}. API Response: ${JSON.stringify(response.data)}`,
+        );
+        throw new NotFoundException(
+          `Transaction not found for token: ${token}`,
+        );
       }
-
     } catch (error) {
       this.logger.error('Transaction query error', {
         error: error.message,
@@ -303,21 +356,26 @@ export class ExpressPayService {
               serviceMessage: 'Query transaction failed',
               commentary: `Error querying transaction: ${error.message}`,
             },
-            metadata: [{
-              result: 0,
-              'result-text': error.message,
-              'order-id': token, // Assuming token is the order ID
-              token,
-              'transaction-id': '',
-              amount: '0',
-              currency: 'GHS',
-              'date-processed': new Date().toISOString(),
-              lastQueryAt: new Date().toISOString(),
-            }],
+            metadata: [
+              {
+                result: 0,
+                'result-text': error.message,
+                'order-id': token, // Assuming token is the order ID
+                token,
+                'transaction-id': '',
+                amount: '0',
+                currency: 'GHS',
+                'date-processed': new Date().toISOString(),
+                lastQueryAt: new Date().toISOString(),
+              },
+            ],
             queryLastChecked: new Date(),
           };
 
-          await this.transactionService.updateByTokenOrExpressToken(token, errorUpdate);
+          await this.transactionService.updateByTokenOrExpressToken(
+            token,
+            errorUpdate,
+          );
         } catch (updateError) {
           this.logger.error('Failed to update transaction with error status', {
             error: updateError.message,
@@ -329,23 +387,27 @@ export class ExpressPayService {
 
       throw new ExpressPayError('QUERY_FAILED', error.message);
     }
-  }  // Query Transaction Status
+  } // Query Transaction Status
 
   // Helper Methods
-  private updateTransactionStatus(updateData: UpdateTransactionDto, queryResponse: any, orderId: string) {
+  private updateTransactionStatus(
+    updateData: UpdateTransactionDto,
+    queryResponse: any,
+    orderId: string,
+  ) {
     switch (queryResponse.result) {
       case 1: // Success
         this.logger.log(`Payment successful for order: ${orderId}`);
         updateData.status = {
           service: 'COMPLETED',
           payment: 'APPROVED',
-          transaction: 'completed'
+          transaction: 'completed',
         };
         updateData.payment = {
           serviceCode: '1',
           transactionId: queryResponse.transactionId,
           serviceMessage: 'SUCCESS',
-          commentary: `Payment completed successfully for order-ID: ${orderId}`
+          commentary: `Payment completed successfully for order-ID: ${orderId}`,
         };
         break;
 
@@ -354,13 +416,13 @@ export class ExpressPayService {
         updateData.status = {
           service: 'DECLINED',
           payment: 'DECLINED',
-          transaction: 'failed'
+          transaction: 'failed',
         };
         updateData.payment = {
           serviceCode: '2',
           transactionId: queryResponse.transactionId,
           serviceMessage: 'DECLINED',
-          commentary: `Payment declined for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+          commentary: `Payment declined for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`,
         };
         break;
 
@@ -369,13 +431,13 @@ export class ExpressPayService {
         updateData.status = {
           service: 'ERROR',
           payment: 'ERROR',
-          transaction: 'failed'
+          transaction: 'failed',
         };
         updateData.payment = {
           serviceCode: '3',
           transactionId: queryResponse.transactionId,
           serviceMessage: 'ERROR',
-          commentary: `Payment error for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`
+          commentary: `Payment error for order-ID: ${orderId}. Reason: ${queryResponse.resultText}`,
         };
         break;
 
@@ -384,13 +446,13 @@ export class ExpressPayService {
         updateData.status = {
           service: 'PENDING',
           payment: 'PENDING',
-          transaction: 'pending'
+          transaction: 'pending',
         };
         updateData.payment = {
           serviceCode: '4',
           transactionId: queryResponse.transactionId,
           serviceMessage: 'PENDING',
-          commentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`
+          commentary: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
         };
         break;
 
@@ -399,38 +461,50 @@ export class ExpressPayService {
         updateData.status = {
           service: 'UNKNOWN',
           payment: 'UNKNOWN',
-          transaction: 'failed'
+          transaction: 'failed',
         };
         updateData.payment = {
           serviceCode: '0',
           transactionId: queryResponse.transactionId,
           serviceMessage: 'UNKNOWN',
-          commentary: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+          commentary: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`,
         };
     }
   }
 
-  private buildMetadata(queryResponse: any, orderId: string, token: string, callbackData: any) {
-    return [{
-      result: queryResponse.result,
-      'result-text': queryResponse.resultText,
-      'order-id': orderId,
-      token,
-      'transaction-id': queryResponse.transactionId,
-      amount: queryResponse.amount,
-      currency: callbackData.currency || 'GHS',
-      'date-processed': new Date().toISOString(),
-      lastQueryAt: new Date().toISOString(),
-      callbackData
-    }];
+  private buildMetadata(
+    queryResponse: any,
+    orderId: string,
+    token: string,
+    callbackData: any,
+  ) {
+    return [
+      {
+        result: queryResponse.result,
+        'result-text': queryResponse.resultText,
+        'order-id': orderId,
+        token,
+        'transaction-id': queryResponse.transactionId,
+        amount: queryResponse.amount,
+        currency: callbackData.currency || 'GHS',
+        'date-processed': new Date().toISOString(),
+        lastQueryAt: new Date().toISOString(),
+        callbackData,
+      },
+    ];
   }
 
-  private async handleErrorDuringCallback(error: any, orderId: string, token: string, callbackData: any) {
+  private async handleErrorDuringCallback(
+    error: any,
+    orderId: string,
+    token: string,
+    callbackData: any,
+  ) {
     this.logger.error('Payment callback processing failed', {
       error: error.message,
       orderId,
       token,
-      stack: error.stack
+      stack: error.stack,
     });
 
     if (orderId) {
@@ -439,24 +513,26 @@ export class ExpressPayService {
           status: {
             service: 'ERROR',
             payment: 'ERROR',
-            transaction: 'failed'
+            transaction: 'failed',
           },
           payment: {
             serviceCode: '500',
             transactionId: '',
             serviceMessage: 'Callback processing failed',
-            commentary: `Error processing callback: ${error.message}`
+            commentary: `Error processing callback: ${error.message}`,
           },
-          metadata: [{
-            result: 0,
-            'result-text': error.message,
-            'order-id': orderId,
-            token,
-            lastQueryAt: new Date().toISOString(),
-            error: true,
-            errorDetails: error.message
-          }],
-          queryLastChecked: new Date()
+          metadata: [
+            {
+              result: 0,
+              'result-text': error.message,
+              'order-id': orderId,
+              token,
+              lastQueryAt: new Date().toISOString(),
+              error: true,
+              errorDetails: error.message,
+            },
+          ],
+          queryLastChecked: new Date(),
         };
 
         await this.transactionService.updateByTrxn(orderId, errorUpdate);
@@ -464,7 +540,7 @@ export class ExpressPayService {
         this.logger.error('Failed to update transaction with error status', {
           error: updateError.message,
           orderId,
-          originalError: error.message
+          originalError: error.message,
         });
       }
     }
@@ -472,8 +548,13 @@ export class ExpressPayService {
     throw new ExpressPayError('CALLBACK_PROCESSING_FAILED', error.message);
   }
 
-  private buildPostPaymentUpdateData(postData: PaymentCallbackDto, orderId: string, token: string): UpdateTransactionDto {
-    const result = postData.result !== undefined ? Number(postData.result) : null;
+  private buildPostPaymentUpdateData(
+    postData: PaymentCallbackDto,
+    orderId: string,
+    token: string,
+  ): UpdateTransactionDto {
+    const result =
+      postData.result !== undefined ? Number(postData.result) : null;
     const resultText = postData['result-text'] || '';
     const transactionId = postData['transaction-id'] || '';
 
@@ -481,36 +562,43 @@ export class ExpressPayService {
       status: {
         service: this.mapServiceStatus(result),
         payment: this.mapServiceStatus(result),
-        transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+        transaction: this.mapTransactionStatus(this.mapServiceStatus(result)),
       },
       payment: {
         serviceCode: String(result),
         transactionId: transactionId,
         serviceMessage: resultText,
-        commentary: this.generatePostUrlCommentary(result, orderId, resultText)
+        commentary: this.generatePostUrlCommentary(result, orderId, resultText),
       },
       queryLastChecked: new Date(),
-      metadata: [{
-        result,
-        'result-text': resultText,
-        'order-id': orderId,
-        token,
-        'transaction-id': transactionId,
-        amount: postData.amount,
-        currency: postData.currency || 'GHS',
-        'date-processed': new Date().toISOString(),
-        lastQueryAt: new Date().toISOString(),
-        postUrlData: postData
-      }]
+      metadata: [
+        {
+          result,
+          'result-text': resultText,
+          'order-id': orderId,
+          token,
+          'transaction-id': transactionId,
+          amount: postData.amount,
+          currency: postData.currency || 'GHS',
+          'date-processed': new Date().toISOString(),
+          lastQueryAt: new Date().toISOString(),
+          postUrlData: postData,
+        },
+      ],
     };
   }
   // handle error post status
-  private async handleErrorDuringPostStatus(error: any, orderId: string, token: string, postData: PaymentCallbackDto) {
+  private async handleErrorDuringPostStatus(
+    error: any,
+    orderId: string,
+    token: string,
+    postData: PaymentCallbackDto,
+  ) {
     this.logger.error('Post payment status processing failed', {
       error: error.message,
       orderId,
       token,
-      stack: error.stack
+      stack: error.stack,
     });
 
     if (orderId) {
@@ -519,26 +607,28 @@ export class ExpressPayService {
           status: {
             service: 'ERROR',
             payment: 'ERROR',
-            transaction: 'failed'
+            transaction: 'failed',
           },
           payment: {
             serviceCode: '500',
             transactionId: '',
             serviceMessage: 'Post-URL processing failed',
-            commentary: `Error processing post-URL update: ${error.message}`
+            commentary: `Error processing post-URL update: ${error.message}`,
           },
-          metadata: [{
-            result: 0,
-            'result-text': error.message,
-            'order-id': orderId,
-            token,
-            'transaction-id': postData['transaction-id'],
-            lastQueryAt: new Date().toISOString(),
-            error: true,
-            errorDetails: error.message,
-            originalPostData: postData
-          }],
-          queryLastChecked: new Date()
+          metadata: [
+            {
+              result: 0,
+              'result-text': error.message,
+              'order-id': orderId,
+              token,
+              'transaction-id': postData['transaction-id'],
+              lastQueryAt: new Date().toISOString(),
+              error: true,
+              errorDetails: error.message,
+              originalPostData: postData,
+            },
+          ],
+          queryLastChecked: new Date(),
         };
 
         await this.transactionService.updateByTransId(orderId, errorUpdate);
@@ -546,7 +636,7 @@ export class ExpressPayService {
         this.logger.error('Failed to update transaction with error status', {
           error: updateError.message,
           orderId,
-          originalError: error.message
+          originalError: error.message,
         });
       }
     }
@@ -554,7 +644,10 @@ export class ExpressPayService {
     throw new ExpressPayError('POST_STATUS_PROCESSING_FAILED', error.message);
   }
 
-  private buildInitialTransaction(paymentData: InitiatePaymentDto, localTransId: string) {
+  private buildInitialTransaction(
+    paymentData: InitiatePaymentDto,
+    localTransId: string,
+  ) {
     return {
       userId: paymentData.userId,
       userName: paymentData.userName,
@@ -572,13 +665,13 @@ export class ExpressPayService {
       status: {
         transaction: 'pending',
         service: 'pending',
-        payment: 'pending'
+        payment: 'pending',
       },
       monetary: {
         amount: Number(paymentData.amount) + Number(FEE_CHARGES),
         fee: FEE_CHARGES || 0,
         originalAmount: paymentData.amount.toString(),
-        currency: 'GHS'
+        currency: 'GHS',
       },
       payment: {
         type: 'DEBIT',
@@ -586,34 +679,45 @@ export class ExpressPayService {
         serviceCode: '',
         transactionId: '',
         serviceMessage: '',
-        commentary: ''
+        commentary: '',
       },
-      metadata: [{
-        result: 0,
-        'result-text': 'Initiated',
-        'order-id': localTransId,
-        token: '',
-        currency: 'GHS',
-        amount: paymentData.amount.toFixed(2),
-        'transaction-id': '',
-        'date-processed': new Date().toISOString().replace('T', ' ').slice(0, 19),
-        lastQueryAt: new Date().toISOString()
-      }],
+      metadata: [
+        {
+          result: 0,
+          'result-text': 'Initiated',
+          'order-id': localTransId,
+          token: '',
+          currency: 'GHS',
+          amount: paymentData.amount.toFixed(2),
+          'transaction-id': '',
+          'date-processed': new Date()
+            .toISOString()
+            .replace('T', ' ')
+            .slice(0, 19),
+          lastQueryAt: new Date().toISOString(),
+        },
+      ],
       timestamp: new Date(),
-      queryLastChecked: new Date()
+      queryLastChecked: new Date(),
     };
   }
   // user account number
   private async getUserAccountNumber(userId: string): Promise<string | null> {
     const user = await this.userService.findOneById(userId);
     if (user && user.account) {
-      const account = await this.userService.getAccountById(user.account.toString()); // Use the userService to get the account
+      const account = await this.userService.getAccountById(
+        user.account.toString(),
+      ); // Use the userService to get the account
       return account ? account.accountId : null; // Return the accountId
     }
     return null;
   }
   // Build initiatePayment Form data
-  private async buildIpFormData(localTransId: string, paymentData: InitiatePaymentDto, accountNumber: string) {
+  private async buildIpFormData(
+    localTransId: string,
+    paymentData: InitiatePaymentDto,
+    accountNumber: string,
+  ) {
     return {
       'merchant-id': this.config.liveMerchantId,
       'api-key': this.config.liveApiKey,
@@ -633,11 +737,14 @@ export class ExpressPayService {
     };
   }
   // Private error handling method
-  private async handleErrorDuringPaymentInitiation(error: any, initialTransaction: any) {
+  private async handleErrorDuringPaymentInitiation(
+    error: any,
+    initialTransaction: any,
+  ) {
     this.logger.error('Payment initiation failed', {
       error: error.message,
       transaction: initialTransaction,
-      stack: error.stack
+      stack: error.stack,
     });
 
     if (!(error instanceof ExpressPayError)) {
@@ -647,22 +754,25 @@ export class ExpressPayService {
         status: {
           transaction: 'failed',
           service: 'FAILED',
-          payment: 'FAILED'
+          payment: 'FAILED',
         },
         payment: {
           ...initialTransaction.payment,
           serviceCode: '500',
           serviceMessage: 'SYSTEM_ERROR',
-          commentary: `System error occurred: ${error.message}`
+          commentary: `System error occurred: ${error.message}`,
         },
-        metadata: [{
-          initiatedAt: new Date(),
-          provider: 'EXPRESSPAY',
-          username: initialTransaction.userName || initialTransaction.recipientNumber,
-          accountNumber: initialTransaction.payTransRef || '',
-          lastQueryAt: new Date()
-        }],
-        queryLastChecked: new Date()
+        metadata: [
+          {
+            initiatedAt: new Date(),
+            provider: 'EXPRESSPAY',
+            username:
+              initialTransaction.userName || initialTransaction.recipientNumber,
+            accountNumber: initialTransaction.payTransRef || '',
+            lastQueryAt: new Date(),
+          },
+        ],
+        queryLastChecked: new Date(),
       };
       await this.transactionService.create(errorTransaction);
     }
@@ -673,48 +783,61 @@ export class ExpressPayService {
     throw new ExpressPayError('SYSTEM_ERROR', error.message);
   }
 
-  private async handleFailedTransaction(initialTransaction: any, status: number, message: string) {
+  private async handleFailedTransaction(
+    initialTransaction: any,
+    status: number,
+    message: string,
+  ) {
     const failedTransaction = {
       ...initialTransaction,
       status: {
         transaction: 'failed',
         service: 'FAILED',
-        payment: 'FAILED'
+        payment: 'FAILED',
       },
       payment: {
         ...initialTransaction.payment,
         serviceCode: status.toString(),
         serviceMessage: message || 'Payment initiation failed',
-        commentary: `Transaction failed: ${message}`
+        commentary: `Transaction failed: ${message}`,
       },
-      metadata: [{
-        initiatedAt: new Date(),
-        provider: 'EXPRESSPAY',
-        username: initialTransaction.userName || initialTransaction.phoneNumber,
-        accountNumber: initialTransaction.accountNumber || '',
-        lastQueryAt: new Date()
-      }],
-      queryLastChecked: new Date()
+      metadata: [
+        {
+          initiatedAt: new Date(),
+          provider: 'EXPRESSPAY',
+          username:
+            initialTransaction.userName || initialTransaction.phoneNumber,
+          accountNumber: initialTransaction.accountNumber || '',
+          lastQueryAt: new Date(),
+        },
+      ],
+      queryLastChecked: new Date(),
     };
 
     await this.transactionService.create(failedTransaction);
     throw new ExpressPayError('PAYMENT_INITIATION_FAILED', { status, message });
   }
 
-  private async handleSuccessfulTransaction(initialTransaction: any, token: string) {
+  private async handleSuccessfulTransaction(
+    initialTransaction: any,
+    token: string,
+  ) {
     const successTransaction = {
       ...initialTransaction,
       expressToken: token,
-      metadata: [{
-        initiatedAt: new Date(),
-        provider: 'EXPRESSPAY',
-        username: initialTransaction.userName || initialTransaction.phoneNumber,
-        accountNumber: initialTransaction.accountNumber || '',
-        token: token,
-        result: 1,
-        'result-text': 'Pending',
-        lastQueryAt: new Date()
-      }]
+      metadata: [
+        {
+          initiatedAt: new Date(),
+          provider: 'EXPRESSPAY',
+          username:
+            initialTransaction.userName || initialTransaction.phoneNumber,
+          accountNumber: initialTransaction.accountNumber || '',
+          token: token,
+          result: 1,
+          'result-text': 'Pending',
+          lastQueryAt: new Date(),
+        },
+      ],
     };
 
     await this.transactionService.create(successTransaction);
@@ -728,73 +851,91 @@ export class ExpressPayService {
     currency: string,
     amount: number,
     dateProcessed: string,
-    token: string // Added token as a parameter
+    token: string, // Added token as a parameter
   ): UpdateTransactionDto {
     // Validate parameters
     if (!orderId || !transactionId || !currency || !dateProcessed) {
-      throw new Error('Invalid parameters provided to buildQueryTransactionUpdateData');
+      throw new Error(
+        'Invalid parameters provided to buildQueryTransactionUpdateData',
+      );
     }
 
     return {
       status: {
         service: this.mapServiceStatus(result),
         payment: this.mapServiceStatus(result),
-        transaction: this.mapTransactionStatus(this.mapServiceStatus(result))
+        transaction: this.mapTransactionStatus(this.mapServiceStatus(result)),
       },
       payment: {
         serviceCode: result.toString(),
         transactionId: transactionId,
         serviceMessage: resultText,
-        commentary: this.generateCommentary(this.mapServiceStatus(result), orderId, resultText)
+        commentary: this.generateCommentary(
+          this.mapServiceStatus(result),
+          orderId,
+          resultText,
+        ),
       },
       queryLastChecked: new Date(),
-      metadata: [{
-        result,
-        'result-text': resultText,
-        'order-id': orderId,
-        token, // Use the token passed as a parameter
-        'transaction-id': transactionId,
-        currency,
-        amount,
-        'date-processed': dateProcessed,
-        lastQueryAt: new Date().toISOString()
-      }]
+      metadata: [
+        {
+          result,
+          'result-text': resultText,
+          'order-id': orderId,
+          token, // Use the token passed as a parameter
+          'transaction-id': transactionId,
+          currency,
+          amount,
+          'date-processed': dateProcessed,
+          lastQueryAt: new Date().toISOString(),
+        },
+      ],
     };
   }
 
   private mapServiceStatus(result: number): string {
     const statusMap = {
-      1: 'COMPLETED',  // Approved
-      2: 'DECLINED',   // Declined
-      3: 'ERROR',      // Error in transaction data or system error
-      4: 'PENDING'     // Pending (Final status will be provided via post-url)
+      1: 'COMPLETED', // Approved
+      2: 'DECLINED', // Declined
+      3: 'ERROR', // Error in transaction data or system error
+      4: 'PENDING', // Pending (Final status will be provided via post-url)
     };
     return statusMap[result] || 'UNKNOWN';
   }
 
   private mapTransactionStatus(serviceStatus: string): string {
     const statusMap = {
-      'COMPLETED': 'completed',
-      'DECLINED': 'failed',
-      'ERROR': 'failed',
-      'PENDING': 'pending',
-      'UNKNOWN': 'failed'
+      COMPLETED: 'completed',
+      DECLINED: 'failed',
+      ERROR: 'failed',
+      PENDING: 'pending',
+      UNKNOWN: 'failed',
     };
     return statusMap[serviceStatus] || 'failed';
   }
 
-  private generateCommentary(status: string, orderId: string, resultText: string): string {
+  private generateCommentary(
+    status: string,
+    orderId: string,
+    resultText: string,
+  ): string {
     const commentaryMap = {
-      'COMPLETED': `Payment completed successfully for order-ID: ${orderId}`,
-      'DECLINED': `Payment declined for order-ID: ${orderId}. Reason: ${resultText}`,
-      'ERROR': `Payment error for order-ID: ${orderId}. Reason: ${resultText}`,
-      'PENDING': `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
-      'UNKNOWN': `Unknown payment status for order-ID: ${orderId}. Please check transaction details`
+      COMPLETED: `Payment completed successfully for order-ID: ${orderId}`,
+      DECLINED: `Payment declined for order-ID: ${orderId}. Reason: ${resultText}`,
+      ERROR: `Payment error for order-ID: ${orderId}. Reason: ${resultText}`,
+      PENDING: `Transaction pending for order-ID: ${orderId}. Final status will be provided via post-url`,
+      UNKNOWN: `Unknown payment status for order-ID: ${orderId}. Please check transaction details`,
     };
-    return commentaryMap[status] || `Unexpected status for order-ID: ${orderId}`;
+    return (
+      commentaryMap[status] || `Unexpected status for order-ID: ${orderId}`
+    );
   }
 
-  private generatePostUrlCommentary(result: number, orderId: string, resultText: string): string {
+  private generatePostUrlCommentary(
+    result: number,
+    orderId: string,
+    resultText: string,
+  ): string {
     const commentaryMap = {
       1: `Payment confirmed via post-URL for order-ID: ${orderId}`,
       2: `Payment declined via post-URL for order-ID: ${orderId}. Reason: ${resultText}`,
@@ -802,36 +943,51 @@ export class ExpressPayService {
       4: `Payment still pending via post-URL for order-ID: ${orderId}`,
     };
 
-    return commentaryMap[result] || `Unexpected post-URL status (${result}) for order-ID: ${orderId}. Details: ${resultText}`;
+    return (
+      commentaryMap[result] ||
+      `Unexpected post-URL status (${result}) for order-ID: ${orderId}. Details: ${resultText}`
+    );
   }
 
   // New method to map callback status update
-  private mapCallbackStatusUpdate(queryResponse: any, orderId: string, callbackData: any): UpdateTransactionDto {
+  private mapCallbackStatusUpdate(
+    queryResponse: any,
+    orderId: string,
+    callbackData: any,
+  ): UpdateTransactionDto {
     return {
       status: {
         service: this.mapServiceStatus(queryResponse.result),
         payment: this.mapServiceStatus(queryResponse.result),
-        transaction: this.mapTransactionStatus(this.mapServiceStatus(queryResponse.result))
+        transaction: this.mapTransactionStatus(
+          this.mapServiceStatus(queryResponse.result),
+        ),
       },
       payment: {
         serviceCode: queryResponse.result.toString(),
         transactionId: queryResponse['transaction-id'] || '',
         serviceMessage: queryResponse['result-text'] || '',
-        commentary: this.generateCommentary(this.mapServiceStatus(queryResponse.result), orderId, queryResponse['result-text'])
+        commentary: this.generateCommentary(
+          this.mapServiceStatus(queryResponse.result),
+          orderId,
+          queryResponse['result-text'],
+        ),
       },
       queryLastChecked: new Date(),
-      metadata: [{
-        result: queryResponse.result,
-        'result-text': queryResponse['result-text'],
-        'order-id': orderId,
-        token: '',
-        'transaction-id': queryResponse['transaction-id'] || '',
-        amount: queryResponse.amount,
-        currency: callbackData.currency || 'GHS',
-        'date-processed': new Date().toISOString(),
-        lastQueryAt: new Date().toISOString(),
-        postUrlData: callbackData
-      }]
+      metadata: [
+        {
+          result: queryResponse.result,
+          'result-text': queryResponse['result-text'],
+          'order-id': orderId,
+          token: '',
+          'transaction-id': queryResponse['transaction-id'] || '',
+          amount: queryResponse.amount,
+          currency: callbackData.currency || 'GHS',
+          'date-processed': new Date().toISOString(),
+          lastQueryAt: new Date().toISOString(),
+          postUrlData: callbackData,
+        },
+      ],
     };
   }
 }
