@@ -35,6 +35,7 @@ const mobilemoney_module_1 = require("./one4all/mobilemoney/mobilemoney.module")
 const advansispay_module_1 = require("./advansispay/advansispay.module");
 const express_pay_service_1 = require("./advansispay/express-pay.service");
 const digital_asset_links_controller_1 = require("./digital-asset-links.controller");
+const root_asset_links_controller_1 = require("./root-asset-links.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -65,7 +66,7 @@ exports.AppModule = AppModule = __decorate([
             affiliate_module_1.AffiliateModule,
             advansispay_module_1.AdvansispayModule,
         ],
-        controllers: [app_controller_1.AppController, digital_asset_links_controller_1.DigitalAssetLinksController],
+        controllers: [app_controller_1.AppController, digital_asset_links_controller_1.DigitalAssetLinksController, root_asset_links_controller_1.RootAssetLinksController],
         providers: [app_service_1.AppService, email_service_1.EmailService, sms_util_1.SmsService, express_pay_service_1.ExpressPayService],
     })
 ], AppModule);

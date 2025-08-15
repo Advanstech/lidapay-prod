@@ -26,6 +26,7 @@ import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
 import { AdvansispayModule } from './advansispay/advansispay.module';
 import { ExpressPayService } from './advansispay/express-pay.service';
 import { DigitalAssetLinksController } from './digital-asset-links.controller';
+import { RootAssetLinksController } from './root-asset-links.controller';
 
 @Module({
   imports: [
@@ -53,7 +54,7 @@ import { DigitalAssetLinksController } from './digital-asset-links.controller';
     AffiliateModule,
     AdvansispayModule,
   ],
-  controllers: [AppController, DigitalAssetLinksController],
+  controllers: [AppController, DigitalAssetLinksController, RootAssetLinksController],
   providers: [AppService, EmailService, SmsService, ExpressPayService],
 })
 export class AppModule {}
