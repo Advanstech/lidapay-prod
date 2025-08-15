@@ -54,3 +54,4 @@ export declare const EXPRESSPAY_BASE_URL = "https://expresspaygh.com";
 export declare const EXPRESSPAY_TEST_BASE_URL = "https://sandbox.expresspaygh.com";
 export declare const EXPRESSPAY_REDIRECT_URL = "https://api.advansistechnologies.com/api/v1/advansispay/redirect-url";
 export declare const EXPRESSPAY_POST_URL = "https://api.advansistechnologies.com/api/v1/advansispay/post-status";
+export declare const DIGITAL_ASSET_LINKS_FINGERPRINT = "CD:1C:18:4C:E8:38:AC:D5:FF:67:65:B9:90:A8:4A:BB:0D:BC:31:79:0B:AD:F0:98:2C:55:8D:48:16:86:EC:E1";

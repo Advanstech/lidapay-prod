@@ -134,7 +134,7 @@ __decorate([
         description: 'Merchant registration details',
         schema: {
             type: 'object',
-            required: ['name', 'email', 'phoneNumber', 'password'],
+            required: ['name', 'email', 'phoneNumber', 'password', 'country'],
             properties: {
                 name: {
                     type: 'string',
@@ -183,7 +183,7 @@ __decorate([
                 },
                 country: {
                     type: 'string',
-                    description: 'Country of the merchant',
+                    description: 'Full country name (e.g., Nigeria, Ghana, United States)',
                     example: 'Ghana',
                 },
                 businessType: {

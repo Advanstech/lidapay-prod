@@ -15,6 +15,7 @@ import { NotificationService } from 'src/notification/notification.service';
 import { NotificationModule } from 'src/notification/notification.module';
 import { SmsService } from 'src/utilities/sms.util';
 import { NodemailService } from 'src/utilities/nodemail.service';
+import { AddMerchantCountryFieldMigration } from './migrations/add-country-field';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { NodemailService } from 'src/utilities/nodemail.service';
     EmailService,
     NotificationService,
     SmsService,
-    NodemailService
+    NodemailService,
+    AddMerchantCountryFieldMigration
   ],
   controllers: [MerchantController],
   exports: [MerchantService, MongooseModule], // Export MerchantService

@@ -13,7 +13,14 @@ async function bootstrap() {
   app.enableCors();
   app.use(helmet());
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: false, // Temporarily disabled for debugging
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+  }));
 
   const description = `
     A secure and scalable API designed to power the Lidapay ecosystem, providing a seamless experience for users across various platforms.

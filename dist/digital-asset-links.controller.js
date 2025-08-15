@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DigitalAssetLinksController = void 0;
 const common_1 = require("@nestjs/common");
+const constants_1 = require("./constants");
 let DigitalAssetLinksController = class DigitalAssetLinksController {
     getAssetLinks() {
         return [
@@ -20,7 +21,7 @@ let DigitalAssetLinksController = class DigitalAssetLinksController {
                     namespace: 'android_app',
                     package_name: 'com.advansistechnologies.lidapay',
                     sha256_cert_fingerprints: [
-                        'YOUR_SHA256_FINGERPRINT',
+                        constants_1.DIGITAL_ASSET_LINKS_FINGERPRINT,
                     ],
                 },
             },

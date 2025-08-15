@@ -9,5 +9,5 @@ export declare class CreateMerchantDto {
     ghanaPostGPS?: string;
     state?: string;
     zip?: string;
-    country?: string;
+    country: string;
 }

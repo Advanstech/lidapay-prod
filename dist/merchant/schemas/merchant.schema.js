@@ -104,6 +104,10 @@ __decorate([
     __metadata("design:type", String)
 ], Merchant.prototype, "taxId", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ required: true, minlength: 2, maxlength: 100 }),
+    __metadata("design:type", String)
+], Merchant.prototype, "country", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ default: Date.now() }),
     __metadata("design:type", Date)
 ], Merchant.prototype, "createdAt", void 0);

@@ -13,7 +13,14 @@ async function bootstrap() {
     app.enableCors();
     app.use((0, helmet_1.default)());
     app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
-    app.useGlobalPipes(new common_1.ValidationPipe());
+    app.useGlobalPipes(new common_1.ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: false,
+        transformOptions: {
+            enableImplicitConversion: true,
+        },
+    }));
     const description = `
     A secure and scalable API designed to power the Lidapay ecosystem, providing a seamless experience for users across various platforms.
     Powered by Advansis Technologies.

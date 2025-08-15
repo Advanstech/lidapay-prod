@@ -1,4 +1,5 @@
 import { Controller, Get, Header } from '@nestjs/common';
+import { DIGITAL_ASSET_LINKS_FINGERPRINT } from './constants';
 
 @Controller('api/v1/.well-known')
 export class DigitalAssetLinksController {
@@ -12,7 +13,7 @@ export class DigitalAssetLinksController {
           namespace: 'android_app',
           package_name: 'com.advansistechnologies.lidapay', // Replace with your actual package name
           sha256_cert_fingerprints: [
-            'YOUR_SHA256_FINGERPRINT', // We'll generate this
+            DIGITAL_ASSET_LINKS_FINGERPRINT,
           ],
         },
       },

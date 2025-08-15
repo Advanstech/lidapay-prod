@@ -23,6 +23,7 @@ const notification_service_1 = require("../notification/notification.service");
 const notification_module_1 = require("../notification/notification.module");
 const sms_util_1 = require("../utilities/sms.util");
 const nodemail_service_1 = require("../utilities/nodemail.service");
+const add_country_field_1 = require("./migrations/add-country-field");
 let MerchantModule = class MerchantModule {
 };
 exports.MerchantModule = MerchantModule;
@@ -43,7 +44,8 @@ exports.MerchantModule = MerchantModule = __decorate([
             email_service_1.EmailService,
             notification_service_1.NotificationService,
             sms_util_1.SmsService,
-            nodemail_service_1.NodemailService
+            nodemail_service_1.NodemailService,
+            add_country_field_1.AddMerchantCountryFieldMigration
         ],
         controllers: [merchant_controller_1.MerchantController],
         exports: [merchant_service_1.MerchantService, mongoose_1.MongooseModule],

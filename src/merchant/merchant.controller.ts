@@ -58,7 +58,7 @@ export class MerchantController {
     description: 'Merchant registration details',
     schema: {
       type: 'object',
-      required: ['name', 'email', 'phoneNumber', 'password'],
+      required: ['name', 'email', 'phoneNumber', 'password', 'country'],
       properties: {
         name: {
           type: 'string',
@@ -107,7 +107,7 @@ export class MerchantController {
         },
         country: {
           type: 'string',
-          description: 'Country of the merchant',
+          description: 'Full country name (e.g., Nigeria, Ghana, United States)',
           example: 'Ghana',
         },
         businessType: {
