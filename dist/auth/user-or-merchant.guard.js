@@ -20,7 +20,7 @@ let UserOrMerchantGuard = class UserOrMerchantGuard {
     }
     async canActivate(context) {
         try {
-            const canActivateUser = this.jwtAuthGuard.canActivate(context);
+            const canActivateUser = await this.jwtAuthGuard.canActivate(context);
             if (canActivateUser) {
                 return true;
             }

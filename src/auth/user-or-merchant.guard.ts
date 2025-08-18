@@ -13,7 +13,7 @@ export class UserOrMerchantGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       // Try user authentication first
-      const canActivateUser = this.jwtAuthGuard.canActivate(context);
+      const canActivateUser = await this.jwtAuthGuard.canActivate(context);
       if (canActivateUser) {
         return true;
       }

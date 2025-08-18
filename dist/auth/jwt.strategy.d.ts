@@ -14,7 +14,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
     private readonly logger;
     constructor(configService: ConfigService, userService: UserService);
     validate(payload: JwtPayload): Promise<{
-        userId: string;
+        sub: string;
         username: string;
         email: string;
         roles: string[];

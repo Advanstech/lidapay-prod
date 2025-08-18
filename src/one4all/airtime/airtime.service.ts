@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { Observable, of } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { catchError, map } from 'rxjs/operators';
@@ -29,6 +29,7 @@ export class AirtimeService {
     private readonly httpService: HttpService,
     private readonly transService: TransactionService,
   ) { }
+
   /*
   *   Transaction Status Query
   *   @param transactionId
@@ -74,13 +75,99 @@ export class AirtimeService {
         }),
       );
   }
+
   /*
   *   Airtime Topup
   *   @param topupDto
   */
   async topupAirtimeService(transDto: TopupDto): Promise<Observable<AxiosResponse<TopupDto>>> {
+    this.logger.log(`=== AIRTIME SERVICE PROCESSING START ===`);
+    this.logger.log(`Service received DTO: ${JSON.stringify(transDto, null, 2)}`);
+    
     const { retailer, recipientNumber, amount, network, userId, userName, currency } = transDto;
 
+    // Log the incoming DTO for debugging
+    this.logger.debug(`Incoming DTO: ${JSON.stringify(transDto, null, 2)}`);
+    this.logger.log(`Extracted parameters:`);
+    this.logger.log(`  - retailer: "${retailer}" (type: ${typeof retailer})`);
+    this.logger.log(`  - recipientNumber: "${recipientNumber}" (type: ${typeof recipientNumber})`);
+    this.logger.log(`  - amount: "${amount}" (type: ${typeof amount})`);
+    this.logger.log(`  - network: ${network} (type: ${typeof network})`);
+    this.logger.log(`  - userId: "${userId}" (type: ${typeof userId})`);
+    this.logger.log(`  - userName: "${userName}" (type: ${typeof userName})`);
+    this.logger.log(`  - currency: "${currency}" (type: ${typeof currency})`);
+
+    // Validate required fields with better error messages
+    this.logger.log(`=== VALIDATION PHASE ===`);
+    
+    if (amount === undefined || amount === null || amount === '') {
+      this.logger.error('Amount is required and cannot be empty');
+      throw new BadRequestException('Amount is required and cannot be empty');
+    }
+    this.logger.log(`✅ Amount presence check passed`);
+
+    // Handle amount validation for both string and number types
+    let amountStr: string;
+    this.logger.log(`Processing amount value: "${amount}" (type: ${typeof amount})`);
+    
+    if (typeof amount === 'string') {
+      amountStr = amount.trim();
+      this.logger.log(`Amount is string, trimmed to: "${amountStr}"`);
+      if (amountStr === '') {
+        this.logger.error('Amount string is empty after trimming');
+        throw new BadRequestException('Amount cannot be empty');
+      }
+    } else if (typeof amount === 'number') {
+      amountStr = amount.toString();
+      this.logger.log(`Amount is number, converted to string: "${amountStr}"`);
+    } else {
+      this.logger.error(`Invalid amount type: ${typeof amount}`);
+      throw new BadRequestException('Amount must be a string or number');
+    }
+    
+    this.logger.log(`Final amount string: "${amountStr}"`);
+
+    // Validate and convert amount
+    const amountNum = parseFloat(amountStr);
+    this.logger.log(`Parsed amount number: ${amountNum}`);
+    
+    if (isNaN(amountNum) || amountNum <= 0) {
+      this.logger.error(`Invalid amount provided: ${amountStr}`);
+      throw new BadRequestException('Invalid amount. Please provide a valid positive number.');
+    }
+    this.logger.log(`✅ Amount validation passed: ${amountNum}`);
+
+    // Validate recipient number
+    if (!recipientNumber || recipientNumber.trim() === '') {
+      this.logger.error('Recipient number is required');
+      throw new BadRequestException('Recipient number is required');
+    }
+    this.logger.log(`✅ Recipient number validation passed: "${recipientNumber}"`);
+
+    // Validate userId
+    if (!userId || userId.trim() === '') {
+      this.logger.error('User ID is required');
+      throw new BadRequestException('User ID is required');
+    }
+    this.logger.log(`✅ User ID validation passed: "${userId}"`);
+
+    // Validate userName
+    if (!userName || userName.trim() === '') {
+      this.logger.error('User name is required');
+      throw new BadRequestException('User name is required');
+    }
+    this.logger.log(`✅ User name validation passed: "${userName}"`);
+
+    // Calculate fees and total amount
+    this.logger.log(`=== FEE CALCULATION ===`);
+    const fee = typeof FEE_CHARGES === 'string' ? parseFloat(FEE_CHARGES) : typeof FEE_CHARGES === 'number' ? FEE_CHARGES : 0;
+    const totalAmount = (amountNum + fee).toFixed(2);
+    this.logger.log(`  - Original amount: ${amountNum}`);
+    this.logger.log(`  - Fee charges: ${fee}`);
+    this.logger.log(`  - Total amount: ${totalAmount}`);
+
+    // Build transaction parameters
+    this.logger.log(`=== BUILDING TRANSACTION PARAMS ===`);
     const taParams: any = {
       userId: userId,
       userName: userName,
@@ -91,9 +178,9 @@ export class AirtimeService {
       trxn: GeneratorUtil.generateTransactionId() || '',
       transId: '', // Will be set after creating the transaction
       monetary: {
-        amount: (Number(amount) + Number(FEE_CHARGES)).toString() || '',
-        fee: FEE_CHARGES || 0,
-        originalAmount: amount || '',
+        amount: totalAmount,
+        fee: fee,
+        originalAmount: amountNum.toFixed(2),
         currency: currency || 'GHS',
         balance_before: '', // Set this based on your logic
         balance_after: '', // Set this based on your logic
@@ -105,22 +192,39 @@ export class AirtimeService {
         payment: 'pending', // Assuming payment is pending initially
       },
       recipientNumber: recipientNumber || '',
-      transMessage: `${userName} topup airtime ${amount} GHS for ${this.getOperatorName(network)} to ${recipientNumber}`,
+      transMessage: `${userName} topup airtime ${amountStr} GHS for ${this.getOperatorName(network)} to ${recipientNumber}`,
       commentary: 'Airtime topup transaction pending',
     };
+    
+    this.logger.log(`Transaction parameters built:`);
+    this.logger.log(`  - Transaction ID: ${taParams.trxn}`);
+    this.logger.log(`  - Operator: ${taParams.operator}`);
+    this.logger.log(`  - Transaction message: ${taParams.transMessage}`);
+    this.logger.log(`  - Monetary details: ${JSON.stringify(taParams.monetary, null, 2)}`);
 
-    // Create transaction with updated structure and persist it
-    await this.transService.create(taParams); // Save transaction details
+    try {
+      this.logger.log(`=== SAVING TRANSACTION ===`);
+      // Create transaction with updated structure and persist it
+      await this.transService.create(taParams); // Save transaction details
+      this.logger.log(`✅ Transaction saved successfully with ID: ${taParams.trxn}`);
 
-    // Query transaction status here
-    const savedTransaction = await this.transService.findByTrxn(taParams.trxn); // Pass only the trxn string
+      // Query transaction status here
+      const savedTransaction = await this.transService.findByTrxn(taParams.trxn); // Pass only the trxn string
+      this.logger.log(`Retrieved saved transaction: ${JSON.stringify(savedTransaction, null, 2)}`);
 
-    // Check if the transaction was saved successfully
-    if (!savedTransaction) {
-      this.logger.error('Failed to save transaction.');
-      throw new NotFoundException('Transaction could not be created.');
+      // Check if the transaction was saved successfully
+      if (!savedTransaction) {
+        this.logger.error('Failed to save transaction.');
+        throw new InternalServerErrorException('Transaction could not be created.');
+      }
+      this.logger.log(`✅ Transaction retrieval confirmed`);
+    } catch (error) {
+      this.logger.error(`Failed to create or save transaction: ${error.message}`);
+      throw new InternalServerErrorException('Failed to process transaction. Please try again.');
     }
 
+    // Prepare API call parameters
+    this.logger.log(`=== PREPARING API CALL ===`);
     const configs: any = {
       url: this.AirBaseUrl + `/TopUpApi/airtime?retailer=${ONE4ALL_RETAILER}&recipient=${taParams.recipientNumber}&amount=${taParams.monetary.amount}&network=${taParams.network}&trxn=${taParams.trxn}`,
       headers: { ApiKey: ONE4ALL_APIKEY, ApiSecret: ONE4ALL_APISECRET },
@@ -129,7 +233,19 @@ export class AirtimeService {
       }),
     };
 
+    this.logger.log(`API call configuration:`);
+    this.logger.log(`  - Base URL: ${this.AirBaseUrl}`);
+    this.logger.log(`  - Endpoint: /TopUpApi/airtime`);
+    this.logger.log(`  - Retailer: ${ONE4ALL_RETAILER}`);
+    this.logger.log(`  - Recipient: ${taParams.recipientNumber}`);
+    this.logger.log(`  - Amount: ${taParams.monetary.amount}`);
+    this.logger.log(`  - Network: ${taParams.network}`);
+    this.logger.log(`  - Transaction ID: ${taParams.trxn}`);
+    this.logger.log(`  - Full URL: ${configs.url}`);
+    this.logger.log(`  - Headers: ${JSON.stringify(configs.headers, null, 2)}`);
+
     this.logger.log(`Airtime topup payload == ${JSON.stringify(configs)}`);
+    this.logger.log(`=== AIRTIME SERVICE PROCESSING END ===`);
 
     return this.httpService
       .get<any>(configs.url, {
@@ -207,6 +323,7 @@ export class AirtimeService {
         }),
       );
   }
+
   // Get operator name based on network code
   private getOperatorName(networkCode: number): string {
     const operators: Record<number, string> = {
