@@ -66,6 +66,9 @@ export class Merchant extends Document {
   @Prop({ type: String, required: false })
   taxId: string;
 
+  @Prop({ required: true, minlength: 2, maxlength: 100 })
+  country: string; // Full country name for Reloadly API integration
+
   @Prop({ default: Date.now() })
   createdAt: Date;
   @Prop({ default: Date.now() })
@@ -75,3 +78,4 @@ export class Merchant extends Document {
 }
 
 export const MerchantSchema = SchemaFactory.createForClass(Merchant);
+ 

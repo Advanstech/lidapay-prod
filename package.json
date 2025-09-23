@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "deploy": "npm run start:prod"
+    "deploy": "npm run start:prod",
+    "migrate:country": "ts-node src/commands/migrate-country.ts",
+    "migrate:merchant-country": "ts-node src/commands/migrate-merchant-country.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",

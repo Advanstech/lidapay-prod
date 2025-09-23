@@ -9,9 +9,9 @@ export declare class NetworkOperatorsDto {
     bundlesOnly?: boolean;
     dataOnly?: boolean;
     pinOnly?: boolean;
-    operatorId: number;
-    phone?: number;
-    countryIsoCode?: string;
+    operatorId?: number;
+    phone: string;
+    countryIsoCode: string;
     suggestedAmount?: boolean;
     accessToken?: any;
 }

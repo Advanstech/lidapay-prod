@@ -68,8 +68,10 @@ let UserService = UserService_1 = class UserService {
             }
             const hashedPassword = await password_util_1.PasswordUtil.hashPassword(userDto.password);
             const gravatarUrl = await this.gravatarService.fetchAvatar(userDto.email);
+            const username = userDto.username || userDto.phoneNumber || userDto.mobile;
             const createdUser = new this.userModel({
                 ...userDto,
+                username,
                 password: hashedPassword,
                 points: 0,
                 gravatar: gravatarUrl,

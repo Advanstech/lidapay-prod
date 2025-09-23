@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   FEE_CHARGES,
-  RELOADLY_AUDIENCE_SANDBOX,
+  RELOADLY_AUDIENCE,
   RELOADLY_BASEURL,
-  RELOADLY_BASEURL_SANDBOX,
-  RELOADLY_CLIENT_ID_SANDBOX,
-  RELOADLY_CLIENT_SECRET_SANDBOX,
-  RELOADLY_GRANT_TYPE_SANDBOX,
+  RELOADLY_BASEURL_LIVE,
+  RELOADLY_CLIENT_ID,
+  RELOADLY_CLIENT_SECRET,
+  RELOADLY_GRANT_TYPE,
 } from '../../constants';
 import { HttpService } from '@nestjs/axios';
 import { catchError, map } from 'rxjs/operators';
@@ -14,7 +14,6 @@ import { ReloadAirtimeDto } from './dto/reload.airtime.dto';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { GeneratorUtil } from 'src/utilities/generator.util';
-import { ValidationUtil } from 'src/utilities/validation.util';
 import { TransactionService } from 'src/transaction/transaction.service';
 import { UpdateTransactionDto } from 'src/transaction/dto/update-transaction.dto';
 import { firstValueFrom } from 'rxjs';
@@ -23,7 +22,7 @@ import { CreateTransactionDto } from 'src/transaction/dto/create-transaction.dto
 @Injectable()
 export class ReloadAirtimeService {
   private logger = new Logger(ReloadAirtimeService.name);
-  private reloadLyBaseURL = RELOADLY_BASEURL_SANDBOX;
+  private reloadLyBaseURL = RELOADLY_BASEURL_LIVE;
   private accessTokenURL = process.env.RELOADLY_BASEURL || RELOADLY_BASEURL;
   // private accessToken: string;
 
@@ -35,14 +34,14 @@ export class ReloadAirtimeService {
   public generateAccessToken(): Observable<{ accessToken: string }> {
     const gatPayload = {
       client_id:
-        process.env.RELOADLY_CLIENT_ID_SANDBOX || RELOADLY_CLIENT_ID_SANDBOX,
+        process.env.RELOADLY_CLIENT_ID || RELOADLY_CLIENT_ID,
       client_secret:
-        process.env.RELOADLY_CLIENT_SECRET_SANDBOX ||
-        RELOADLY_CLIENT_SECRET_SANDBOX,
+        process.env.RELOADLY_CLIENT_SECRET ||
+        RELOADLY_CLIENT_SECRET,
       grant_type:
-        process.env.RELOADLY_GRANT_TYPE_SANDBOX || RELOADLY_GRANT_TYPE_SANDBOX,
+        process.env.RELOADLY_GRANT_TYPE || RELOADLY_GRANT_TYPE,
       audience:
-        process.env.RELOADLY_AUDIENCE_SANDBOX || RELOADLY_AUDIENCE_SANDBOX,
+        process.env.RELOADLY_AUDIENCE || RELOADLY_AUDIENCE,
     };
 
     const gatURL = `${this.accessTokenURL}/oauth/token`;
@@ -118,7 +117,7 @@ export class ReloadAirtimeService {
       userName: userName,
       transType: 'GLOBAL AIRTIME',
       retailer: 'RELOADLY',
-      network: operatorId,
+      network: String(operatorId),
       operator: operatorName || '',
       transId: mtPayload.customIdentifier,
       trxn: mtPayload.customIdentifier,
@@ -158,7 +157,7 @@ export class ReloadAirtimeService {
     // Save transaction
     await this.transService.create(mtPayloadSave);
     // Access URL
-    const mtURL = `https://topups-sandbox.reloadly.com/topups`;
+    const mtURL = `${this.reloadLyBaseURL}/topups`;
     // https config
     const config = {
       url: mtURL,
@@ -272,7 +271,7 @@ export class ReloadAirtimeService {
       userName,
       transType: 'RELOADLY',
       retailer: 'RELOADLY',
-      network: operatorId,
+      network: String(operatorId),
       operator: operatorName,
       trxn: matPayload.customIdentifier,
       transId: matPayload.customIdentifier,
@@ -314,7 +313,7 @@ export class ReloadAirtimeService {
     await this.transService.create(matPayloadSave);
 
     // Access URL
-    const matURL = `https://topups-sandbox.reloadly.com/topups-async`;
+    const matURL = `${this.reloadLyBaseURL}/topups-async`;
     const config = {
       url: matURL,
       body: matPayload,
@@ -396,36 +395,44 @@ export class ReloadAirtimeService {
       throw error;
     }
   }
-  // number lookup
-  async numberLookup(accessToken: string, msisdn: string): Promise<any> {
-    const url = `${this.reloadLyBaseURL}/airtime/number-lookup?msisdn=${msisdn}`;
+  // number lookup via MNP Lookup (POST)
+  async numberLookup(accessToken: string, msisdn: string, countryCode: string): Promise<any> {
+    const url = `${this.reloadLyBaseURL}/operators/mnp-lookup`;
 
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/com.reloadly.topups-v1+json',
-        Authorization: `Bearer ${accessToken}`,
-      },
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/com.reloadly.topups-v1+json',
+      Authorization: `Bearer ${accessToken}`,
     };
 
-    this.logger.debug(`Number lookup request URL: ${url}`);
+    const body = {
+      phone: msisdn,
+      countryCode: countryCode,
+    };
+
+    this.logger.debug(`MNP Lookup POST URL: ${url} | Body: ${JSON.stringify(body)}`);
 
     try {
-      const response = await firstValueFrom(this.httpService.get(url, config));
-      this.logger.debug(`Number lookup response: ${JSON.stringify(response.data)}`);
-      return response.data; // Return the response data
+      const response = await firstValueFrom(this.httpService.post(url, body, { headers }));
+      this.logger.debug(`MNP lookup response: ${JSON.stringify(response.data)}`);
+      return response.data;
     } catch (error) {
-      this.logger.error(`Failed to lookup number ${msisdn}: ${error.message}`);
-      throw new NotFoundException(`Failed to lookup number: ${error.message}`);
+      const status = error.response?.status;
+      const message = error.response?.data?.message || error.message || 'Lookup failed';
+      this.logger.error(`MNP lookup failed for ${msisdn}/${countryCode} | status=${status} | error=${JSON.stringify(error.response?.data || message)}`);
+      if (status === 404) {
+        throw new NotFoundException('MNP Lookup for given phone number failed');
+      }
+      throw new NotFoundException(`Failed to lookup number: ${message}`);
     }
   }
   // access token
   private async reloadlyAccessToken(): Promise<string> {
     const tokenPayload = {
-      client_id: RELOADLY_CLIENT_ID_SANDBOX,
-      client_secret: RELOADLY_CLIENT_SECRET_SANDBOX,
-      grant_type: RELOADLY_GRANT_TYPE_SANDBOX,
-      audience: RELOADLY_AUDIENCE_SANDBOX,
+      client_id: RELOADLY_CLIENT_ID,
+      client_secret: RELOADLY_CLIENT_SECRET,
+      grant_type: RELOADLY_GRANT_TYPE,
+      audience: RELOADLY_AUDIENCE,
     };
     const tokenUrl = `${this.accessTokenURL}/oauth/token`;
 

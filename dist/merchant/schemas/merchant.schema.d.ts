@@ -30,6 +30,7 @@ export declare class Merchant extends Document {
     invitationLinkUsageCount: number;
     lastInvitationLinkUsage: Date;
     taxId: string;
+    country: string;
     createdAt: Date;
     updatedAt: Date;
 }

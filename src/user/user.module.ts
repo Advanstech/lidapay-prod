@@ -15,6 +15,7 @@ import { RewardModule } from 'src/reward/reward.module';
 import { NotificationModule } from 'src/notification/notification.module';
 import { Wallet, WalletSchema } from 'src/user/schemas/wallet.schema';
 import AccountSchema from './schemas/account.schema';
+import { AddCountryFieldMigration } from './migrations/add-country-field';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import AccountSchema from './schemas/account.schema';
     GravatarService,
     MerchantService,
     NodemailService,
+    AddCountryFieldMigration,
   ],
   exports: [UserService, MongooseModule], // Export UserService and MongooseModule
 })

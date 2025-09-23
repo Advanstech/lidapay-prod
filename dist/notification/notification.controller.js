@@ -119,7 +119,7 @@ __decorate([
 ], NotificationController.prototype, "delete", null);
 exports.NotificationController = NotificationController = __decorate([
     (0, swagger_1.ApiTags)('Notifications'),
-    (0, common_1.Controller)('notifications'),
+    (0, common_1.Controller)('api/v1/notifications'),
     __metadata("design:paramtypes", [notification_service_1.NotificationService])
 ], NotificationController);
 //# sourceMappingURL=notification.controller.js.map

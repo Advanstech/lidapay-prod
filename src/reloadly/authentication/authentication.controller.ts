@@ -30,5 +30,4 @@ export class AuthenticationController {
     return authToken;
   }
 
-
 }

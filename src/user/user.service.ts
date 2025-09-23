@@ -83,8 +83,12 @@ export class UserService {
       const hashedPassword = await PasswordUtil.hashPassword(userDto.password);
       const gravatarUrl = await this.gravatarService.fetchAvatar(userDto.email);
 
+      // Ensure username is set (use phoneNumber if not provided)
+      const username = userDto.username || userDto.phoneNumber || userDto.mobile;
+      
       const createdUser = new this.userModel({
         ...userDto,
+        username, // Set the username
         password: hashedPassword,
         points: 0, // Initialize points
         gravatar: gravatarUrl,

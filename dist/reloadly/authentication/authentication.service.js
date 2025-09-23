@@ -25,10 +25,10 @@ let AuthenticationService = AuthenticationService_1 = class AuthenticationServic
     genAccessToken(authDto) {
         const { grantType, audience } = authDto;
         const authConfig = {
-            clientId: process.env.RELOADLY_CLIENT_ID_SANDBOX || constants_1.RELOADLY_CLIENT_ID_SANDBOX,
-            clientSecret: process.env.RELOADLY_CLIENT_SECRET_SANDBOX || constants_1.RELOADLY_CLIENT_SECRET_SANDBOX,
-            grantType: process.env.RELOADLY_GRANT_TYPE_SANDBOX || constants_1.RELOADLY_GRANT_TYPE_SANDBOX || grantType,
-            audience: process.env.RELOADLY_AUDIENCE_SANDBOX || constants_1.RELOADLY_AUDIENCE_SANDBOX || audience,
+            clientId: process.env.RELOADLY_CLIENT_ID || constants_1.RELOADLY_CLIENT_ID,
+            clientSecret: process.env.RELOADLY_CLIENT_SECRET || constants_1.RELOADLY_CLIENT_SECRET,
+            grantType: process.env.RELOADLY_GRANT_TYPE || constants_1.RELOADLY_GRANT_TYPE || grantType,
+            audience: process.env.RELOADLY_AUDIENCE || constants_1.RELOADLY_AUDIENCE || audience,
         };
         const requestConfig = {
             url: `${this.reloadLyBaseURL}/oauth/token`,

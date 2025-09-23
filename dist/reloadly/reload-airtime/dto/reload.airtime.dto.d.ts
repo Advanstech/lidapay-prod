@@ -1,15 +1,15 @@
 export declare class ReloadAirtimeDto {
     userId: string;
     userName: string;
-    operatorId: any;
+    operatorId: number;
     operatorName: string;
-    amount: any;
+    amount: number;
     useLocalAmount: boolean;
     customIdentifier: string;
     recipientEmail: string;
     recipientNumber: string;
     recipientCountryCode: string;
-    senderNumber: any;
+    senderNumber: string;
     senderCountryCode: string;
     retailer?: string;
     retailerId?: string;

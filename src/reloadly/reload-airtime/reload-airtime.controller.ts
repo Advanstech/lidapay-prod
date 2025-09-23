@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Logger, Post, UseGuards, Request, BadRequestException, InternalServerErrorException, NotFoundException, Param, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, UseGuards, Request, BadRequestException, InternalServerErrorException, NotFoundException, Param, UnauthorizedException, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ReloadAirtimeService } from './reload-airtime.service';
 import { ReloadAirtimeDto } from './dto/reload.airtime.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserOrMerchantGuard } from 'src/auth/user-or-merchant.guard';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { MerchantAuthGuard } from 'src/auth/merchant-auth.guard';
+import { firstValueFrom } from 'rxjs';
 
 @ApiTags('Reloadly Airtime')
 @ApiBearerAuth()
@@ -16,6 +17,11 @@ export class ReloadAirtimeController {
     private reloadAirtimeService: ReloadAirtimeService
   ) {}
 
+  /**
+   * Generate access token
+   * @returns 
+   */
+
   @ApiOperation({ summary: 'Generate access token' })
   @ApiResponse({ status: 200, description: 'Access token generated successfully' })
   @Get('/token')
@@ -25,6 +31,10 @@ export class ReloadAirtimeController {
     return gatRes;
   }
 
+  /**
+   * Test endpoint
+   * @returns 
+   */
   @ApiOperation({ summary: 'Test endpoint' })
   @ApiResponse({ status: 200, description: 'Test successful' })
   @Get('/test')
@@ -32,7 +42,14 @@ export class ReloadAirtimeController {
     return `we made it ...`;
   }
  
+  /**
+   * Recharge airtime
+   * @param airDto 
+   * @param req 
+   * @returns 
+   */
   @UseGuards(UserOrMerchantGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @Post('recharge')
   @ApiOperation({ summary: 'Recharge airtime' })
   @ApiBody({
@@ -100,7 +117,7 @@ export class ReloadAirtimeController {
     @Body() airDto: ReloadAirtimeDto,
     @Request() req,
   ): Promise<any> {
-    console.debug(`airtime dto ==> ${airDto}`);
+    console.debug(`airtime dto ==> ${JSON.stringify(airDto)}`);
     this.logger.log(`topup airtime user => ${JSON.stringify(req.user)}`);
     airDto.userId = req.user.sub;
     airDto.userName = req.user.name || req.user.username;
@@ -111,8 +128,14 @@ export class ReloadAirtimeController {
     const ar = this.reloadAirtimeService.makeTopUp(airDto);
     return ar;
   }
-  // reloadly async airtime recharge
+  /**
+   * Recharge airtime asynchronously
+   * @param aarDto 
+   * @param req 
+   * @returns 
+   */
   @UseGuards(JwtAuthGuard, MerchantAuthGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @Post('/recharge-async')
   @ApiOperation({ summary: 'Recharge airtime asynchronously' })
   @ApiResponse({ status: 200, description: 'Asynchronous airtime recharge initiated' })
@@ -191,7 +214,48 @@ export class ReloadAirtimeController {
     const aar = this.reloadAirtimeService.makeAsynchronousTopUp(aarDto);
     return aar;
   }
-  // Topup status
+  /**
+   * MNP Number Lookup (POST)
+   */
+  @UseGuards(UserOrMerchantGuard)
+  @Post('phone-lookup')
+  @ApiOperation({ summary: 'Validate phone number and detect operator (MNP Lookup)' })
+  @ApiBody({
+    description: 'Phone number lookup payload',
+    schema: {
+      type: 'object',
+      properties: {
+        phone: { type: 'string', example: '233241603241' },
+        countryCode: { type: 'string', example: 'GH' }
+      },
+      required: ['phone', 'countryCode']
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Lookup successful' })
+  @ApiResponse({ status: 404, description: 'MNP Lookup for given phone number failed' })
+  async mnpLookup(
+    @Body('phone') phone: string,
+    @Body('countryCode') countryCode: string,
+  ) {
+    if (!phone || !countryCode) {
+      throw new BadRequestException('phone and countryCode are required');
+    }
+    try {
+      const { accessToken } = await firstValueFrom(this.reloadAirtimeService.generateAccessToken());
+      const result = await this.reloadAirtimeService.numberLookup(accessToken, phone, countryCode);
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to perform MNP lookup');
+    }
+  }
+  /**
+   * Topup status
+   * @param transactionId 
+   * @returns 
+   */
   @UseGuards(JwtAuthGuard, MerchantAuthGuard)
   @Get('topup-status/:transactionId')
   @ApiOperation({

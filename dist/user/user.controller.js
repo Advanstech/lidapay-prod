@@ -31,7 +31,11 @@ let UserController = UserController_1 = class UserController {
         this.logger = new common_1.Logger(UserController_1.name);
     }
     async register(createUserDto) {
-        this.logger.debug(`UserDto ==> ${JSON.stringify(createUserDto)}`);
+        this.logger.log('=== USER REGISTRATION REQUEST ===');
+        this.logger.log(`Raw request body: ${JSON.stringify(createUserDto, null, 2)}`);
+        this.logger.log(`Request body type: ${typeof createUserDto}`);
+        this.logger.log(`Request body keys: ${Object.keys(createUserDto || {}).join(', ')}`);
+        this.logger.log('=== END USER REGISTRATION REQUEST ===');
         return this.userService.create(createUserDto);
     }
     async login(req) {
@@ -256,6 +260,7 @@ __decorate([
                     lastName: 'Annan',
                     email: 'kofi.annan@example.com',
                     phoneNumber: '+1234567890',
+                    country: 'Ghana',
                     roles: ['user'],
                     createdAt: '2023-04-01T12:00:00Z',
                     updatedAt: '2023-04-01T12:00:00Z'
@@ -280,8 +285,10 @@ __decorate([
                     example: 'kofi.annan@example.com'
                 },
                 phoneNumber: { type: 'string', example: '+1234567890' },
+                country: { type: 'string', description: 'Full country name (e.g., Nigeria, Ghana, United States)', example: 'Ghana' },
                 referrerClientId: { type: 'string', description: 'Optional Merchant ClientID', example: 'MERCH123' }
-            }
+            },
+            required: ['firstName', 'lastName', 'password', 'roles', 'email', 'phoneNumber', 'country']
         }
     }),
     __param(0, (0, common_1.Body)()),

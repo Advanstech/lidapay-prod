@@ -1,6 +1,6 @@
 export declare class CreateUserDto {
     readonly userId?: string;
-    username: string;
+    username?: string;
     firstName: string;
     lastName: string;
     readonly password: string;
@@ -11,4 +11,5 @@ export declare class CreateUserDto {
     readonly referrerClientId?: string;
     resetPasswordToken?: string;
     resetPasswordExpires?: any;
+    country: string;
 }

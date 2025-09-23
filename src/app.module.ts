@@ -26,6 +26,10 @@ import { MobilemoneyModule } from './one4all/mobilemoney/mobilemoney.module';
 import { AdvansispayModule } from './advansispay/advansispay.module';
 import { ExpressPayService } from './advansispay/express-pay.service';
 import { DigitalAssetLinksController } from './digital-asset-links.controller';
+import { RootAssetLinksController } from './root-asset-links.controller';
+import { ReloadlyDataService } from './reloadly/reloadly-data/reloadly-data.service';
+import { ReloadlyDataController } from './reloadly/reloadly-data/reloadly-data.controller';
+import { ReloadlyDataModule } from './reloadly/reloadly-data/reloadly-data.module';
 
 @Module({
   imports: [
@@ -52,8 +56,9 @@ import { DigitalAssetLinksController } from './digital-asset-links.controller';
     ReloadAirtimeModule,
     AffiliateModule,
     AdvansispayModule,
+    ReloadlyDataModule,
   ],
-  controllers: [AppController, DigitalAssetLinksController],
-  providers: [AppService, EmailService, SmsService, ExpressPayService],
+  controllers: [AppController, DigitalAssetLinksController, RootAssetLinksController, ReloadlyDataController],
+  providers: [AppService, EmailService, SmsService, ExpressPayService, ReloadlyDataService],
 })
 export class AppModule {}

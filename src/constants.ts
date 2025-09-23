@@ -40,9 +40,12 @@ export const RELOADLY_CLIENT_SECRET =
   'zecpjTBf11-xTOtpns8MdzUhlWWGFQ-Cf2bvyX9SD16SWx0RuZCCFUKzwO3jh5q';
 export const RELOADLY_CLIENT_SECRET_SANDBOX =
   'JgtN7maKY1-IvJGB8p2qdTtYyeYOyi-dFSebphTSudiyuUYJv3bNEvo7nlr2r3j';
-export const RELOADLY_GRANT_TYPE_SANDBOX = 'client_credentials';
+export const RELOADLY_GRANT_TYPE = 'client_credentials';
+export const RELOADLY_AUDIENCE = 'https://topups.reloadly.com';
 export const RELOADLY_AUDIENCE_SANDBOX = 'https://topups-sandbox.reloadly.com';
 export const RELOADLY_BASEURL = 'https://auth.reloadly.com';
+export const RELOADLY_AUTH_BASEURL = 'https://auth.reloadly.com';
+export const RELOADLY_BASEURL_LIVE = 'https://topups.reloadly.com';
 export const RELOADLY_BASEURL_SANDBOX = 'https://topups-sandbox.reloadly.com';
 // Amazon SES
 export const AWS_REGION = 'us-east-1';
@@ -69,3 +72,5 @@ export const EXPRESSPAY_REDIRECT_URL =
   'https://api.advansistechnologies.com/api/v1/advansispay/redirect-url';
 export const EXPRESSPAY_POST_URL =
   'https://api.advansistechnologies.com/api/v1/advansispay/post-status';
+// Digital Asset Links
+export const DIGITAL_ASSET_LINKS_FINGERPRINT = 'CD:1C:18:4C:E8:38:AC:D5:FF:67:65:B9:90:A8:4A:BB:0D:BC:31:79:0B:AD:F0:98:2C:55:8D:48:16:86:EC:E1';

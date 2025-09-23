@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 @ApiTags('Notifications')
-@Controller('notifications')
+@Controller('api/v1/notifications')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 

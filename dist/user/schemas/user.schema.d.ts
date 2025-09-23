@@ -17,6 +17,7 @@ export interface User extends Document {
     gravatar: string;
     phoneNumberVerificationCode?: string;
     account: Types.ObjectId;
+    country: string;
 }
 export interface InvitationLink {
     link: string;
@@ -52,6 +53,7 @@ export declare class User extends Document {
     totalPointsEarned: number;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
+    country: string;
     createdAt: Date;
     updatedAt: Date;
     wallet: Types.ObjectId;

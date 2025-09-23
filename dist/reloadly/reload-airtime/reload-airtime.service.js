@@ -23,16 +23,16 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
         this.httpService = httpService;
         this.transService = transService;
         this.logger = new common_1.Logger(ReloadAirtimeService_1.name);
-        this.reloadLyBaseURL = constants_1.RELOADLY_BASEURL_SANDBOX;
+        this.reloadLyBaseURL = constants_1.RELOADLY_BASEURL_LIVE;
         this.accessTokenURL = process.env.RELOADLY_BASEURL || constants_1.RELOADLY_BASEURL;
     }
     generateAccessToken() {
         const gatPayload = {
-            client_id: process.env.RELOADLY_CLIENT_ID_SANDBOX || constants_1.RELOADLY_CLIENT_ID_SANDBOX,
-            client_secret: process.env.RELOADLY_CLIENT_SECRET_SANDBOX ||
-                constants_1.RELOADLY_CLIENT_SECRET_SANDBOX,
-            grant_type: process.env.RELOADLY_GRANT_TYPE_SANDBOX || constants_1.RELOADLY_GRANT_TYPE_SANDBOX,
-            audience: process.env.RELOADLY_AUDIENCE_SANDBOX || constants_1.RELOADLY_AUDIENCE_SANDBOX,
+            client_id: process.env.RELOADLY_CLIENT_ID || constants_1.RELOADLY_CLIENT_ID,
+            client_secret: process.env.RELOADLY_CLIENT_SECRET ||
+                constants_1.RELOADLY_CLIENT_SECRET,
+            grant_type: process.env.RELOADLY_GRANT_TYPE || constants_1.RELOADLY_GRANT_TYPE,
+            audience: process.env.RELOADLY_AUDIENCE || constants_1.RELOADLY_AUDIENCE,
         };
         const gatURL = `${this.accessTokenURL}/oauth/token`;
         const configs = {
@@ -78,7 +78,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             userName: userName,
             transType: 'GLOBAL AIRTIME',
             retailer: 'RELOADLY',
-            network: operatorId,
+            network: String(operatorId),
             operator: operatorName || '',
             transId: mtPayload.customIdentifier,
             trxn: mtPayload.customIdentifier,
@@ -116,7 +116,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             commentary: 'Global airtime topup transaction pending',
         };
         await this.transService.create(mtPayloadSave);
-        const mtURL = `https://topups-sandbox.reloadly.com/topups`;
+        const mtURL = `${this.reloadLyBaseURL}/topups`;
         const config = {
             url: mtURL,
             body: mtPayload,
@@ -193,7 +193,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             userName,
             transType: 'RELOADLY',
             retailer: 'RELOADLY',
-            network: operatorId,
+            network: String(operatorId),
             operator: operatorName,
             trxn: matPayload.customIdentifier,
             transId: matPayload.customIdentifier,
@@ -231,7 +231,7 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             commentary: 'Global airtime topup transaction pending',
         };
         await this.transService.create(matPayloadSave);
-        const matURL = `https://topups-sandbox.reloadly.com/topups-async`;
+        const matURL = `${this.reloadLyBaseURL}/topups-async`;
         const config = {
             url: matURL,
             body: matPayload,
@@ -291,32 +291,39 @@ let ReloadAirtimeService = ReloadAirtimeService_1 = class ReloadAirtimeService {
             throw error;
         }
     }
-    async numberLookup(accessToken, msisdn) {
-        const url = `${this.reloadLyBaseURL}/airtime/number-lookup?msisdn=${msisdn}`;
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/com.reloadly.topups-v1+json',
-                Authorization: `Bearer ${accessToken}`,
-            },
+    async numberLookup(accessToken, msisdn, countryCode) {
+        const url = `${this.reloadLyBaseURL}/operators/mnp-lookup`;
+        const headers = {
+            'Content-Type': 'application/json',
+            Accept: 'application/com.reloadly.topups-v1+json',
+            Authorization: `Bearer ${accessToken}`,
         };
-        this.logger.debug(`Number lookup request URL: ${url}`);
+        const body = {
+            phone: msisdn,
+            countryCode: countryCode,
+        };
+        this.logger.debug(`MNP Lookup POST URL: ${url} | Body: ${JSON.stringify(body)}`);
         try {
-            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(url, config));
-            this.logger.debug(`Number lookup response: ${JSON.stringify(response.data)}`);
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(url, body, { headers }));
+            this.logger.debug(`MNP lookup response: ${JSON.stringify(response.data)}`);
             return response.data;
         }
         catch (error) {
-            this.logger.error(`Failed to lookup number ${msisdn}: ${error.message}`);
-            throw new common_1.NotFoundException(`Failed to lookup number: ${error.message}`);
+            const status = error.response?.status;
+            const message = error.response?.data?.message || error.message || 'Lookup failed';
+            this.logger.error(`MNP lookup failed for ${msisdn}/${countryCode} | status=${status} | error=${JSON.stringify(error.response?.data || message)}`);
+            if (status === 404) {
+                throw new common_1.NotFoundException('MNP Lookup for given phone number failed');
+            }
+            throw new common_1.NotFoundException(`Failed to lookup number: ${message}`);
         }
     }
     async reloadlyAccessToken() {
         const tokenPayload = {
-            client_id: constants_1.RELOADLY_CLIENT_ID_SANDBOX,
-            client_secret: constants_1.RELOADLY_CLIENT_SECRET_SANDBOX,
-            grant_type: constants_1.RELOADLY_GRANT_TYPE_SANDBOX,
-            audience: constants_1.RELOADLY_AUDIENCE_SANDBOX,
+            client_id: constants_1.RELOADLY_CLIENT_ID,
+            client_secret: constants_1.RELOADLY_CLIENT_SECRET,
+            grant_type: constants_1.RELOADLY_GRANT_TYPE,
+            audience: constants_1.RELOADLY_AUDIENCE,
         };
         const tokenUrl = `${this.accessTokenURL}/oauth/token`;
         try {

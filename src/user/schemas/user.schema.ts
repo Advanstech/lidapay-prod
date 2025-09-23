@@ -19,6 +19,7 @@ export interface User extends Document {
   gravatar: string;
   phoneNumberVerificationCode?: string; // Add this line
   account: Types.ObjectId; // Reference to the Account
+  country: string; // Country code for Reloadly API (required)
 }
 
 export interface InvitationLink {
@@ -83,6 +84,8 @@ export class User extends Document {
   resetPasswordToken?: string;
   @Prop()
   resetPasswordExpires?: Date;
+  @Prop({ required: true, minlength: 2, maxlength: 100 })
+  country: string; // Full country name (e.g., "United States", "Nigeria", "Ghana")
   @Prop({ default: Date.now() })
   createdAt: Date;
   @Prop({ default: Date.now() })

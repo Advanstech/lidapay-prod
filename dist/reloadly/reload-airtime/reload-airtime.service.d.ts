@@ -15,6 +15,6 @@ export declare class ReloadAirtimeService {
     makeTopUp(airDto: ReloadAirtimeDto): Promise<Observable<any>>;
     makeAsynchronousTopUp(matDto: ReloadAirtimeDto): Promise<Observable<any>>;
     getTopupStatus(trxnId: string): Promise<any>;
-    numberLookup(accessToken: string, msisdn: string): Promise<any>;
+    numberLookup(accessToken: string, msisdn: string, countryCode: string): Promise<any>;
     private reloadlyAccessToken;
 }

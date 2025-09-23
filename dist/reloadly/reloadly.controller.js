@@ -18,8 +18,9 @@ const common_1 = require("@nestjs/common");
 const reloadly_service_1 = require("./reloadly.service");
 const reloadly_dto_1 = require("./dto/reloadly.dto");
 const network_operators_dto_1 = require("./dto/network.operators.dto");
-const swagger_1 = require("@nestjs/swagger");
+const rxjs_1 = require("rxjs");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const swagger_1 = require("@nestjs/swagger");
 let ReloadlyController = ReloadlyController_1 = class ReloadlyController {
     constructor(reloadlyService) {
         this.reloadlyService = reloadlyService;
@@ -27,151 +28,163 @@ let ReloadlyController = ReloadlyController_1 = class ReloadlyController {
     }
     async getAccountBalance() {
         try {
-            const gab = this.reloadlyService.getAccountBalance();
+            const gab = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.getAccountBalance());
+            this.logger.debug(`Account balance response ==>${JSON.stringify(gab)}`);
             return gab;
         }
         catch (error) {
             this.logger.error(`Error getting account balance: ${error}`);
+            throw new Error('Internal server error');
         }
     }
-    async getAccessToken() {
+    async accessToken() {
         try {
-            const gatRes = await this.reloadlyService.accessToken();
-            this.logger.debug(`reloadly access token ===>  ${gatRes}`);
+            const gatRes = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.accessToken());
+            this.logger.debug(`Access token response ==>${JSON.stringify(gatRes)}`);
             return gatRes;
         }
         catch (error) {
             this.logger.error(`Error getting access token: ${error}`);
+            throw new Error('Internal server error');
         }
     }
-    async listCountryList() {
+    async countryList() {
         try {
-            const lcl = this.reloadlyService.countryList();
-            this.logger.log(`${JSON.stringify(lcl)}`);
+            const lcl = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.countryList());
+            this.logger.debug(`Country list response ==>${JSON.stringify(lcl)}`);
             return lcl;
         }
         catch (error) {
-            this.logger.error(`Error listing countries: ${error}`);
+            this.logger.error(`Error getting country list: ${error}`);
+            throw new Error('Internal server error');
         }
     }
     async findCountryByCode(fcbDto) {
-        if (!fcbDto) {
-            throw new Error('Invalid input data');
-        }
         try {
-            const fcb = await this.reloadlyService.findCountryByCode(fcbDto);
+            const fcb = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.findCountryByCode(fcbDto));
+            this.logger.debug(`Find country by code response ==>${JSON.stringify(fcb)}`);
             return fcb;
         }
         catch (error) {
             this.logger.error(`Error finding country by code: ${error}`);
+            throw new Error('Internal server error');
         }
     }
-    async getNetworkOperators(gngDto) {
+    async networkOperators(gngDto) {
         try {
-            const operators = await this.reloadlyService.networkOperators(gngDto);
+            const operators = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.networkOperators(gngDto));
+            this.logger.debug(`Network operators response ==>${JSON.stringify(operators)}`);
             return operators;
         }
         catch (error) {
             this.logger.error(`Error getting network operators: ${error}`);
-            throw error;
+            throw new Error('Internal server error');
         }
     }
     async findOperatorById(adoDto) {
-        if (!adoDto) {
-            throw new Error('Invalid input data');
-        }
         try {
-            const ado = this.reloadlyService.findOperatorById(adoDto);
+            const ado = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.findOperatorById(adoDto));
+            this.logger.debug(`Find operator by ID response ==>${JSON.stringify(ado)}`);
             return ado;
         }
         catch (error) {
-            this.logger.error(`Error finding operator by id: ${error}`);
+            this.logger.error(`Error finding operator by ID: ${error}`);
+            throw new Error('Internal server error');
         }
     }
     async autoDetectOperator(adoDto) {
-        if (!adoDto) {
-            throw new Error('Invalid input data');
+        console.log("autoDetectOperator input =>", adoDto);
+        if (!adoDto || !adoDto.phone || !adoDto.countryIsoCode) {
+            throw new common_1.BadRequestException('Phone number and country ISO code are required');
         }
         try {
-            const ado = this.reloadlyService.autoDetectOperator(adoDto);
+            const ado = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.autoDetectOperator(adoDto));
             this.logger.debug(`Network autodetect input ==>${JSON.stringify(adoDto)}`);
             return ado;
         }
         catch (error) {
-            this.logger.error(`Error auto detecting operator: ${error}`);
-            throw new Error('Internal server error');
+            this.logger.error(`Error auto detecting operator: ${error?.message || error}`);
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            const message = error?.response?.data || error?.message || 'Auto-detect failed';
+            throw new common_1.InternalServerErrorException(message);
         }
     }
-    async getNetworkOperatorByCode(gnobcDto) {
-        if (!gnobcDto) {
-            throw new Error('Invalid input data');
-        }
+    async getOperatorByCode(gnobcDto) {
         try {
-            const gnobc = await this.reloadlyService.getOperatorByCode(gnobcDto);
+            const gnobc = await (0, rxjs_1.firstValueFrom)(this.reloadlyService.getOperatorByCode(gnobcDto));
+            this.logger.debug(`Get operator by code response ==>${JSON.stringify(gnobc)}`);
             return gnobc;
         }
         catch (error) {
-            this.logger.error(`Error getting network operator by code: ${error}`);
+            this.logger.error(`Error getting operator by code: ${error}`);
             throw new Error('Internal server error');
+        }
+    }
+    async getFxRate(operatorId, amount, currencyCode) {
+        try {
+            if (!Number.isFinite(amount) || amount <= 0) {
+                throw new common_1.BadRequestException('Query param "amount" must be a positive number');
+            }
+            const res = await this.reloadlyService.fxRates({ operatorId, amount, currencyCode });
+            this.logger.debug(`FX rate response ==> ${JSON.stringify(res)}`);
+            return res;
+        }
+        catch (error) {
+            this.logger.error(`Error fetching FX rate: ${error?.message || error}`);
+            if (error instanceof common_1.HttpException) {
+                throw error;
+            }
+            throw new common_1.InternalServerErrorException('Failed to fetch FX rate');
         }
     }
 };
 exports.ReloadlyController = ReloadlyController;
 __decorate([
-    (0, common_1.Get)('/account-balance'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get account balance' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the account balance' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, common_1.Get)('account-balance'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Get Reloadly account balance' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Account balance retrieved successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ReloadlyController.prototype, "getAccountBalance", null);
 __decorate([
-    (0, common_1.Get)('/auth/access-token'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get access token' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the access token' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, common_1.Get)('access-token'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Generate Reloadly access token' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Access token generated successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], ReloadlyController.prototype, "getAccessToken", null);
+], ReloadlyController.prototype, "accessToken", null);
 __decorate([
-    (0, common_1.Get)('/countries'),
-    (0, swagger_1.ApiOperation)({ summary: 'List all countries' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the list of countries' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, common_1.Get)('country-list'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'List supported countries' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Supported countries listed successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], ReloadlyController.prototype, "listCountryList", null);
+], ReloadlyController.prototype, "countryList", null);
 __decorate([
-    (0, common_1.Post)('country/code'),
-    (0, swagger_1.ApiOperation)({ summary: 'Find country by code' }),
+    (0, common_1.Post)('find-country-by-code'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Find country by ISO code' }),
     (0, swagger_1.ApiBody)({
-        type: reloadly_dto_1.ReloadlyDto,
+        description: 'Country lookup payload',
         schema: {
             type: 'object',
             properties: {
-                countryCode: {
-                    type: 'string',
-                    description: 'The ISO country code',
-                    example: 'US'
-                }
+                countryCode: { type: 'string', description: '2-letter ISO country code', example: 'NG' },
+                isoCode: { type: 'string', description: 'Optional numeric/alpha-3 code if used', example: '566' }
             },
             required: ['countryCode']
-        },
-        examples: {
-            validRequest: {
-                value: {
-                    countryCode: 'US'
-                },
-                summary: 'Valid country code request'
-            }
         }
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the country details' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Country details fetched successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Country not found' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [reloadly_dto_1.ReloadlyDto]),
@@ -179,186 +192,138 @@ __decorate([
 ], ReloadlyController.prototype, "findCountryByCode", null);
 __decorate([
     (0, common_1.Post)('network-operators'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get network operators' }),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'List network operators with pagination and filters' }),
     (0, swagger_1.ApiBody)({
-        type: network_operators_dto_1.NetworkOperatorsDto,
+        description: 'Pagination and filter options',
         schema: {
             type: 'object',
             properties: {
-                size: {
-                    type: 'number',
-                    description: 'Number of items per page',
-                    example: 10,
-                    default: 10
-                },
-                page: {
-                    type: 'number',
-                    description: 'Page number',
-                    example: 2,
-                    default: 2
-                },
-                includeCombo: {
-                    type: 'boolean',
-                    description: 'Include combo offers',
-                    example: false,
-                    default: false
-                },
-                comboOnly: {
-                    type: 'boolean',
-                    description: 'Show only combo offers',
-                    example: false,
-                    default: false
-                },
-                bundlesOnly: {
-                    type: 'boolean',
-                    description: 'Show only bundles',
-                    example: false,
-                    default: false
-                },
-                dataOnly: {
-                    type: 'boolean',
-                    description: 'Show only data offers',
-                    example: false,
-                    default: false
-                },
-                pinOnly: {
-                    type: 'boolean',
-                    description: 'Show only PIN offers',
-                    example: false,
-                    default: false
-                }
+                size: { type: 'number', description: 'Page size', example: 10 },
+                page: { type: 'number', description: 'Page index (0-based)', example: 0 },
+                includeBundles: { type: 'boolean', example: true },
+                includeData: { type: 'boolean', example: true },
+                suggestedAmountsMap: { type: 'boolean', example: false },
+                includeCombo: { type: 'boolean', example: false },
+                comboOnly: { type: 'boolean', example: false },
+                bundlesOnly: { type: 'boolean', example: false },
+                dataOnly: { type: 'boolean', example: false },
+                pinOnly: { type: 'boolean', example: false }
             }
         },
         examples: {
-            validRequest: {
-                value: {
-                    size: 10,
-                    page: 1,
-                    includeCombo: false,
-                    comboOnly: false,
-                    bundlesOnly: false,
-                    dataOnly: false,
-                    pinOnly: false
-                },
-                summary: 'Valid network operators request'
+            default: {
+                value: { size: 10, page: 0, includeBundles: true, includeData: true },
+                summary: 'Basic operator list request'
             }
         }
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the list of network operators' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Operators listed successfully' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [network_operators_dto_1.NetworkOperatorsDto]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], ReloadlyController.prototype, "getNetworkOperators", null);
+], ReloadlyController.prototype, "networkOperators", null);
 __decorate([
-    (0, common_1.Post)('/operator-id'),
+    (0, common_1.Post)('find-operator-by-id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Find operator by ID' }),
     (0, swagger_1.ApiBody)({
-        type: network_operators_dto_1.NetworkOperatorsDto,
+        description: 'Operator lookup payload',
         schema: {
             type: 'object',
             properties: {
-                operatorId: {
-                    type: 'number',
-                    description: 'The ID of the operator',
-                    example: 1
-                }
+                operatorId: { type: 'number', description: 'Operator ID', example: 340 }
             },
             required: ['operatorId']
-        },
-        examples: {
-            validRequest: {
-                value: {
-                    operatorId: 1
-                },
-                summary: 'Valid operator ID request'
-            }
         }
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the operator details' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Operator details retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Operator not found' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [network_operators_dto_1.NetworkOperatorsDto]),
     __metadata("design:returntype", Promise)
 ], ReloadlyController.prototype, "findOperatorById", null);
 __decorate([
-    (0, common_1.Post)('/operator/autodetect'),
-    (0, swagger_1.ApiOperation)({ summary: 'Auto-detect operator' }),
+    (0, common_1.Post)('operator/autodetect'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Auto-detect operator by phone and country' }),
     (0, swagger_1.ApiBody)({
-        type: network_operators_dto_1.NetworkOperatorsDto,
+        description: 'Auto-detect payload',
         schema: {
             type: 'object',
             properties: {
-                countryCode: {
-                    type: 'string',
-                    description: 'The ISO country code',
-                    example: 'NG'
-                },
-                phoneNumber: {
-                    type: 'string',
-                    description: 'The phone number to detect the operator for',
-                    example: '2348012345678'
-                }
+                phone: { type: 'string', description: 'MSISDN of the subscriber', example: '233501234567' },
+                countryIsoCode: { type: 'string', description: '2-letter ISO country code', example: 'GH' },
+                suggestedAmountsMap: { type: 'boolean', example: true },
+                suggestedAmount: { type: 'boolean', example: false }
             },
-            required: ['countryCode', 'phoneNumber']
-        },
-        examples: {
-            validRequest: {
-                value: {
-                    countryCode: 'NG',
-                    phoneNumber: '2348012345678'
-                },
-                summary: 'Valid auto-detect operator request'
-            }
+            required: ['phone', 'countryIsoCode']
         }
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the auto-detected operator' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Detected operator returned' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Missing required fields' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [network_operators_dto_1.NetworkOperatorsDto]),
     __metadata("design:returntype", Promise)
 ], ReloadlyController.prototype, "autoDetectOperator", null);
 __decorate([
-    (0, common_1.Post)('/operator/country-code'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get network operator by country code' }),
+    (0, common_1.Post)('get-operator-by-code'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Get operators by country ISO code with filters' }),
     (0, swagger_1.ApiBody)({
-        type: network_operators_dto_1.NetworkOperatorsDto,
+        description: 'Country and filter options',
         schema: {
             type: 'object',
             properties: {
-                countryCode: {
-                    type: 'string',
-                    description: 'The ISO country code',
-                    example: 'NG'
-                }
+                countryIsoCode: { type: 'string', description: '2-letter ISO country code', example: 'NG' },
+                includePin: { type: 'boolean', example: false },
+                includeData: { type: 'boolean', example: false },
+                includeBundles: { type: 'boolean', example: false },
+                includeCombo: { type: 'boolean', example: false },
+                comboOnly: { type: 'boolean', example: false },
+                dataOnly: { type: 'boolean', example: false },
+                bundlesOnly: { type: 'boolean', example: false },
+                pinOnly: { type: 'boolean', example: false },
+                suggestedAmountsMap: { type: 'boolean', example: false },
+                suggestedAmount: { type: 'boolean', example: false }
             },
-            required: ['countryCode']
+            required: ['countryIsoCode']
         },
         examples: {
-            validRequest: {
-                value: {
-                    countryCode: 'NG'
-                },
-                summary: 'Valid network operator by country code request'
+            default: {
+                value: { countryIsoCode: 'NG', includeData: true },
+                summary: 'Fetch Nigerian operators including data'
             }
         }
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns the network operator details' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid input data' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Operators by country returned' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [network_operators_dto_1.NetworkOperatorsDto]),
     __metadata("design:returntype", Promise)
-], ReloadlyController.prototype, "getNetworkOperatorByCode", null);
+], ReloadlyController.prototype, "getOperatorByCode", null);
+__decorate([
+    (0, common_1.Get)('operators/:operatorId/fx-rate'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Fetch FX rate for operator and amount' }),
+    (0, swagger_1.ApiParam)({ name: 'operatorId', type: Number, description: 'Operator ID', example: 340 }),
+    (0, swagger_1.ApiQuery)({ name: 'amount', required: true, type: Number, description: 'Amount to convert', example: 10 }),
+    (0, swagger_1.ApiQuery)({ name: 'currencyCode', required: false, type: String, description: 'Currency code (optional)', example: 'USD' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'FX rate returned successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid query parameters' }),
+    __param(0, (0, common_1.Param)('operatorId', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Query)('amount', new common_1.ParseFloatPipe())),
+    __param(2, (0, common_1.Query)('currencyCode')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, String]),
+    __metadata("design:returntype", Promise)
+], ReloadlyController.prototype, "getFxRate", null);
 exports.ReloadlyController = ReloadlyController = ReloadlyController_1 = __decorate([
     (0, swagger_1.ApiTags)('Reloadly Services'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/v1/reloadly'),
     __metadata("design:paramtypes", [reloadly_service_1.ReloadlyService])

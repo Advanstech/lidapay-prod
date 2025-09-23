@@ -21,6 +21,7 @@ const swagger_1 = require("@nestjs/swagger");
 const user_or_merchant_guard_1 = require("../../auth/user-or-merchant.guard");
 const jwt_auth_guard_1 = require("../../auth/jwt-auth.guard");
 const merchant_auth_guard_1 = require("../../auth/merchant-auth.guard");
+const rxjs_1 = require("rxjs");
 let ReloadAirtimeController = ReloadAirtimeController_1 = class ReloadAirtimeController {
     constructor(reloadAirtimeService) {
         this.reloadAirtimeService = reloadAirtimeService;
@@ -35,7 +36,7 @@ let ReloadAirtimeController = ReloadAirtimeController_1 = class ReloadAirtimeCon
         return `we made it ...`;
     }
     async airtimeRecharge(airDto, req) {
-        console.debug(`airtime dto ==> ${airDto}`);
+        console.debug(`airtime dto ==> ${JSON.stringify(airDto)}`);
         this.logger.log(`topup airtime user => ${JSON.stringify(req.user)}`);
         airDto.userId = req.user.sub;
         airDto.userName = req.user.name || req.user.username;
@@ -55,6 +56,22 @@ let ReloadAirtimeController = ReloadAirtimeController_1 = class ReloadAirtimeCon
         }
         const aar = this.reloadAirtimeService.makeAsynchronousTopUp(aarDto);
         return aar;
+    }
+    async mnpLookup(phone, countryCode) {
+        if (!phone || !countryCode) {
+            throw new common_1.BadRequestException('phone and countryCode are required');
+        }
+        try {
+            const { accessToken } = await (0, rxjs_1.firstValueFrom)(this.reloadAirtimeService.generateAccessToken());
+            const result = await this.reloadAirtimeService.numberLookup(accessToken, phone, countryCode);
+            return result;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            throw new common_1.InternalServerErrorException('Failed to perform MNP lookup');
+        }
     }
     async getTopupStatus(transactionId) {
         try {
@@ -92,6 +109,7 @@ __decorate([
 ], ReloadAirtimeController.prototype, "testReloadLyAirtime", null);
 __decorate([
     (0, common_1.UseGuards)(user_or_merchant_guard_1.UserOrMerchantGuard),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true, transform: true })),
     (0, common_1.Post)('recharge'),
     (0, swagger_1.ApiOperation)({ summary: 'Recharge airtime' }),
     (0, swagger_1.ApiBody)({
@@ -163,6 +181,7 @@ __decorate([
 ], ReloadAirtimeController.prototype, "airtimeRecharge", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, merchant_auth_guard_1.MerchantAuthGuard),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true, transform: true })),
     (0, common_1.Post)('/recharge-async'),
     (0, swagger_1.ApiOperation)({ summary: 'Recharge airtime asynchronously' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Asynchronous airtime recharge initiated' }),
@@ -232,6 +251,29 @@ __decorate([
     __metadata("design:paramtypes", [reload_airtime_dto_1.ReloadAirtimeDto, Object]),
     __metadata("design:returntype", Promise)
 ], ReloadAirtimeController.prototype, "asyncAirtimeRecharge", null);
+__decorate([
+    (0, common_1.UseGuards)(user_or_merchant_guard_1.UserOrMerchantGuard),
+    (0, common_1.Post)('phone-lookup'),
+    (0, swagger_1.ApiOperation)({ summary: 'Validate phone number and detect operator (MNP Lookup)' }),
+    (0, swagger_1.ApiBody)({
+        description: 'Phone number lookup payload',
+        schema: {
+            type: 'object',
+            properties: {
+                phone: { type: 'string', example: '233241603241' },
+                countryCode: { type: 'string', example: 'GH' }
+            },
+            required: ['phone', 'countryCode']
+        }
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lookup successful' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'MNP Lookup for given phone number failed' }),
+    __param(0, (0, common_1.Body)('phone')),
+    __param(1, (0, common_1.Body)('countryCode')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], ReloadAirtimeController.prototype, "mnpLookup", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, merchant_auth_guard_1.MerchantAuthGuard),
     (0, common_1.Get)('topup-status/:transactionId'),
