@@ -131,7 +131,13 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         }
     }
     async initiatePayment(paymentData) {
+        this.logger.log('=== EXPRESSPAY SERVICE INITIATE PAYMENT START ===');
+        this.logger.log(`Received payment data: ${JSON.stringify(paymentData, null, 2)}`);
+        this.logger.log(`userId in service: "${paymentData.userId}"`);
+        this.logger.log(`userId type in service: ${typeof paymentData.userId}`);
         const localTransId = generator_util_1.GeneratorUtil.generateOrderId() || 'TNX-';
+        this.logger.log(`Generated transaction ID: ${localTransId}`);
+        this.logger.log(`Attempting to get user account number for userId: "${paymentData.userId}"`);
         const accountNumber = await this.getUserAccountNumber(paymentData.userId);
         this.logger.log(`Initiating payment for orderId: ${localTransId}`);
         this.logger.log(`User Account Number: ${accountNumber}`);
@@ -523,12 +529,39 @@ let ExpressPayService = ExpressPayService_1 = class ExpressPayService {
         };
     }
     async getUserAccountNumber(userId) {
-        const user = await this.userService.findOneById(userId);
-        if (user && user.account) {
-            const account = await this.userService.getAccountById(user.account.toString());
-            return account ? account.accountId : null;
+        this.logger.log(`=== GET USER ACCOUNT NUMBER START ===`);
+        this.logger.log(`Looking up user with userId: "${userId}"`);
+        this.logger.log(`userId type: ${typeof userId}`);
+        this.logger.log(`userId is null: ${userId === null}`);
+        this.logger.log(`userId is undefined: ${userId === undefined}`);
+        if (!userId || userId.trim() === '') {
+            this.logger.error('User ID is required but not provided to getUserAccountNumber');
+            throw new Error('User ID is required');
         }
-        return null;
+        try {
+            const user = await this.userService.findOneById(userId);
+            this.logger.log(`User found: ${user ? 'Yes' : 'No'}`);
+            if (user) {
+                this.logger.log(`User account: ${user.account}`);
+                this.logger.log(`User account type: ${typeof user.account}`);
+            }
+            if (user && user.account) {
+                const account = await this.userService.getAccountById(user.account.toString());
+                this.logger.log(`Account found: ${account ? 'Yes' : 'No'}`);
+                this.logger.log(`Account ID: ${account ? account.accountId : 'N/A'}`);
+                return account ? account.accountId : null;
+            }
+            this.logger.warn('User or account not found');
+            return null;
+        }
+        catch (error) {
+            this.logger.error(`Error in getUserAccountNumber: ${error.message}`);
+            this.logger.error(`Error stack: ${error.stack}`);
+            throw error;
+        }
+        finally {
+            this.logger.log(`=== GET USER ACCOUNT NUMBER END ===`);
+        }
     }
     async buildIpFormData(localTransId, paymentData, accountNumber) {
         return {

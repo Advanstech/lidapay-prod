@@ -102,7 +102,7 @@ export class AdvansispayController {
         transType: { type: 'string', example: 'MOMO' },
         payTransRef: { type: 'string', example: 'PAY-REF-12345' },
       },
-      required: ['firstName', 'lastName', 'email', 'phoneNumber', 'username', 'amount', 'orderDesc', 'userId', 'accountNumber', 'orderImgUrl', 'transType', 'payTransRef'],
+      required: ['firstName', 'lastName', 'email', 'phoneNumber', 'amount', 'userId'],
     },
   })
   @ApiResponse({ status: 201, description: 'Payment initiated successfully.' })
@@ -110,6 +110,27 @@ export class AdvansispayController {
   @ApiResponse({ status: 500, description: 'Internal server error.' })
   async initiatePayment(@Body() paymentData: InitiatePaymentDto): Promise<any> {
     try {
+      // Add comprehensive logging for debugging
+      this.logger.log('=== INITIATE PAYMENT REQUEST START ===');
+      this.logger.log(`Raw payment data received: ${JSON.stringify(paymentData, null, 2)}`);
+      this.logger.log(`userId type: ${typeof paymentData.userId}`);
+      this.logger.log(`userId value: "${paymentData.userId}"`);
+      this.logger.log(`userId is null: ${paymentData.userId === null}`);
+      this.logger.log(`userId is undefined: ${paymentData.userId === undefined}`);
+      this.logger.log(`userId is empty string: ${paymentData.userId === ''}`);
+      this.logger.log(`userId trim length: ${paymentData.userId?.trim()?.length || 0}`);
+
+      // Validate userId before proceeding
+      if (!paymentData.userId || paymentData.userId.trim() === '') {
+        this.logger.error('User ID validation failed');
+        this.logger.error(`userId value: "${paymentData.userId}"`);
+        this.logger.error(`userId type: ${typeof paymentData.userId}`);
+        throw new HttpException('User ID is required', HttpStatus.BAD_REQUEST);
+      }
+
+      this.logger.log('✅ User ID validation passed');
+      this.logger.log('=== INITIATE PAYMENT REQUEST END ===');
+
       const result = await this.expressPayService.initiatePayment(paymentData);
       return {
         status: 201,
@@ -117,6 +138,12 @@ export class AdvansispayController {
         data: result,
       };
     } catch (error) {
+      this.logger.error('=== INITIATE PAYMENT ERROR ===');
+      this.logger.error(`Error message: ${error.message}`);
+      this.logger.error(`Error status: ${error.status}`);
+      this.logger.error(`Error stack: ${error.stack}`);
+      this.logger.error('=== INITIATE PAYMENT ERROR END ===');
+      
       throw new HttpException(
         error.message || 'Internal server error.',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,

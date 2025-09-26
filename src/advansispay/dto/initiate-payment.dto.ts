@@ -52,7 +52,14 @@ export class InitiatePaymentDto {
 
     redirectUrl: string;
 
-    userId?: string;
+    @IsString({ message: 'User ID must be a string' })
+    @IsNotEmpty({ message: 'User ID is required' })
+    @Transform(({ value }) => {
+        console.log(`DTO Transform - userId value: "${value}"`);
+        console.log(`DTO Transform - userId type: ${typeof value}`);
+        return value?.trim();
+    })
+    userId: string;
     userName: string;
     transId: string;
     paymentType: string;

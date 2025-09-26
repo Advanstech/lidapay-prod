@@ -9,7 +9,7 @@ export declare class InitiatePaymentDto {
     orderDesc?: string;
     orderImgUrl?: string;
     redirectUrl: string;
-    userId?: string;
+    userId: string;
     userName: string;
     transId: string;
     paymentType: string;

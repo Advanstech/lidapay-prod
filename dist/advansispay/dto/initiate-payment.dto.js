@@ -66,4 +66,14 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], InitiatePaymentDto.prototype, "orderImgUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsString)({ message: 'User ID must be a string' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'User ID is required' }),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        console.log(`DTO Transform - userId value: "${value}"`);
+        console.log(`DTO Transform - userId type: ${typeof value}`);
+        return value?.trim();
+    }),
+    __metadata("design:type", String)
+], InitiatePaymentDto.prototype, "userId", void 0);
 //# sourceMappingURL=initiate-payment.dto.js.map
