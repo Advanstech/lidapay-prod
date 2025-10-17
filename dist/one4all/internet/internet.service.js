@@ -77,12 +77,15 @@ let InternetService = class InternetService {
                     tibParams.balance_after = tibRes.data.balance_after;
                     tibParams.commentary = `Data bundle reload successful for ${tibParams.recipientNumber}`;
                     this.transService.updateByTrxn(tibParams.trxn, {
-                        ...tibParams,
                         status: {
-                            transaction: 'completed',
+                            transaction: 'SUCCESSFUL',
                             service: 'completed',
                             payment: 'completed',
                         },
+                        paymentStatus: 'completed',
+                        paymentServiceCode: tibRes.data['status-code'],
+                        paymentServiceMessage: tibRes.data.message,
+                        paymentTransactionId: tibRes.data.trxn,
                         commentary: tibParams.commentary,
                     });
                     break;
@@ -105,9 +108,9 @@ let InternetService = class InternetService {
             }
             return tibRes.data;
         }), (0, operators_1.catchError)((tibError) => {
-            this.logger.error(`ERROR INTERNET DATA BUNDLE => ${JSON.stringify(tibError.data)}`);
-            this.handleTransactionFailure(tibParams, tibError.response.data);
-            const tibErrorMessage = tibError.response.data;
+            this.logger.error(`ERROR INTERNET DATA BUNDLE => ${JSON.stringify(tibError.response?.data || tibError.data)}`);
+            this.handleTransactionFailure(tibParams, tibError.response?.data || { 'status-code': 'ERROR', message: 'Network error' });
+            const tibErrorMessage = tibError.response?.data || tibError.message || 'Unknown error';
             throw new common_1.NotFoundException(tibErrorMessage);
         }));
     }
@@ -117,14 +120,17 @@ let InternetService = class InternetService {
         tibParams.serviceTransId = responseData.trxn;
         tibParams.transStatus = responseData.status;
         tibParams.serviceStatus = responseData.status;
-        tibParams.commentary = 'Transaction failed';
+        tibParams.commentary = `Data bundle reload failed: ${responseData.message || 'Unknown error'}`;
         this.transService.updateByTrxn(tibParams.trxn, {
-            ...tibParams,
             status: {
-                transaction: 'failed',
+                transaction: 'FAILED',
                 service: 'failed',
                 payment: 'failed',
             },
+            paymentStatus: 'failed',
+            paymentServiceCode: responseData['status-code'],
+            paymentServiceMessage: responseData.message,
+            paymentTransactionId: responseData.trxn,
             commentary: tibParams.commentary,
         });
     }
@@ -136,18 +142,35 @@ let InternetService = class InternetService {
         tibParams.serviceStatus = responseData.status;
         tibParams.commentary = 'Recharge requested but awaiting status';
         this.transService.updateByTrxn(tibParams.trxn, {
-            ...tibParams,
             status: {
                 transaction: 'pending',
-                service: 'pending',
+                service: 'inprogress',
                 payment: 'pending',
             },
+            paymentStatus: 'pending',
+            paymentServiceCode: responseData['status-code'],
+            paymentServiceMessage: responseData.message,
+            paymentTransactionId: responseData.trxn,
             commentary: tibParams.commentary,
         });
     }
     dataBundleList(transDto) {
-        const dblParams = { network: 0 || transDto.network };
-        const dblURL = this.DataUrl + `/TopUpApi/dataBundleList?network=${dblParams.network}`;
+        const { network } = transDto;
+        console.log('transDto network', transDto);
+        let networkId;
+        if (typeof network === 'string') {
+            networkId = parseInt(network, 10);
+            this.logger.debug(`Converted string network "${network}" to number: ${networkId}`);
+        }
+        else {
+            networkId = network;
+        }
+        if (networkId === undefined || networkId === null || isNaN(networkId)) {
+            this.logger.warn(`Invalid or missing network parameter: ${network}. Defaulting to 0 (All networks)`);
+            networkId = 0;
+        }
+        this.logger.debug(`Data bundle list request - Original network: ${network}, Using networkId: ${networkId}`);
+        const dblURL = this.DataUrl + `/TopUpApi/dataBundleList?network=${networkId}`;
         const configs = {
             url: dblURL,
             headers: { ApiKey: constants_1.ONE4ALL_APIKEY, ApiSecret: constants_1.ONE4ALL_APISECRET },
@@ -155,15 +178,15 @@ let InternetService = class InternetService {
                 rejectUnauthorized: false,
             }),
         };
-        this.logger.log(`DATA BUNDLE LIST payload config ==> ${JSON.stringify(configs)}`);
+        this.logger.log(`DATA BUNDLE LIST payload config ==> ${JSON.stringify(configs.url)}`);
         return this.httpService
             .get(configs.url, { httpsAgent: configs.agent, headers: configs.headers })
             .pipe((0, operators_1.map)((dblRes) => {
             this.logger.verbose(`DATA BUNDLE LIST server response => ${dblRes.data}`);
             return dblRes.data;
         }), (0, operators_1.catchError)((dblError) => {
-            this.logger.error(`ERROR DATA BUNDLE LIST => ${JSON.stringify(dblError.response.data)}`);
-            const dblErrorMessage = dblError.response.data;
+            this.logger.error(`ERROR DATA BUNDLE LIST => ${JSON.stringify(dblError.response?.data || dblError.data)}`);
+            const dblErrorMessage = dblError.response?.data || dblError.message || 'Unknown error';
             throw new common_1.NotFoundException(dblErrorMessage);
         }));
     }

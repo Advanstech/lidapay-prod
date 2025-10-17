@@ -16,6 +16,7 @@ exports.InternetController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const internet_dto_1 = require("./dto/internet.dto");
+const bundle_list_dto_1 = require("./dto/bundle-list.dto");
 const internet_service_1 = require("./internet.service");
 const jwt_auth_guard_1 = require("../../auth/jwt-auth.guard");
 let InternetController = class InternetController {
@@ -34,6 +35,12 @@ let InternetController = class InternetController {
         return ts;
     }
     async listDataBundle(ldbDto) {
+        this.logger.log(`Raw request body received: ${JSON.stringify(ldbDto)}`);
+        this.logger.log(`Network value: ${ldbDto.network}, Type: ${typeof ldbDto.network}`);
+        if (ldbDto.network && typeof ldbDto.network === 'string') {
+            ldbDto.network = parseInt(ldbDto.network, 10);
+            this.logger.debug(`Converted network string to number: ${ldbDto.network}`);
+        }
         this.logger.log(`BUNDLE LIST dto => ${JSON.stringify(ldbDto)}`);
         const ta = this.internetService.dataBundleList(ldbDto);
         return ta;
@@ -139,19 +146,8 @@ __decorate([
     (0, common_1.Post)('/bundlelist'),
     (0, swagger_1.ApiOperation)({ summary: 'List data bundles' }),
     (0, swagger_1.ApiBody)({
-        type: internet_dto_1.InternetDto,
+        type: bundle_list_dto_1.BundleListDto,
         description: 'Data bundle list request details',
-        schema: {
-            type: 'object',
-            properties: {
-                network: {
-                    type: 'number',
-                    description: 'Network code (0-9) 1: AirtelTigo, 4: MTN, 5: Telecel, 6: Telecel, 7: Glo, 8: Expresso, 9:Busy',
-                    example: 4
-                }
-            },
-            required: ['network']
-        },
         examples: {
             example1: {
                 value: {
@@ -164,6 +160,10 @@ __decorate([
                     network: 1
                 },
                 summary: 'AirtelTigo network bundle list request'
+            },
+            example3: {
+                value: {},
+                summary: 'All networks bundle list request'
             }
         }
     }),
@@ -231,7 +231,7 @@ __decorate([
     }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [internet_dto_1.InternetDto]),
+    __metadata("design:paramtypes", [bundle_list_dto_1.BundleListDto]),
     __metadata("design:returntype", Promise)
 ], InternetController.prototype, "listDataBundle", null);
 exports.InternetController = InternetController = __decorate([

@@ -14,5 +14,6 @@ export declare class ReloadlyDataService {
     buyInternetData(dto: ReloadDataDto): Promise<any>;
     autoDetectOperator(msisdn: string, countryCode: string): Promise<any>;
     listDataOperators(countryCode: string): Promise<any>;
+    getDataStatus(trxnId: string): Promise<any>;
     private reloadlyAccessToken;
 }

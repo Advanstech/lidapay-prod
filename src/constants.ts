@@ -37,7 +37,7 @@ export const PROCESSING_CODE_DEBIT = '000200';
 export const RELOADLY_CLIENT_ID = 'CeWx1z7JSzlpGERlbyU5plCicMUuqlo2';
 export const RELOADLY_CLIENT_ID_SANDBOX = 'g6hHzGVDJb7Pr7rqa1L6pFmxvs89BeY4';
 export const RELOADLY_CLIENT_SECRET =
-  'zecpjTBf11-xTOtpns8MdzUhlWWGFQ-Cf2bvyX9SD16SWx0RuZCCFUKzwO3jh5q';
+  'bi3Wp0PCtY-8nL2f0EfhoPpCsI7Wci-wLHNzyx62cWYtck1h2OoMTpTl9OofbfD';
 export const RELOADLY_CLIENT_SECRET_SANDBOX =
   'JgtN7maKY1-IvJGB8p2qdTtYyeYOyi-dFSebphTSudiyuUYJv3bNEvo7nlr2r3j';
 export const RELOADLY_GRANT_TYPE = 'client_credentials';

@@ -106,33 +106,106 @@ let ReloadlyDataService = ReloadlyDataService_1 = class ReloadlyDataService {
             if (!data || !data.status) {
                 throw new Error('Invalid response structure from Reloadly API');
             }
-            toSave.status.transaction = data.status;
-            toSave.payment.transactionId = data.transactionId;
-            toSave.payment.operatorTransactionId = data.operatorTransactionId;
-            toSave.payment.serviceMessage = data.message;
+            const reloadlyStatus = data.status;
+            let transactionStatus = 'pending';
+            let serviceStatus = 'inprogress';
+            let paymentStatus = 'pending';
+            if (reloadlyStatus === 'SUCCESSFUL' || reloadlyStatus === 'SUCCESS') {
+                transactionStatus = 'SUCCESSFUL';
+                serviceStatus = 'completed';
+                paymentStatus = 'completed';
+            }
+            else if (reloadlyStatus === 'FAILED' || reloadlyStatus === 'FAILURE') {
+                transactionStatus = 'FAILED';
+                serviceStatus = 'failed';
+                paymentStatus = 'failed';
+            }
+            else if (reloadlyStatus === 'PENDING' || reloadlyStatus === 'PROCESSING') {
+                transactionStatus = 'pending';
+                serviceStatus = 'inprogress';
+                paymentStatus = 'pending';
+            }
+            toSave.status.transaction = transactionStatus;
+            toSave.status.service = serviceStatus;
+            toSave.status.payment = paymentStatus;
+            toSave.payment.transactionId = data.transactionId || '';
+            toSave.payment.operatorTransactionId = data.operatorTransactionId || '';
+            toSave.payment.serviceMessage = data.message || '';
+            toSave.payment.status = paymentStatus;
+            toSave.payment.serviceCode = reloadlyStatus;
             toSave.monetary = {
-                amount: data.requestedAmount,
+                amount: data.requestedAmount || Number(amount),
                 fee: data.fee || 0,
                 discount: data.discount || 0,
-                originalAmount: data.requestedAmount?.toString?.() || String(amount),
+                originalAmount: (data.requestedAmount || Number(amount)).toString(),
                 currency: data.requestedAmountCurrencyCode || currency || 'GHS',
-                balance_before: data.balanceInfo?.oldBalance?.toString?.() || '0',
-                balance_after: data.balanceInfo?.newBalance?.toString?.() || '0',
-                currentBalance: data.balanceInfo?.currencyCode || '0',
-                deliveredAmount: data.deliveredAmount,
-                requestedAmount: data.requestedAmount
+                balance_before: data.balanceInfo?.oldBalance?.toString() || '0',
+                balance_after: data.balanceInfo?.newBalance?.toString() || '0',
+                currentBalance: data.balanceInfo?.currencyCode || currency || 'GHS',
+                deliveredAmount: data.deliveredAmount || 0,
+                requestedAmount: data.requestedAmount || Number(amount)
             };
-            this.transService.updateByTransId(toSave.transId, toSave);
+            if (transactionStatus === 'SUCCESSFUL') {
+                toSave.commentary = `Global data topup successful delivered to ${recipientNumber}`;
+            }
+            else if (transactionStatus === 'FAILED') {
+                toSave.commentary = `Global data topup failed: ${data.message || 'Unknown error'}`;
+            }
+            try {
+                const updateData = {
+                    status: {
+                        transaction: transactionStatus,
+                        service: serviceStatus,
+                        payment: paymentStatus
+                    },
+                    paymentStatus: paymentStatus,
+                    paymentServiceCode: reloadlyStatus,
+                    paymentServiceMessage: data.message || '',
+                    paymentTransactionId: data.transactionId || '',
+                    commentary: transactionStatus === 'SUCCESSFUL'
+                        ? `Global data topup successful delivered to ${recipientNumber}`
+                        : transactionStatus === 'FAILED'
+                            ? `Global data topup failed: ${data.message || 'Unknown error'}`
+                            : 'Global data topup transaction pending'
+                };
+                await this.transService.updateByTransId(toSave.transId, updateData);
+                this.logger.debug(`Data transaction ${toSave.transId} updated successfully with status: ${transactionStatus}`);
+            }
+            catch (updateError) {
+                this.logger.error(`Failed to update data transaction ${toSave.transId}: ${updateError.message}`);
+            }
             return data;
         }
         catch (error) {
             const message = error?.response?.data?.message || error?.message || 'Unknown error';
-            toSave.payment.serviceMessage = message;
+            const errorCode = error?.response?.data?.errorCode || 'UNKNOWN_ERROR';
             toSave.status.transaction = 'FAILED';
-            toSave.status.service = 'FAILED';
-            toSave.payment.serviceCode = error?.response?.data?.errorCode || 'Unknown code';
-            toSave.commentary = `Data reload failed: ${message}`;
-            this.transService.updateByTrxn(toSave.trxn, toSave);
+            toSave.status.service = 'failed';
+            toSave.status.payment = 'failed';
+            toSave.payment.serviceMessage = message;
+            toSave.payment.serviceCode = errorCode;
+            toSave.payment.status = 'failed';
+            toSave.payment.transactionId = error?.response?.data?.transactionId || '';
+            toSave.commentary = `Global data topup failed: ${message}`;
+            try {
+                const updateData = {
+                    status: {
+                        transaction: 'FAILED',
+                        service: 'failed',
+                        payment: 'failed'
+                    },
+                    paymentStatus: 'failed',
+                    paymentServiceCode: errorCode,
+                    paymentServiceMessage: message,
+                    paymentTransactionId: error?.response?.data?.transactionId || '',
+                    commentary: `Global data topup failed: ${message}`
+                };
+                await this.transService.updateByTrxn(toSave.trxn, updateData);
+                this.logger.debug(`Data transaction ${toSave.trxn} updated with FAILED status`);
+            }
+            catch (updateError) {
+                this.logger.error(`Failed to update failed data transaction ${toSave.trxn}: ${updateError.message}`);
+            }
             throw new common_1.NotFoundException(`Data top-up failed: ${message}`);
         }
     }
@@ -172,6 +245,70 @@ let ReloadlyDataService = ReloadlyDataService_1 = class ReloadlyDataService {
         catch (error) {
             this.logger.error(`List data operators failed: ${JSON.stringify(error?.response?.data)}`);
             throw new common_1.NotFoundException(error?.response?.data || 'Failed to list data operators');
+        }
+    }
+    async getDataStatus(trxnId) {
+        const accessToken = await this.reloadlyAccessToken();
+        const url = `${this.reloadLyBaseURL}/topups/${trxnId}/status`;
+        const headers = {
+            'Content-Type': 'application/json',
+            Accept: 'application/com.reloadly.topups-v1+json',
+            Authorization: `Bearer ${accessToken}`,
+        };
+        this.logger.debug(`Data status check URL: ${url}`);
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(url, { headers }));
+            const data = response.data;
+            this.logger.debug(`Data status response: ${JSON.stringify(data)}`);
+            if (data && data.status) {
+                const reloadlyStatus = data.status;
+                let transactionStatus = 'pending';
+                let serviceStatus = 'inprogress';
+                let paymentStatus = 'pending';
+                if (reloadlyStatus === 'SUCCESSFUL' || reloadlyStatus === 'SUCCESS') {
+                    transactionStatus = 'SUCCESSFUL';
+                    serviceStatus = 'completed';
+                    paymentStatus = 'completed';
+                }
+                else if (reloadlyStatus === 'FAILED' || reloadlyStatus === 'FAILURE') {
+                    transactionStatus = 'FAILED';
+                    serviceStatus = 'failed';
+                    paymentStatus = 'failed';
+                }
+                else if (reloadlyStatus === 'PENDING' || reloadlyStatus === 'PROCESSING') {
+                    transactionStatus = 'pending';
+                    serviceStatus = 'inprogress';
+                    paymentStatus = 'pending';
+                }
+                try {
+                    const updateData = {
+                        status: {
+                            transaction: transactionStatus,
+                            service: serviceStatus,
+                            payment: paymentStatus
+                        },
+                        paymentStatus: paymentStatus,
+                        paymentServiceCode: reloadlyStatus,
+                        paymentServiceMessage: data.message || '',
+                        paymentTransactionId: data.transactionId || '',
+                        commentary: transactionStatus === 'SUCCESSFUL'
+                            ? `Global data topup successful delivered`
+                            : transactionStatus === 'FAILED'
+                                ? `Global data topup failed: ${data.message || 'Unknown error'}`
+                                : 'Global data topup transaction pending'
+                    };
+                    await this.transService.updateByTransId(trxnId, updateData);
+                    this.logger.debug(`Data transaction ${trxnId} status updated to: ${transactionStatus}`);
+                }
+                catch (updateError) {
+                    this.logger.error(`Failed to update data transaction ${trxnId} status: ${updateError.message}`);
+                }
+            }
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`Error fetching data status: ${JSON.stringify(error?.response?.data)}`);
+            throw new common_1.NotFoundException(error?.response?.data || 'Failed to fetch data status');
         }
     }
     async reloadlyAccessToken() {

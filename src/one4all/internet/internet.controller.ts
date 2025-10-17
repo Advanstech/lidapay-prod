@@ -1,6 +1,7 @@
 import { Body, Controller, Logger, Post, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InternetDto } from './dto/internet.dto';
+import { BundleListDto } from './dto/bundle-list.dto';
 import { InternetService } from './internet.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -118,19 +119,8 @@ export class InternetController {
   @Post('/bundlelist')
   @ApiOperation({ summary: 'List data bundles' })
   @ApiBody({
-    type: InternetDto,
+    type: BundleListDto,
     description: 'Data bundle list request details',
-    schema: {
-      type: 'object',
-      properties: {
-        network: {
-          type: 'number',
-          description: 'Network code (0-9) 1: AirtelTigo, 4: MTN, 5: Telecel, 6: Telecel, 7: Glo, 8: Expresso, 9:Busy',
-          example: 4
-        }
-      },
-      required: ['network']
-    },
     examples: {
       example1: {
         value: {
@@ -143,6 +133,10 @@ export class InternetController {
           network: 1
         },
         summary: 'AirtelTigo network bundle list request'
+      },
+      example3: {
+        value: {},
+        summary: 'All networks bundle list request'
       }
     }
   })
@@ -209,8 +203,17 @@ export class InternetController {
     }
   })
   public async listDataBundle(
-    @Body() ldbDto: InternetDto
+    @Body() ldbDto: BundleListDto
   ): Promise<any> {
+    this.logger.log(`Raw request body received: ${JSON.stringify(ldbDto)}`);
+    this.logger.log(`Network value: ${ldbDto.network}, Type: ${typeof ldbDto.network}`);
+    
+    // Convert string network to number if needed
+    if (ldbDto.network && typeof ldbDto.network === 'string') {
+      ldbDto.network = parseInt(ldbDto.network, 10);
+      this.logger.debug(`Converted network string to number: ${ldbDto.network}`);
+    }
+    
     this.logger.log(`BUNDLE LIST dto => ${JSON.stringify(ldbDto)}`);
     const ta = this.internetService.dataBundleList(ldbDto);
     return ta;

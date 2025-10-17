@@ -7,7 +7,7 @@ export declare class InternetDto {
     readonly currentBalance: string;
     readonly recipientNumber: string;
     readonly dataCode: string;
-    readonly network: number;
+    network?: number;
     readonly transId: string;
     readonly currency: string;
     readonly fee?: string;

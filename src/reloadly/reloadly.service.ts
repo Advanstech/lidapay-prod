@@ -63,6 +63,7 @@ export class ReloadlyService {
           map((res) => res.data),
           catchError((err) => {
             const errorMessage = err.response?.data;
+            this.logger.error(`GET ACCOUNT BALANCE ERROR ===> ${JSON.stringify(errorMessage)}`);
             throw new NotFoundException(errorMessage);
           })
         );
@@ -77,7 +78,7 @@ export class ReloadlyService {
 
         const clURL = `${this.reloadLyBaseURL}/countries`;
         const config = {
-          url: clURL,  
+          url: clURL,
           headers: {
             "Content-Type": "application/json",
             Accept: "application/com.reloadly.topups-v1+json",
@@ -238,20 +239,20 @@ export class ReloadlyService {
           suggestedAmount: false
         };
 
-        const adoURL = this.reloadLyBaseURL + `/operators/auto-detect/phone/${adoPayload.phone}/countries/${adoPayload.countryisocode}?suggestedAmountsMap=${adoPayload.suggestedAmountsMap}&suggestedAmounts=${adoPayload.suggestedAmount}`;
-        console.log("adoURL params =>", adoURL);
+        const adoURL = this.reloadLyBaseURL + `/operators/auto-detect/phone/${adoPayload.phone}/countries/${adoPayload.countryisocode}`;
 
         const config = {
           url: adoURL,
           headers: {
-            "Content-Type": "application/json",
             Accept: "application/com.reloadly.topups-v1+json",
             Authorization: `Bearer ${adoPayload.accessToken}`
           }
         };
 
-        console.log("Auto Detect Operator: " + JSON.stringify(config));
+        console.log("Auto Detect Operator URL: " + JSON.stringify(config.url));
+        console.log("Auto Detect Operator Headers: " + JSON.stringify(config.headers));
 
+        
         return this.httpService
           .get(config.url, { headers: config.headers })
           .pipe(
@@ -356,7 +357,6 @@ export class ReloadlyService {
       throw new NotFoundException(message);
     }
   }
-
   // Get Access Token
   private async reloadlyAccessToken(): Promise<string> {
     const tokenPayload = {
@@ -371,9 +371,10 @@ export class ReloadlyService {
     try {
       const response = await firstValueFrom(this.httpService.post(tokenUrl, tokenPayload));
       const accessToken = response.data.access_token;
+      this.logger.debug(`[ACCESS TOKEN]==> response ${JSON.stringify(accessToken)}`);
       return accessToken;
     } catch (error) {
-      this.logger.error(`Error generating access token: ${error.message}`);
+      this.logger.error(`Error generating [ACCESS TOKEN]: ${error.message}`);
       throw new NotFoundException('Failed to generate access token');
     }
   }

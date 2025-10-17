@@ -57,6 +57,7 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
             };
             return this.httpService.get(url, { headers }).pipe((0, operators_1.map)((res) => res.data), (0, operators_1.catchError)((err) => {
                 const errorMessage = err.response?.data;
+                this.logger.error(`GET ACCOUNT BALANCE ERROR ===> ${JSON.stringify(errorMessage)}`);
                 throw new common_1.NotFoundException(errorMessage);
             }));
         }));
@@ -184,17 +185,16 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
                 suggestedAmountsMap: true,
                 suggestedAmount: false
             };
-            const adoURL = this.reloadLyBaseURL + `/operators/auto-detect/phone/${adoPayload.phone}/countries/${adoPayload.countryisocode}?suggestedAmountsMap=${adoPayload.suggestedAmountsMap}&suggestedAmounts=${adoPayload.suggestedAmount}`;
-            console.log("adoURL params =>", adoURL);
+            const adoURL = this.reloadLyBaseURL + `/operators/auto-detect/phone/${adoPayload.phone}/countries/${adoPayload.countryisocode}`;
             const config = {
                 url: adoURL,
                 headers: {
-                    "Content-Type": "application/json",
                     Accept: "application/com.reloadly.topups-v1+json",
                     Authorization: `Bearer ${adoPayload.accessToken}`
                 }
             };
-            console.log("Auto Detect Operator: " + JSON.stringify(config));
+            console.log("Auto Detect Operator URL: " + JSON.stringify(config.url));
+            console.log("Auto Detect Operator Headers: " + JSON.stringify(config.headers));
             return this.httpService
                 .get(config.url, { headers: config.headers })
                 .pipe((0, operators_1.map)((fobRes) => {
@@ -288,10 +288,11 @@ let ReloadlyService = ReloadlyService_1 = class ReloadlyService {
         try {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(tokenUrl, tokenPayload));
             const accessToken = response.data.access_token;
+            this.logger.debug(`[ACCESS TOKEN]==> response ${JSON.stringify(accessToken)}`);
             return accessToken;
         }
         catch (error) {
-            this.logger.error(`Error generating access token: ${error.message}`);
+            this.logger.error(`Error generating [ACCESS TOKEN]: ${error.message}`);
             throw new common_1.NotFoundException('Failed to generate access token');
         }
     }

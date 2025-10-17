@@ -7,7 +7,7 @@ export class InternetDto {
   readonly currentBalance: string;
   readonly recipientNumber: string;
   readonly dataCode: string;
-  readonly network: number;
+  network?: number; // Made optional for dataBundleList
   readonly transId: string;
   readonly currency: string;
   readonly fee?: string;

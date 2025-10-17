@@ -174,45 +174,132 @@ export class ReloadAirtimeService {
     return this.httpService
       .post(config.url, config.body, { headers: config.headers })
       .pipe(
-        map((mtRes) => {
+        map(async (mtRes) => {
           // Validate response structure
           if (!mtRes.data || !mtRes.data.status) {
             throw new Error('Invalid response structure from Reloadly API');
           }
+          
+          // Map Reloadly status to our transaction status
+          const reloadlyStatus = mtRes.data.status;
+          let transactionStatus = 'pending';
+          let serviceStatus = 'inprogress';
+          let paymentStatus = 'pending';
+          
+          if (reloadlyStatus === 'SUCCESSFUL' || reloadlyStatus === 'SUCCESS') {
+            transactionStatus = 'SUCCESSFUL';
+            serviceStatus = 'completed';
+            paymentStatus = 'completed';
+          } else if (reloadlyStatus === 'FAILED' || reloadlyStatus === 'FAILURE') {
+            transactionStatus = 'FAILED';
+            serviceStatus = 'failed';
+            paymentStatus = 'failed';
+          } else if (reloadlyStatus === 'PENDING' || reloadlyStatus === 'PROCESSING') {
+            transactionStatus = 'pending';
+            serviceStatus = 'inprogress';
+            paymentStatus = 'pending';
+          }
+          
           // Update transaction status after successful top-up
-          mtPayloadSave.status.transaction = mtRes.data.status; // e.g., "SUCCESSFUL"
-          mtPayloadSave.payment.transactionId = mtRes.data.transactionId; // Transaction ID from the payment service
-          mtPayloadSave.payment.operatorTransactionId = mtRes.data.operatorTransactionId; // Operator transaction ID
-          mtPayloadSave.payment.serviceMessage = mtRes.data.message; // Service message
+          mtPayloadSave.status.transaction = transactionStatus;
+          mtPayloadSave.status.service = serviceStatus;
+          mtPayloadSave.status.payment = paymentStatus;
+          
+          // Update payment details
+          mtPayloadSave.payment.transactionId = mtRes.data.transactionId || '';
+          mtPayloadSave.payment.operatorTransactionId = mtRes.data.operatorTransactionId || '';
+          mtPayloadSave.payment.serviceMessage = mtRes.data.message || '';
+          mtPayloadSave.payment.status = paymentStatus;
+          mtPayloadSave.payment.serviceCode = reloadlyStatus;
+          
           // Populate monetary details
           mtPayloadSave.monetary = {
-            amount: mtRes.data.requestedAmount, // Amount requested
+            amount: mtRes.data.requestedAmount || Number(amount), // Amount requested
             fee: mtRes.data.fee || 0, // Fee from the response
             discount: mtRes.data.discount || 0, // Update discount from response, default to 0 if not available
-            originalAmount: mtRes.data.requestedAmount.toString(), // Assuming original amount is the same as requested
-            currency: mtRes.data.requestedAmountCurrencyCode || 'GHS', // Currency code
-            balance_before: mtRes.data.balanceInfo.oldBalance.toString(), // Old balance
-            balance_after: mtRes.data.balanceInfo.newBalance.toString(), // New balance
-            currentBalance: mtRes.data.balanceInfo.currencyCode, // Current balance
-            deliveredAmount: mtRes.data.deliveredAmount, // Amount delivered
-            requestedAmount: mtRes.data.requestedAmount // Amount requested
+            originalAmount: (mtRes.data.requestedAmount || Number(amount)).toString(), // Original amount
+            currency: mtRes.data.requestedAmountCurrencyCode || currency || 'GHS', // Currency code
+            balance_before: mtRes.data.balanceInfo?.oldBalance?.toString() || '0', // Old balance
+            balance_after: mtRes.data.balanceInfo?.newBalance?.toString() || '0', // New balance
+            currentBalance: mtRes.data.balanceInfo?.currencyCode || currency || 'GHS', // Current balance
+            deliveredAmount: mtRes.data.deliveredAmount || 0, // Amount delivered
+            requestedAmount: mtRes.data.requestedAmount || Number(amount) // Amount requested
           };
+          
+          // Update commentary based on status
+          if (transactionStatus === 'SUCCESSFUL') {
+            mtPayloadSave.commentary = `Global ${airDto.transType?.toLowerCase() || 'airtime'} topup successful delivered to ${recipientNumber}`;
+          } else if (transactionStatus === 'FAILED') {
+            mtPayloadSave.commentary = `Global ${airDto.transType?.toLowerCase() || 'airtime'} topup failed: ${mtRes.data.message || 'Unknown error'}`;
+          }
+          
           // Update the transaction in the database
-          this.transService.updateByTransId(mtPayloadSave.transId, mtPayloadSave as UpdateTransactionDto);
+          try {
+            const updateData = {
+              status: {
+                transaction: transactionStatus,
+                service: serviceStatus,
+                payment: paymentStatus
+              },
+              paymentStatus: paymentStatus,
+              paymentServiceCode: reloadlyStatus,
+              paymentServiceMessage: mtRes.data.message || '',
+              paymentTransactionId: mtRes.data.transactionId || '',
+              commentary: transactionStatus === 'SUCCESSFUL' 
+                ? `Global ${airDto.transType?.toLowerCase() || 'airtime'} topup successful delivered to ${recipientNumber}`
+                : transactionStatus === 'FAILED' 
+                  ? `Global ${airDto.transType?.toLowerCase() || 'airtime'} topup failed: ${mtRes.data.message || 'Unknown error'}`
+                  : 'Global airtime topup transaction pending'
+            };
+            
+            await this.transService.updateByTransId(mtPayloadSave.transId, updateData as UpdateTransactionDto);
+            this.logger.debug(`Transaction ${mtPayloadSave.transId} updated successfully with status: ${transactionStatus}`);
+          } catch (updateError) {
+            this.logger.error(`Failed to update transaction ${mtPayloadSave.transId}: ${updateError.message}`);
+          }
 
           return mtRes.data;
         }),
-        catchError((mtError) => {
+        catchError(async (mtError) => {
           // Log the full error response for debugging
           this.logger.error(`MAKE ASYNC TOP-UP ERROR --- ${JSON.stringify(mtError.response?.data)}`);
           const matErrorMessage = mtError.response?.data?.message || 'Unknown error';
+          const errorCode = mtError.response?.data?.errorCode || 'UNKNOWN_ERROR';
+          
+          // Update transaction status for failure
+          mtPayloadSave.status.transaction = 'FAILED';
+          mtPayloadSave.status.service = 'failed';
+          mtPayloadSave.status.payment = 'failed';
+          
+          // Update payment details for failure
           mtPayloadSave.payment.serviceMessage = matErrorMessage;
-          mtPayloadSave.status.transaction = 'FAILED'; // Update transaction status
-          mtPayloadSave.status.service = 'FAILED'; // Update service status
-          mtPayloadSave.payment.serviceCode = mtError.response?.data?.errorCode || 'Unknown code'; // Update service code
-          mtPayloadSave.commentary = `Airtime reload failed: ${matErrorMessage}`; // Update commentary
+          mtPayloadSave.payment.serviceCode = errorCode;
+          mtPayloadSave.payment.status = 'failed';
+          mtPayloadSave.payment.transactionId = mtError.response?.data?.transactionId || '';
+          
+          // Update commentary
+          mtPayloadSave.commentary = `Global ${airDto.transType?.toLowerCase() || 'airtime'} reload failed: ${matErrorMessage}`;
+          
           // Update the transaction status in the database
-          this.transService.updateByTrxn(mtPayloadSave.trxn, mtPayloadSave as UpdateTransactionDto);
+          try {
+            const updateData = {
+              status: {
+                transaction: 'FAILED',
+                service: 'failed',
+                payment: 'failed'
+              },
+              paymentStatus: 'failed',
+              paymentServiceCode: errorCode,
+              paymentServiceMessage: matErrorMessage,
+              paymentTransactionId: mtError.response?.data?.transactionId || '',
+              commentary: `Global ${airDto.transType?.toLowerCase() || 'airtime'} reload failed: ${matErrorMessage}`
+            };
+            
+            await this.transService.updateByTrxn(mtPayloadSave.trxn, updateData as UpdateTransactionDto);
+            this.logger.debug(`Transaction ${mtPayloadSave.trxn} updated with FAILED status`);
+          } catch (updateError) {
+            this.logger.error(`Failed to update failed transaction ${mtPayloadSave.trxn}: ${updateError.message}`);
+          }
 
           // Throw a more informative error
           throw new NotFoundException(`Asynchronous top-up failed: ${matErrorMessage}`);
@@ -328,33 +415,118 @@ export class ReloadAirtimeService {
     return this.httpService
       .post(config.url, config.body, { headers: config.headers })
       .pipe(
-        map((matRes) => {
+        map(async (matRes) => {
           // Validate response structure
           if (!matRes.data || !matRes.data.status) {
             throw new Error('Invalid response structure from Reloadly API');
           }
+          
+          // Map Reloadly status to our transaction status
+          const reloadlyStatus = matRes.data.status;
+          let transactionStatus = 'pending';
+          let serviceStatus = 'inprogress';
+          let paymentStatus = 'pending';
+          
+          if (reloadlyStatus === 'SUCCESSFUL' || reloadlyStatus === 'SUCCESS') {
+            transactionStatus = 'SUCCESSFUL';
+            serviceStatus = 'completed';
+            paymentStatus = 'completed';
+          } else if (reloadlyStatus === 'FAILED' || reloadlyStatus === 'FAILURE') {
+            transactionStatus = 'FAILED';
+            serviceStatus = 'failed';
+            paymentStatus = 'failed';
+          } else if (reloadlyStatus === 'PENDING' || reloadlyStatus === 'PROCESSING') {
+            transactionStatus = 'pending';
+            serviceStatus = 'inprogress';
+            paymentStatus = 'pending';
+          }
+          
           // Update transaction status after successful top-up
-          matPayloadSave.status.transaction = matRes.data.status;
-          matPayloadSave.payment.transactionId = matRes.data.transactionId;
-          matPayloadSave.payment.serviceMessage = matRes.data.message;
+          matPayloadSave.status.transaction = transactionStatus;
+          matPayloadSave.status.service = serviceStatus;
+          matPayloadSave.status.payment = paymentStatus;
+          
+          // Update payment details
+          matPayloadSave.payment.transactionId = matRes.data.transactionId || '';
+          matPayloadSave.payment.operatorTransactionId = matRes.data.operatorTransactionId || '';
+          matPayloadSave.payment.serviceMessage = matRes.data.message || '';
+          matPayloadSave.payment.status = paymentStatus;
+          matPayloadSave.payment.serviceCode = reloadlyStatus;
+          
+          // Update commentary based on status
+          if (transactionStatus === 'SUCCESSFUL') {
+            matPayloadSave.commentary = `Global ${matDto.transType?.toLowerCase() || 'airtime'} topup successful delivered to ${recipientNumber}`;
+          } else if (transactionStatus === 'FAILED') {
+            matPayloadSave.commentary = `Global ${matDto.transType?.toLowerCase() || 'airtime'} topup failed: ${matRes.data.message || 'Unknown error'}`;
+          }
 
           // Update the transaction in the database
-          this.transService.updateByTransId(matPayloadSave.transId, matPayloadSave as UpdateTransactionDto);
+          try {
+            const updateData = {
+              status: {
+                transaction: transactionStatus,
+                service: serviceStatus,
+                payment: paymentStatus
+              },
+              paymentStatus: paymentStatus,
+              paymentServiceCode: reloadlyStatus,
+              paymentServiceMessage: matRes.data.message || '',
+              paymentTransactionId: matRes.data.transactionId || '',
+              commentary: transactionStatus === 'SUCCESSFUL' 
+                ? `Global ${matDto.transType?.toLowerCase() || 'airtime'} topup successful delivered to ${recipientNumber}`
+                : transactionStatus === 'FAILED' 
+                  ? `Global ${matDto.transType?.toLowerCase() || 'airtime'} topup failed: ${matRes.data.message || 'Unknown error'}`
+                  : 'Global airtime topup transaction pending'
+            };
+            
+            await this.transService.updateByTransId(matPayloadSave.transId, updateData as UpdateTransactionDto);
+            this.logger.debug(`Async transaction ${matPayloadSave.transId} updated successfully with status: ${transactionStatus}`);
+          } catch (updateError) {
+            this.logger.error(`Failed to update async transaction ${matPayloadSave.transId}: ${updateError.message}`);
+          }
 
           return matRes.data;
         }),
-        catchError((matError) => {
+        catchError(async (matError) => {
           this.logger.error(`MAKE ASYNC TOP-UP ERROR --- ${JSON.stringify(matError)}`);
           const matErrorMessage = matError.response?.data?.message || 'Unknown error';
+          const errorCode = matError.response?.data?.errorCode || 'UNKNOWN_ERROR';
+          
+          // Update transaction status for failure
+          matPayloadSave.status.transaction = 'FAILED';
+          matPayloadSave.status.service = 'failed';
+          matPayloadSave.status.payment = 'failed';
+          
+          // Update payment details for failure
           matPayloadSave.payment.serviceMessage = matErrorMessage;
-          matPayloadSave.status.transaction = 'FAILED'; // Update transaction status
-          matPayloadSave.status.service = 'FAILED'; // Update service status
-          matPayloadSave.payment.serviceCode = matError.response?.data?.errorCode || 'Unknown code'; // Update service code
-          matPayloadSave.commentary = `Airtime reload failed: ${matErrorMessage}`; // Update commentary
+          matPayloadSave.payment.serviceCode = errorCode;
+          matPayloadSave.payment.status = 'failed';
+          matPayloadSave.payment.transactionId = matError.response?.data?.transactionId || '';
+          
+          // Update commentary
+          matPayloadSave.commentary = `Global ${matDto.transType?.toLowerCase() || 'airtime'} reload failed: ${matErrorMessage}`;
 
           console.debug('matPayload save: ', matPayloadSave.trxn);
           // Update the transaction status in the database
-          this.transService.updateByTrxn(matPayloadSave.trxn, matPayloadSave as UpdateTransactionDto);
+          try {
+            const updateData = {
+              status: {
+                transaction: 'FAILED',
+                service: 'failed',
+                payment: 'failed'
+              },
+              paymentStatus: 'failed',
+              paymentServiceCode: errorCode,
+              paymentServiceMessage: matErrorMessage,
+              paymentTransactionId: matError.response?.data?.transactionId || '',
+              commentary: `Global ${matDto.transType?.toLowerCase() || 'airtime'} reload failed: ${matErrorMessage}`
+            };
+            
+            await this.transService.updateByTrxn(matPayloadSave.trxn, updateData as UpdateTransactionDto);
+            this.logger.debug(`Async transaction ${matPayloadSave.trxn} updated with FAILED status`);
+          } catch (updateError) {
+            this.logger.error(`Failed to update failed async transaction ${matPayloadSave.trxn}: ${updateError.message}`);
+          }
 
           // Throw a more informative error
           throw new NotFoundException(`Asynchronous top-up failed: ${matErrorMessage}`);
@@ -378,11 +550,59 @@ export class ReloadAirtimeService {
       const response = await firstValueFrom(
         this.httpService.get(config.url, { headers: config.headers })
           .pipe(
-            map((gtsRes) => {
+            map(async (gtsRes) => {
               this.logger.debug(
-                `RELOADLY AIRTIME TOPUP  STATUS --- ${JSON.stringify(gtsRes.data)}`,
-              )
-
+                `RELOADLY AIRTIME TOPUP STATUS --- ${JSON.stringify(gtsRes.data)}`,
+              );
+              
+              // Update transaction status based on Reloadly status
+              if (gtsRes.data && gtsRes.data.status) {
+                const reloadlyStatus = gtsRes.data.status;
+                let transactionStatus = 'pending';
+                let serviceStatus = 'inprogress';
+                let paymentStatus = 'pending';
+                
+                if (reloadlyStatus === 'SUCCESSFUL' || reloadlyStatus === 'SUCCESS') {
+                  transactionStatus = 'SUCCESSFUL';
+                  serviceStatus = 'completed';
+                  paymentStatus = 'completed';
+                } else if (reloadlyStatus === 'FAILED' || reloadlyStatus === 'FAILURE') {
+                  transactionStatus = 'FAILED';
+                  serviceStatus = 'failed';
+                  paymentStatus = 'failed';
+                } else if (reloadlyStatus === 'PENDING' || reloadlyStatus === 'PROCESSING') {
+                  transactionStatus = 'pending';
+                  serviceStatus = 'inprogress';
+                  paymentStatus = 'pending';
+                }
+                
+                // Update transaction in database
+                try {
+                  const updateData = {
+                    status: {
+                      transaction: transactionStatus,
+                      service: serviceStatus,
+                      payment: paymentStatus
+                    },
+                    paymentStatus: paymentStatus,
+                    paymentServiceCode: reloadlyStatus,
+                    paymentServiceMessage: gtsRes.data.message || '',
+                    paymentTransactionId: gtsRes.data.transactionId || '',
+                    commentary: transactionStatus === 'SUCCESSFUL' 
+                      ? `Global topup successful delivered` 
+                      : transactionStatus === 'FAILED' 
+                        ? `Global topup failed: ${gtsRes.data.message || 'Unknown error'}`
+                        : 'Global topup transaction pending'
+                  };
+                  
+                  await this.transService.updateByTransId(trxnId, updateData as UpdateTransactionDto);
+                  this.logger.debug(`Transaction ${trxnId} status updated to: ${transactionStatus}`);
+                } catch (updateError) {
+                  this.logger.error(`Failed to update transaction ${trxnId} status: ${updateError.message}`);
+                }
+              }
+              
+              return gtsRes.data;
             }),
             catchError(error => {
               this.logger.error(`Error fetching topup status: ${JSON.stringify(error.response?.data)}`);
