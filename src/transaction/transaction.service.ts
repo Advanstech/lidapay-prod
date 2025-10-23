@@ -416,12 +416,17 @@ export class TransactionService {
           }
         });
     }
-    // Handle status updates
+    // Handle status updates (support both nested `status` and flat fields)
     if (this.hasStatusFields(dto)) {
       update['status'] = {};
-      if (dto.status?.transaction) update.status.transaction = dto.status.transaction;
-      if (dto.status?.service) update.status.service = dto.status.service;
-      if (dto.status?.payment) update.status.payment = dto.status.payment;
+      // Nested `status` object
+      if (dto.status?.transaction !== undefined) update.status.transaction = dto.status.transaction;
+      if (dto.status?.service !== undefined) update.status.service = dto.status.service;
+      if (dto.status?.payment !== undefined) update.status.payment = dto.status.payment;
+      // Flat fields mapping
+      if (dto.transStatus !== undefined) update.status.transaction = dto.transStatus;
+      if (dto.serviceStatus !== undefined) update.status.service = dto.serviceStatus;
+      if (dto.paymentStatus !== undefined) update.status.payment = dto.paymentStatus;
     }
     // Handle payment updates
     if (this.hasPaymentFields(dto)) {
@@ -467,8 +472,14 @@ export class TransactionService {
       .some(field => dto[field] !== undefined);
   }
   private hasStatusFields(dto: any): boolean {
-    return ['transStatus', 'serviceStatus', 'paymentStatus']
+    const hasFlat = ['transStatus', 'serviceStatus', 'paymentStatus']
       .some(field => dto[field] !== undefined);
+    const hasNested = !!(dto.status && (
+      dto.status.transaction !== undefined ||
+      dto.status.service !== undefined ||
+      dto.status.payment !== undefined
+    ));
+    return hasFlat || hasNested;
   }
   // has payment field
   private hasPaymentFields(dto: any): boolean {

@@ -328,12 +328,18 @@ let TransactionService = TransactionService_1 = class TransactionService {
         }
         if (this.hasStatusFields(dto)) {
             update['status'] = {};
-            if (dto.status?.transaction)
+            if (dto.status?.transaction !== undefined)
                 update.status.transaction = dto.status.transaction;
-            if (dto.status?.service)
+            if (dto.status?.service !== undefined)
                 update.status.service = dto.status.service;
-            if (dto.status?.payment)
+            if (dto.status?.payment !== undefined)
                 update.status.payment = dto.status.payment;
+            if (dto.transStatus !== undefined)
+                update.status.transaction = dto.transStatus;
+            if (dto.serviceStatus !== undefined)
+                update.status.service = dto.serviceStatus;
+            if (dto.paymentStatus !== undefined)
+                update.status.payment = dto.paymentStatus;
         }
         if (this.hasPaymentFields(dto)) {
             update['payment'] = {};
@@ -374,8 +380,12 @@ let TransactionService = TransactionService_1 = class TransactionService {
             .some(field => dto[field] !== undefined);
     }
     hasStatusFields(dto) {
-        return ['transStatus', 'serviceStatus', 'paymentStatus']
+        const hasFlat = ['transStatus', 'serviceStatus', 'paymentStatus']
             .some(field => dto[field] !== undefined);
+        const hasNested = !!(dto.status && (dto.status.transaction !== undefined ||
+            dto.status.service !== undefined ||
+            dto.status.payment !== undefined));
+        return hasFlat || hasNested;
     }
     hasPaymentFields(dto) {
         return ['paymentCurrency', 'paymentCommentary', 'paymentStatus', 'paymentServiceCode', 'paymentTransactionId', 'paymentOperatorTransactionId']
